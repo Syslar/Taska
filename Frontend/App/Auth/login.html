@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Taska</title>
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="auth-shell">
+
+  <!-- LEFT: brand panel -->
+  <div class="auth-side">
+    <div class="auth-side-content">
+      <a href="../../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
+      <h2>Escrow-protected tasks, verified people, real accountability.</h2>
+      <p>Every Tasker on the platform verifies their identity before they can accept paid work. Every payment sits safely in escrow until you approve what was delivered.</p>
+
+      <div class="auth-quote">
+        <p>"Posted a task at 9pm, had proof of completion with photos by the next afternoon. Didn't have to chase anybody."</p>
+        <div class="who mono">— Chiamaka O., Task Poster</div>
+      </div>
+    </div>
+
+    <div class="auth-side-content" style="margin-top: 40px;">
+      <div style="display:flex; gap:28px;">
+        <div>
+          <div class="mono" style="font-size:1.3rem; font-weight:600;">41,800+</div>
+          <div style="color:#8FB89C; font-size:0.78rem;">Tasks completed</div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:1.3rem; font-weight:600;">4.8/5</div>
+          <div style="color:#8FB89C; font-size:0.78rem;">Average rating</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: form panel -->
+  <div class="auth-form-side">
+    <div class="auth-form-wrap">
+
+      <div class="auth-tabs" role="tablist">
+        <a href="login.html" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
+        <a href="signup.html" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
+      </div>
+
+      <!-- LOGIN PANEL -->
+      <div id="login-panel">
+        <h1 style="font-size:1.5rem; margin-bottom:6px;">Welcome back</h1>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:28px;">Log in to manage your tasks and payments.</p>
+
+        <form id="login-form">
+          <div class="field-group">
+            <label class="field-label" for="loginEmail">Email address</label>
+            <input class="text-input" type="email" id="loginEmail" placeholder="you@example.com" required>
+            <span class="field-error">Enter your email to continue.</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="loginPassword">Password</label>
+            <input class="text-input" type="password" id="loginPassword" placeholder="••••••••" required>
+            <span class="field-error">Enter your password to continue.</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--ink-soft);">
+              <input type="checkbox" style="accent-color:var(--green-700);"> Keep me logged in
+            </label>
+            <a href="#" style="font-size:0.85rem; font-weight:600; color:var(--green-700);">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">Log in</button>
+        </form>
+
+        <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
+          Don't have an account? <a href="signup.html" style="color:var(--green-700); font-weight:600;">Sign up</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+
+<!-- Clerk JS Integration -->
+<script
+  defer
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script>
+  window.addEventListener('load', async function () {
+    try {
+      await window.Clerk.load();
+      
+      if (window.Clerk.session) {
+        // Already logged in
+        window.location.replace('../Dashboard/dashboard.html');
+      }
+
+      document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const identifier = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        try {
+          const signInAttempt = await window.Clerk.client.signIn.create({
+            identifier,
+            password,
+          });
+          
+          if (signInAttempt.status === 'complete') {
+            await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
+            window.location.replace('../Dashboard/dashboard.html');
+          } else {
+            console.warn('Sign in requires further steps', signInAttempt);
+            if (window.showToast) window.showToast('Further verification required. Please use standard Clerk UI for full flow if this happens often.');
+          }
+        } catch (err) {
+          console.error('Login error:', err);
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Login failed';
+          if (window.showToast) window.showToast(errorMsg);
+        }
+      });
+    } catch (err) {
+      console.error('Clerk loading failed:', err);
+    }
+  });
+</script>
+</body>
+</html>

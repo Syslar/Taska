@@ -1,0 +1,253 @@
+// schema.prisma
+// Mirrors the SQL tables already applied to Supabase via migration 001_initial_schema.
+// Run: npx prisma generate  (generates the client — do NOT run prisma migrate in prod;
+//      migrations are managed via Supabase MCP / SQL files directly)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
+}
+
+enum UserRole {
+  POSTER
+  TASKER
+  ADMIN
+}
+
+enum TaskStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  PROOF_SUBMITTED
+  COMPLETED
+  DISPUTED
+  CANCELLED
+  CLOSED
+}
+
+enum BudgetType {
+  FIXED
+  OPEN_BID
+}
+
+enum TaskType {
+  PHYSICAL
+  REMOTE
+}
+
+enum PaymentStatus {
+  PENDING
+  HELD_IN_ESCROW
+  RELEASED
+  REFUNDED
+  FAILED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+model Profile {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @unique          // user_id from Clerk
+  role          UserRole
+  firstName     String
+  lastName      String
+  phone         String    @unique
+  email         String    @unique
+  avatarUrl     String?
+  location      String?
+  bio           String?
+  kycStatus     KycStatus @default(NOT_STARTED)
+  kycRef        String?
+  isVerified    Boolean   @default(false)
+  averageRating Float?
+  totalReviews  Int       @default(0)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  tasksPosted     Task[]        @relation("PosterTasks")
+  applications    Application[]
+  reviewsGiven    Review[]      @relation("ReviewsGiven")
+  reviewsReceived Review[]      @relation("ReviewsReceived")
+  wallet          Wallet?
+  messages        Message[]
+}
+
+model Task {
+  id               String     @id @default(uuid()) @db.Uuid
+  posterId         String     @db.Uuid
+  poster           Profile    @relation("PosterTasks", fields: [posterId], references: [id])
+  assignedTo       String?    @db.Uuid
+  title            String
+  description      String
+  category         String
+  taskType         TaskType
+  location         String?
+  budgetType       BudgetType
+  budget           Float?
+  budgetMin        Float?
+  budgetMax        Float?
+  deadline         DateTime?  @db.Timestamptz(6)
+  preferredTime    String?
+  status           TaskStatus @default(OPEN)
+  proofUrls        String[]   @default([])
+  proofSubmittedAt DateTime?  @db.Timestamptz(6)
+  completedAt      DateTime?  @db.Timestamptz(6)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+
+  applications Application[]
+  payment      Payment?
+  reviews      Review[]
+  messages     Message[]
+
+  @@index([posterId])
+  @@index([status])
+  @@index([category])
+}
+
+model Application {
+  id         String   @id @default(uuid()) @db.Uuid
+  taskId     String   @db.Uuid
+  task       Task     @relation(fields: [taskId], references: [id])
+  taskerId   String   @db.Uuid
+  tasker     Profile  @relation(fields: [taskerId], references: [id])
+  bidAmount  Float?
+  message    String?
+  isSelected Boolean  @default(false)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([taskId, taskerId])
+  @@index([taskId])
+  @@index([taskerId])
+}
+
+model Payment {
+  id                  String        @id @default(uuid()) @db.Uuid
+  taskId              String        @unique @db.Uuid
+  task                Task          @relation(fields: [taskId], references: [id])
+  posterId            String        @db.Uuid
+  taskerId            String        @db.Uuid
+  amount              Float
+  taskerAmount        Float
+  fee                 Float
+  currency            String        @default("NGN")
+  status              PaymentStatus @default(PENDING)
+  provider            String
+  providerRef         String?
+  providerPaymentLink String?
+  escrowFundedAt      DateTime?     @db.Timestamptz(6)
+  releasedAt          DateTime?     @db.Timestamptz(6)
+  refundedAt          DateTime?     @db.Timestamptz(6)
+  failureReason       String?
+  createdAt           DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime      @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([posterId])
+  @@index([taskerId])
+  @@index([status])
+}
+
+model Wallet {
+  id                String             @id @default(uuid()) @db.Uuid
+  profileId         String             @unique @db.Uuid
+  profile           Profile            @relation(fields: [profileId], references: [id])
+  balance           Float              @default(0)
+  escrowBalance     Float              @default(0)
+  lifetimeEarned    Float              @default(0)
+  lifetimeWithdrawn Float              @default(0)
+  updatedAt         DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+
+  transactions WalletTransaction[]
+  withdrawals  Withdrawal[]
+}
+
+model WalletTransaction {
+  id        String   @id @default(uuid()) @db.Uuid
+  walletId  String   @db.Uuid
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  type      String   // "credit" | "debit" | "escrow_hold" | "escrow_release" | "top_up"
+  amount    Float
+  reference String
+  note      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([walletId])
+}
+
+model Withdrawal {
+  id            String           @id @default(uuid()) @db.Uuid
+  walletId      String           @db.Uuid
+  wallet        Wallet           @relation(fields: [walletId], references: [id])
+  amount        Float
+  bankCode      String
+  accountNumber String
+  accountName   String
+  status        WithdrawalStatus @default(PENDING)
+  providerRef   String?
+  failureReason String?
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([walletId])
+}
+
+model Review {
+  id         String   @id @default(uuid()) @db.Uuid
+  taskId     String   @db.Uuid
+  task       Task     @relation(fields: [taskId], references: [id])
+  reviewerId String   @db.Uuid
+  reviewer   Profile  @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  revieweeId String   @db.Uuid
+  reviewee   Profile  @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([taskId, reviewerId])
+  @@index([revieweeId])
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  taskId    String    @db.Uuid
+  task      Task      @relation(fields: [taskId], references: [id])
+  senderId  String    @db.Uuid
+  sender    Profile   @relation(fields: [senderId], references: [id])
+  body      String
+  mediaUrl  String?
+  readAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([taskId])
+  @@index([senderId])
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   // user_id from Clerk
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, isRead])
+}

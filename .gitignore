@@ -1,0 +1,7 @@
+TASKA_AGENTS.md
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert

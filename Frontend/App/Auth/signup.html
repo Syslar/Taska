@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign up — Taska</title>
+<link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+<div class="auth-shell">
+
+  <!-- LEFT: brand panel -->
+  <div class="auth-side">
+    <div class="auth-side-content">
+      <a href="../../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
+      <h2>Escrow-protected tasks, verified people, real accountability.</h2>
+      <p>Every Tasker on the platform verifies their identity before they can accept paid work. Every payment sits safely in escrow until you approve what was delivered.</p>
+
+      <div class="auth-quote">
+        <p>"Posted a task at 9pm, had proof of completion with photos by the next afternoon. Didn't have to chase anybody."</p>
+        <div class="who mono">— Chiamaka O., Task Poster</div>
+      </div>
+    </div>
+
+    <div class="auth-side-content" style="margin-top: 40px;">
+      <div style="display:flex; gap:28px;">
+        <div>
+          <div class="mono" style="font-size:1.3rem; font-weight:600;">41,800+</div>
+          <div style="color:#8FB89C; font-size:0.78rem;">Tasks completed</div>
+        </div>
+        <div>
+          <div class="mono" style="font-size:1.3rem; font-weight:600;">4.8/5</div>
+          <div style="color:#8FB89C; font-size:0.78rem;">Average rating</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: form panel -->
+  <div class="auth-form-side">
+    <div class="auth-form-wrap">
+
+      <div class="auth-tabs" role="tablist">
+        <a href="login.html" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
+        <a href="signup.html" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
+      </div>
+
+      <!-- SIGNUP PANEL -->
+      <div id="signup-panel">
+        <h1 style="font-size:1.5rem; margin-bottom:6px;">Create your account</h1>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:22px;">Tell us what you're here to do.</p>
+
+        <div class="toggle-group" data-toggle-group="role" style="width:100%; margin-bottom:24px;">
+          <div class="toggle-option is-active" data-role="poster" style="flex:1; text-align:center;">I need a task done</div>
+          <div class="toggle-option" data-role="tasker" style="flex:1; text-align:center;">I want to earn</div>
+        </div>
+
+        <form id="signup-form">
+          <div class="input-row">
+            <div class="field-group">
+              <label class="field-label" for="fname">First name</label>
+              <input class="text-input" type="text" id="fname" placeholder="Ada" required>
+              <span class="field-error">First name is required.</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="lname">Last name</label>
+              <input class="text-input" type="text" id="lname" placeholder="Nwosu" required>
+              <span class="field-error">Last name is required.</span>
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="suPhone">Phone number</label>
+            <input class="text-input" type="text" id="suPhone" placeholder="080X XXX XXXX" required>
+            <span class="field-error">Phone number is required for OTP verification.</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="suEmail">Email address</label>
+            <input class="text-input" type="email" id="suEmail" placeholder="ada@email.com" required>
+            <span class="field-error">Enter a valid email address.</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label" for="suPassword">Create a password</label>
+            <input class="text-input" type="password" id="suPassword" placeholder="At least 8 characters" required>
+            <span class="field-hint">Use a mix of letters and numbers — this protects your wallet too.</span>
+            <span class="field-error">Password must be at least 8 characters.</span>
+          </div>
+          <label style="display:flex; align-items:flex-start; gap:10px; font-size:0.82rem; color:var(--muted); margin-bottom:22px;">
+            <input type="checkbox" id="termsAgree" style="accent-color:var(--green-700); margin-top:2px;" required>
+            I agree to Taska's Terms of Service and Privacy Policy.
+          </label>
+          <!-- Required by Clerk headless custom flow for Cloudflare Turnstile CAPTCHA -->
+          <div id="clerk-captcha" style="margin-bottom:16px;"></div>
+          <button type="submit" class="btn btn-primary btn-block">Create account</button>
+        </form>
+
+        <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
+          Already have an account? <a href="login.html" style="color:var(--green-700); font-weight:600;">Log in</a>
+        </p>
+      </div>
+
+      <!-- OTP PANEL -->
+      <div id="otp-panel" style="display:none;">
+        <h1 style="font-size:1.5rem; margin-bottom:6px;">Verify your number/email</h1>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:28px;">We sent a verification code to you.</p>
+        
+        <form id="otp-form">
+          <div class="field-group">
+            <label class="field-label" for="otpCode">Verification Code</label>
+            <input class="text-input" type="text" id="otpCode" placeholder="Enter code" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" data-toast="Verified">Verify</button>
+        </form>
+        
+        <p style="text-align:center; margin-top:20px; font-size:0.85rem; color:var(--muted);">
+          Didn't get a code? <a href="#" id="resend-code" style="color:var(--green-700); font-weight:600;">Resend</a>
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../../../js/main.js"></script>
+
+<!-- Clerk JS Integration -->
+<script
+  defer
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script>
+  window.addEventListener('load', async function () {
+    try {
+      await window.Clerk.load();
+      
+      if (window.Clerk.session) {
+        window.location.replace('../Dashboard/dashboard.html');
+      }
+
+      const signupForm = document.getElementById('signup-form');
+      const otpForm = document.getElementById('otp-form');
+      const signupPanel = document.getElementById('signup-panel');
+      const otpPanel = document.getElementById('otp-panel');
+      let currentSignUpAttempt = null;
+      let isEmailVerification = true;
+      let userRole = 'poster';
+
+      // Capture role selection
+      document.querySelectorAll('.toggle-option').forEach(el => {
+        el.addEventListener('click', (e) => {
+          userRole = el.dataset.role;
+        });
+      });
+
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const firstName = document.getElementById('fname').value;
+        const lastName = document.getElementById('lname').value;
+        const phoneNumber = document.getElementById('suPhone').value;
+        const emailAddress = document.getElementById('suEmail').value;
+        const password = document.getElementById('suPassword').value;
+        
+        try {
+          currentSignUpAttempt = await window.Clerk.client.signUp.create({
+            firstName,
+            lastName,
+            emailAddress,
+            phoneNumber,
+            password
+          });
+          
+          await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+          isEmailVerification = true;
+
+          // Hide signup, show OTP
+          signupPanel.style.display = 'none';
+          otpPanel.style.display = 'block';
+          
+          if (window.showToast) window.showToast('Verification code sent to your email.');
+
+        } catch (err) {
+          console.error('Signup error:', err);
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Signup failed';
+          if (window.showToast) window.showToast(errorMsg);
+        }
+      });
+
+      otpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('otpCode').value;
+        
+        try {
+          const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({
+            code
+          });
+
+          if (verifyAttempt.status === 'complete') {
+            await window.Clerk.setActive({ session: verifyAttempt.createdSessionId });
+            
+            // Sync user to our backend
+            const token = await window.Clerk.session.getToken();
+            const res = await fetch('/auth/register', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                firstName: document.getElementById('fname').value,
+                lastName: document.getElementById('lname').value,
+                phone: document.getElementById('suPhone').value,
+                email: document.getElementById('suEmail').value,
+                role: userRole.toUpperCase()
+              })
+            });
+
+            if (res.ok) {
+              window.location.replace('../Dashboard/dashboard.html');
+            } else {
+              const data = await res.json();
+              if (window.showToast) window.showToast(data.message || 'Failed to create profile.');
+            }
+          } else {
+            console.warn('Verification requires further steps', verifyAttempt);
+            if (window.showToast) window.showToast('Further verification required.');
+          }
+        } catch (err) {
+          console.error('OTP Verification error:', err);
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Invalid code';
+          if (window.showToast) window.showToast(errorMsg);
+        }
+      });
+
+      document.getElementById('resend-code').addEventListener('click', async (e) => {
+        e.preventDefault();
+        try {
+          await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+          if (window.showToast) window.showToast('Verification code resent.');
+        } catch (err) {
+          if (window.showToast) window.showToast('Failed to resend code.');
+        }
+      });
+
+    } catch (err) {
+      console.error('Clerk loading failed:', err);
+    }
+  });
+</script>
+</body>
+</html>
