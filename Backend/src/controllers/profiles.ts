@@ -2,30 +2,20 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import { supabase } from '../utils/supabase';
 import { AppError } from '../utils/errors';
+import { ensureProfile } from '../utils/ensureProfile';
 
 // ─── GET /profiles/me ─────────────────────────────────────────────────────────
 
 export async function getMe(req: Request, res: Response): Promise<void> {
   if (!req.user) throw new AppError('Not authenticated', 401);
 
-  const { data: profile } = await supabase
-    .from('Profile')
-    .select('*, Wallet(*)')
-    .eq('userId', req.user.id)
-    .single();
-
-  if (!profile) {
-    throw new AppError('Profile not found. Please complete registration.', 404);
+  // Auto-provision profile if it doesn't exist
+  const result = await ensureProfile(req.user.id);
+  if (!result) {
+    throw new AppError('Could not load or create your profile.', 500);
   }
 
-  // Format response to match Prisma's output style for frontend compatibility
-  const formattedProfile = {
-    ...profile,
-    wallet: profile.Wallet && profile.Wallet.length > 0 ? profile.Wallet[0] : null
-  };
-  delete formattedProfile.Wallet;
-
-  res.json({ success: true, profile: formattedProfile });
+  res.json({ success: true, profile: result.profile });
 }
 
 // ─── PUT /profiles/me ─────────────────────────────────────────────────────────

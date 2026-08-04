@@ -13,7 +13,7 @@
   <!-- LEFT: brand panel -->
   <div class="auth-side">
     <div class="auth-side-content">
-      <a href="../../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
+      <a href="../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
       <h2>Escrow-protected tasks, verified people, real accountability.</h2>
       <p>Every Tasker on the platform verifies their identity before they can accept paid work. Every payment sits safely in escrow until you approve what was delivered.</p>
 
@@ -80,7 +80,7 @@
   </div>
 </div>
 
-<script src="../../../js/main.js"></script>
+<script src="../../js/main.js"></script>
 
 <!-- Clerk JS Integration -->
 <script
@@ -96,32 +96,73 @@
       await window.Clerk.load();
       
       if (window.Clerk.session) {
-        // Already logged in
+        // Already logged in — go to dashboard
         window.location.replace('../Dashboard/dashboard.html');
+        return;
       }
 
       document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const identifier = document.getElementById('loginEmail').value;
         const password = document.getElementById('loginPassword').value;
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in…';
         
         try {
+          // Step 1: Create the sign-in attempt
           const signInAttempt = await window.Clerk.client.signIn.create({
             identifier,
             password,
           });
           
           if (signInAttempt.status === 'complete') {
+            // Password was accepted directly
             await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
+            
+            // Sync profile to backend (in case it doesn't exist yet)
+            try {
+              const token = await window.Clerk.session.getToken();
+              await fetch('http://localhost:4000/api/v1/profiles/me', {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+            } catch (_) { /* ignore — profile fetch is best-effort */ }
+
             window.location.replace('../Dashboard/dashboard.html');
-          } else {
-            console.warn('Sign in requires further steps', signInAttempt);
-            if (window.showToast) window.showToast('Further verification required. Please use standard Clerk UI for full flow if this happens often.');
+            return;
           }
+          
+          if (signInAttempt.status === 'needs_first_factor') {
+            // Try submitting password as first factor
+            const firstFactorResult = await signInAttempt.attemptFirstFactor({
+              strategy: 'password',
+              password,
+            });
+            
+            if (firstFactorResult.status === 'complete') {
+              await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
+              window.location.replace('../Dashboard/dashboard.html');
+              return;
+            }
+          }
+          
+          if (signInAttempt.status === 'needs_second_factor') {
+            if (window.showToast) window.showToast('Two-factor authentication is not yet supported. Please disable 2FA in your Clerk account settings.');
+            return;
+          }
+
+          // Fallback
+          console.warn('Unhandled sign-in status:', signInAttempt.status, signInAttempt);
+          if (window.showToast) window.showToast('Login could not be completed. Please try again.');
+          
         } catch (err) {
           console.error('Login error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Login failed';
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Incorrect email or password.';
           if (window.showToast) window.showToast(errorMsg);
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Log in';
         }
       });
     } catch (err) {

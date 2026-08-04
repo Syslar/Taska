@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../utils/supabase';
 import { AppError } from '../utils/errors';
+import { ensureProfile } from '../utils/ensureProfile';
 
 // ─── GET /api/v1/dashboard ────────────────────────────────────────────────────
 
@@ -8,18 +9,13 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
   const userId = req.user?.id;
   if (!userId) throw new AppError('Not authenticated.', 401);
 
-  // 1. Find profile & wallet
-  const { data: profile, error: profileErr } = await supabase
-    .from('Profile')
-    .select('*, Wallet(*)')
-    .eq('userId', userId)
-    .single();
-
-  if (profileErr || !profile) {
-    throw new AppError('Profile not found. Please complete registration.', 404);
+  // Auto-provision profile if it doesn't exist (handles broken signups)
+  const result = await ensureProfile(userId);
+  if (!result) {
+    throw new AppError('Could not load or create your profile. Please try signing up again.', 500);
   }
 
-  const wallet = profile.Wallet?.[0] || null;
+  const { profile, wallet } = result;
 
   // 2. Find recent wallet transactions
   let recentTransactions = [];

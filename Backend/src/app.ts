@@ -9,6 +9,8 @@ import { logger } from './utils/logger';
 import authRouter      from './routes/auth';
 import profilesRouter  from './routes/profiles';
 import dashboardRouter from './routes/dashboard';
+import tasksRouter     from './routes/tasks';
+import walletRouter    from './routes/wallet';
 
 export const app = express();
 
@@ -56,6 +58,8 @@ app.get('/health', (_req: Request, res: Response) => {
 app.use('/api/v1/auth',      authRouter);
 app.use('/api/v1/profiles',  profilesRouter);
 app.use('/api/v1/dashboard', dashboardRouter);
+app.use('/api/v1/tasks',     tasksRouter);
+app.use('/api/v1/wallet',    walletRouter);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 

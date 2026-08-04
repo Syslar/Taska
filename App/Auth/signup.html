@@ -118,7 +118,7 @@
   <!-- LEFT: brand panel -->
   <div class="auth-side">
     <div class="auth-side-content">
-      <a href="../../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
+      <a href="../../index.html" class="logo" style="color:#fff;"><span class="logo-mark" style="background:rgba(255,255,255,0.16);">T</span>Taska</a>
       <h2>Escrow-protected tasks, verified people, real accountability.</h2>
       <p>Every Tasker on the platform verifies their identity before they can accept paid work. Every payment sits safely in escrow until you approve what was delivered.</p>
 
@@ -255,7 +255,7 @@
   </div>
 </div>
 
-<script src="../../../js/main.js"></script>
+<script src="../../js/main.js"></script>
 
 <!-- Clerk JS Integration -->
 <script
@@ -323,7 +323,7 @@
 
     usernameCheckTimer = setTimeout(async function () {
       try {
-        const res = await fetch(`/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
+        const res = await fetch(`http://localhost:4000/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
         
         if (!res.ok) {
           throw new Error('Backend check failed');
@@ -401,29 +401,34 @@
         const fullPhone  = '+234' + digitsOnly;
 
         // Sync user to our backend
-        const token = await window.Clerk.session.getToken();
-        const res = await fetch('/api/v1/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            username: document.getElementById('suUsername').value.trim().toLowerCase(),
-            firstName: document.getElementById('fname').value,
-            lastName: document.getElementById('lname').value,
-            phone: fullPhone,
-            email: document.getElementById('suEmail').value,
-            role: userRole.toUpperCase()
-          })
-        });
+        try {
+          const token = await window.Clerk.session.getToken();
+          const res = await fetch('http://localhost:4000/api/v1/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              username: document.getElementById('suUsername').value.trim().toLowerCase(),
+              firstName: document.getElementById('fname').value,
+              lastName: document.getElementById('lname').value,
+              phone: fullPhone,
+              email: document.getElementById('suEmail').value,
+              role: userRole.toUpperCase()
+            })
+          });
 
-        if (res.ok) {
-          window.location.replace('../Dashboard/dashboard.html');
-        } else {
-          const data = await res.json();
-          if (window.showToast) window.showToast(data.error || data.message || 'Failed to create profile.');
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            console.warn('Backend register returned error:', data);
+          }
+        } catch (err) {
+          console.warn('Backend register call failed:', err);
         }
+
+        // Always redirect — the dashboard auth-guard will handle missing profiles
+        window.location.replace('../Dashboard/dashboard.html');
       }
 
       // ── Signup form submit ──────────────────────────────────────────────────
