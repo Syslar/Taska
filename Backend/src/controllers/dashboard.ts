@@ -1,73 +1,83 @@
 import { Request, Response } from 'express';
-import { prisma } from '../prisma/client';
+import { supabase } from '../utils/supabase';
 import { AppError } from '../utils/errors';
 
 // ─── GET /api/v1/dashboard ────────────────────────────────────────────────────
 
-/**
- * Returns all data needed to render the dashboard in one request:
- *  - Profile (name, role, avatar, rating)
- *  - Wallet (balance, escrow balance)
- *  - Active tasks (tasks that belong to the user, not yet completed/cancelled)
- *  - Recent wallet transactions (last 5)
- */
 export async function getDashboard(req: Request, res: Response): Promise<void> {
   const userId = req.user?.id;
   if (!userId) throw new AppError('Not authenticated.', 401);
 
-  // Find the profile linked to this Clerk user
-  const profile = await prisma.profile.findUnique({
-    where: { userId },
-    include: {
-      wallet: {
-        include: {
-          transactions: {
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          },
-        },
-      },
-      tasksPosted: {
-        where: {
-          status: {
-            in: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PROOF_SUBMITTED'],
-          },
-        },
-        orderBy: { updatedAt: 'desc' },
-        take: 5,
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          budget: true,
-          budgetType: true,
-          assignedTo: true,
-          applications: {
-            where: { isSelected: true },
-            select: {
-              tasker: {
-                select: { firstName: true, lastName: true },
-              },
-            },
-            take: 1,
-          },
-          _count: { select: { applications: true } },
-        },
-      },
-    },
-  });
+  // 1. Find profile & wallet
+  const { data: profile, error: profileErr } = await supabase
+    .from('Profile')
+    .select('*, Wallet(*)')
+    .eq('userId', userId)
+    .single();
 
-  if (!profile) {
+  if (profileErr || !profile) {
     throw new AppError('Profile not found. Please complete registration.', 404);
   }
 
-  // Completed task count
-  const completedCount = await prisma.task.count({
-    where: {
-      posterId: profile.id,
-      status: { in: ['COMPLETED', 'CLOSED'] },
-    },
-  });
+  const wallet = profile.Wallet?.[0] || null;
+
+  // 2. Find recent wallet transactions
+  let recentTransactions = [];
+  if (wallet) {
+    const { data: txs } = await supabase
+      .from('WalletTransaction')
+      .select('*')
+      .eq('walletId', wallet.id)
+      .order('createdAt', { ascending: false })
+      .limit(5);
+    recentTransactions = txs || [];
+  }
+
+  // 3. Find active tasks
+  const { data: activeTasks } = await supabase
+    .from('Task')
+    .select('id, title, status, budget, budgetType, assignedTo')
+    .eq('posterId', profile.id)
+    .in('status', ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PROOF_SUBMITTED'])
+    .order('updatedAt', { ascending: false })
+    .limit(5);
+
+  // Manually fetch application counts & selected taskers for these tasks
+  const tasksWithDetails = [];
+  if (activeTasks && activeTasks.length > 0) {
+    for (const task of activeTasks) {
+      // Get count of applications
+      const { count } = await supabase
+        .from('Application')
+        .select('*', { count: 'exact', head: true })
+        .eq('taskId', task.id);
+      
+      // Get selected application
+      const { data: selectedApps } = await supabase
+        .from('Application')
+        .select('*, Profile!taskerId(firstName, lastName)')
+        .eq('taskId', task.id)
+        .eq('isSelected', true)
+        .limit(1);
+
+      const applications = selectedApps?.map((app: any) => ({
+        tasker: app.Profile
+      })) || [];
+
+      tasksWithDetails.push({
+        ...task,
+        applications,
+        _count: { applications: count || 0 }
+      });
+    }
+  }
+
+  // 4. Find completed tasks count
+  const { count: completedCount } = await supabase
+    .from('Task')
+    .select('*', { count: 'exact', head: true })
+    .eq('posterId', profile.id)
+    .in('status', ['COMPLETED', 'CLOSED']);
 
   res.json({
     success: true,
@@ -83,19 +93,19 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
         kycStatus: profile.kycStatus,
         isVerified: profile.isVerified,
       },
-      wallet: profile.wallet
+      wallet: wallet
         ? {
-            balance: profile.wallet.balance,
-            escrowBalance: profile.wallet.escrowBalance,
-            lifetimeEarned: profile.wallet.lifetimeEarned,
-            recentTransactions: profile.wallet.transactions,
+            balance: wallet.balance,
+            escrowBalance: wallet.escrowBalance,
+            lifetimeEarned: wallet.lifetimeEarned,
+            recentTransactions,
           }
         : null,
       stats: {
-        activeTasks: profile.tasksPosted.length,
-        completedTasks: completedCount,
+        activeTasks: activeTasks?.length || 0,
+        completedTasks: completedCount || 0,
       },
-      activeTasks: profile.tasksPosted,
+      activeTasks: tasksWithDetails,
     },
   });
 }

@@ -2,7 +2,7 @@ import './types'; // Express Request augmentation (req.user, req.profile)
 import 'dotenv/config';
 
 import { app } from './app';
-import { prisma } from './prisma/client';
+
 import { logger } from './utils/logger';
 
 const PORT = process.env.PORT ?? 4000;
@@ -18,8 +18,7 @@ async function shutdown(signal: string) {
 
   server.close(async () => {
     logger.info('HTTP server closed');
-    await prisma.$disconnect();
-    logger.info('Prisma disconnected');
+
     process.exit(0);
   });
 

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
-import { prisma } from '../prisma/client';
+import { supabase } from '../utils/supabase';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
@@ -24,10 +24,11 @@ export async function checkUsername(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const existing = await prisma.profile.findFirst({
-    where: { username: { equals: username, mode: 'insensitive' } },
-    select: { id: true },
-  });
+  const { data: existing } = await supabase
+    .from('Profile')
+    .select('id')
+    .ilike('username', username)
+    .maybeSingle();
 
   if (existing) {
     // Generate 4 suggestions
@@ -69,9 +70,11 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 
   // Check if profile already exists (idempotent)
-  const existing = await prisma.profile.findUnique({
-    where: { userId },
-  });
+  const { data: existing } = await supabase
+    .from('Profile')
+    .select('*')
+    .eq('userId', userId)
+    .maybeSingle();
 
   if (existing) {
     res.status(200).json({ success: true, profile: existing });
@@ -79,16 +82,22 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 
   // Check if username is taken (extra guard — frontend already checks live)
-  const usernameTaken = await prisma.profile.findFirst({
-    where: { username: { equals: username?.trim().toLowerCase(), mode: 'insensitive' } },
-    select: { id: true },
-  });
-  if (usernameTaken) {
-    throw new AppError('That username is already taken. Please choose another.', 409);
+  if (username) {
+    const cleanUsername = username.trim().toLowerCase();
+    const { data: usernameTaken } = await supabase
+      .from('Profile')
+      .select('id')
+      .ilike('username', cleanUsername)
+      .maybeSingle();
+      
+    if (usernameTaken) {
+      throw new AppError('That username is already taken. Please choose another.', 409);
+    }
   }
 
-  const profile = await prisma.profile.create({
-    data: {
+  const { data: profile, error: profileErr } = await supabase
+    .from('Profile')
+    .insert({
       userId,
       email: email ?? '',
       firstName,
@@ -96,13 +105,23 @@ export async function register(req: Request, res: Response): Promise<void> {
       phone,
       role,
       username: username?.trim().toLowerCase(),
-    },
-  });
+    })
+    .select()
+    .single();
+
+  if (profileErr || !profile) {
+    logger.error('Failed to create profile', profileErr as any);
+    throw new AppError('Failed to create user profile.', 500);
+  }
 
   // Also create a Wallet record for the new user
-  await prisma.wallet.create({
-    data: { profileId: profile.id },
-  });
+  const { error: walletErr } = await supabase
+    .from('Wallet')
+    .insert({ profileId: profile.id });
+    
+  if (walletErr) {
+    logger.error('Failed to create wallet', walletErr as any);
+  }
 
   logger.info('New profile created via Clerk signup', { profileId: profile.id, role });
 

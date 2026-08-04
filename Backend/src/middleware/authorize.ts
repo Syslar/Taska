@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { UserRole } from '@prisma/client';
-import { prisma } from '../prisma/client';
+import { supabase } from '../utils/supabase';
 import { AppError } from '../utils/errors';
+
+export type UserRole = 'POSTER' | 'TASKER' | 'ADMIN';
 
 /**
  * authorize — Role-check middleware factory. Call after `authenticate`.
@@ -18,9 +19,11 @@ export function authorize(...allowedRoles: UserRole[]) {
       return next(new AppError('Not authenticated', 401));
     }
 
-    const profile = await prisma.profile.findUnique({
-      where: { userId: req.user.id },
-    });
+    const { data: profile } = await supabase
+      .from('Profile')
+      .select('*')
+      .eq('userId', req.user.id)
+      .single();
 
     if (!profile) {
       return next(new AppError('Profile not found. Complete registration first.', 403));
