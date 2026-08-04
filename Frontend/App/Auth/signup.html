@@ -324,6 +324,11 @@
     usernameCheckTimer = setTimeout(async function () {
       try {
         const res = await fetch(`/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
+        
+        if (!res.ok) {
+          throw new Error('Backend check failed');
+        }
+
         const data = await res.json();
         
         if (data.available) {
@@ -456,8 +461,8 @@
             firstName,
             lastName,
             emailAddress,
-            phoneNumber: fullPhone,
-            password
+            password,
+            username: usernameVal
           });
           
           await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
@@ -494,29 +499,16 @@
             
             if (verifyAttempt.status === 'complete') {
               await finalizeBackendSync(verifyAttempt.createdSessionId);
-            } else if (verifyAttempt.unverifiedFields && verifyAttempt.unverifiedFields.includes('phoneNumber')) {
-              // Email verified successfully, but phone still needs verification
-              await currentSignUpAttempt.preparePhoneNumberVerification({ strategy: "phone_code" });
-              currentVerificationType = 'phone';
-              
-              codeInput.value = ''; // Clear input for next code
-              document.getElementById('otp-title').textContent = 'Verify your phone number';
-              document.getElementById('otp-desc').textContent = 'We just sent an SMS code to your phone number.';
-              if (window.showToast) window.showToast('Email verified! Now verify your phone.');
+            } else if (verifyAttempt.status === 'missing_requirements' && verifyAttempt.missingFields && verifyAttempt.missingFields.length > 0) {
+              console.warn('Missing requirements:', verifyAttempt.missingFields);
+              if (window.showToast) window.showToast('Missing required fields: ' + verifyAttempt.missingFields.join(', '));
             } else {
               console.warn('Unhandled verification state:', verifyAttempt);
               if (window.showToast) window.showToast('Further verification required.');
             }
           } 
           else if (currentVerificationType === 'phone') {
-            const verifyAttempt = await currentSignUpAttempt.attemptPhoneNumberVerification({ code });
-            
-            if (verifyAttempt.status === 'complete') {
-              await finalizeBackendSync(verifyAttempt.createdSessionId);
-            } else {
-              console.warn('Unhandled verification state:', verifyAttempt);
-              if (window.showToast) window.showToast('Further verification required.');
-            }
+            // Phone verification flow has been removed
           }
         } catch (err) {
           console.error('OTP Verification error:', err);
