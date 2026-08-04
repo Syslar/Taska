@@ -31,6 +31,12 @@ export const verifyOtpValidation = [
 
 // POST /auth/register  (called after verify-otp succeeds)
 export const registerValidation = [
+  body('username')
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage('Username must be between 3 and 30 characters.')
+    .matches(/^[a-z0-9_]+$/i)
+    .withMessage('Username may only contain letters, numbers, and underscores.'),
   body('firstName')
     .trim()
     .isLength({ min: 1, max: 50 })

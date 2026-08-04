@@ -4,7 +4,33 @@ import { prisma } from '../prisma/client';
 import { AppError } from '../utils/errors';
 import { logger } from '../utils/logger';
 
-// ─── POST /auth/register ──────────────────────────────────────────────────────
+// ─── GET /auth/check-username ─────────────────────────────────────────────────
+
+/**
+ * Public endpoint — returns whether a username is available.
+ * Query: ?username=<value>
+ */
+export async function checkUsername(req: Request, res: Response): Promise<void> {
+  const raw = (req.query.username as string | undefined) ?? '';
+  const username = raw.trim().toLowerCase();
+
+  if (!username || username.length < 3) {
+    res.status(400).json({ available: false, message: 'Username must be at least 3 characters.' });
+    return;
+  }
+
+  if (!/^[a-z0-9_]+$/.test(username)) {
+    res.status(400).json({ available: false, message: 'Only letters, numbers and underscores allowed.' });
+    return;
+  }
+
+  const existing = await prisma.profile.findFirst({
+    where: { username: { equals: username, mode: 'insensitive' } },
+    select: { id: true },
+  });
+
+  res.json({ available: !existing });
+}
 
 /**
  * Create a Profile record in our DB after Clerk authentication.
@@ -16,12 +42,13 @@ export async function register(req: Request, res: Response): Promise<void> {
     throw new AppError(errors.array()[0].msg as string, 422);
   }
 
-  const { firstName, lastName, phone, email, role } = req.body as {
+  const { firstName, lastName, phone, email, role, username } = req.body as {
     firstName: string;
     lastName: string;
     phone: string;
     email?: string;
     role: 'POSTER' | 'TASKER';
+    username: string;
   };
 
   // req.user.id is populated by the authenticate middleware (from Clerk req.auth.userId)
@@ -41,6 +68,15 @@ export async function register(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  // Check if username is taken (extra guard — frontend already checks live)
+  const usernameTaken = await prisma.profile.findFirst({
+    where: { username: { equals: username?.trim().toLowerCase(), mode: 'insensitive' } },
+    select: { id: true },
+  });
+  if (usernameTaken) {
+    throw new AppError('That username is already taken. Please choose another.', 409);
+  }
+
   const profile = await prisma.profile.create({
     data: {
       userId,
@@ -49,6 +85,7 @@ export async function register(req: Request, res: Response): Promise<void> {
       lastName,
       phone,
       role,
+      username: username?.trim().toLowerCase(),
     },
   });
 

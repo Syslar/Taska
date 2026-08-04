@@ -5,3 +5,5 @@ TASKA_AGENTS.md
 *.pem
 *.key
 *.cert
+# Local Netlify folder
+.netlify

@@ -5,6 +5,87 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign up — Taska</title>
 <link rel="stylesheet" href="auth.css">
+<style>
+  /* ── Phone prefix wrapper ─────────────────────────────────── */
+  .phone-input-wrap {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: var(--paper);
+    transition: border-color 0.18s;
+  }
+  .phone-input-wrap:focus-within {
+    border-color: var(--green-600);
+    background: #fff;
+  }
+  .phone-prefix {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    background: var(--paper);
+    border-right: 1px solid var(--line);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--body);
+    white-space: nowrap;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .phone-prefix .flag { font-size: 1rem; }
+  .phone-prefix-input {
+    flex: 1;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    outline: none;
+  }
+
+  /* ── Username availability indicator ─────────────────────── */
+  .username-wrap { position: relative; }
+  .username-status {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: opacity 0.2s;
+  }
+  .username-status.hidden { opacity: 0; pointer-events: none; }
+  .username-status.checking { color: var(--muted); }
+  .username-status.available { color: #229151; }
+  .username-status.taken { color: #d9534f; }
+
+  /* ── Button loading state ─────────────────────────────────── */
+  .btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.82;
+  }
+  .btn-loading .btn-text { visibility: hidden; }
+  .btn-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 18px;
+    height: 18px;
+    margin: -9px 0 0 -9px;
+    border: 2.5px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spin 0.7s linear infinite;
+  }
+  @keyframes btn-spin {
+    to { transform: rotate(360deg); }
+  }
+</style>
 </head>
 <body>
 
@@ -69,11 +150,36 @@
               <span class="field-error">Last name is required.</span>
             </div>
           </div>
+
+          <!-- Username field -->
+          <div class="field-group">
+            <label class="field-label" for="suUsername">Username</label>
+            <div class="username-wrap">
+              <input class="text-input" type="text" id="suUsername"
+                     placeholder="ada_works" required
+                     maxlength="30" autocomplete="off"
+                     style="padding-right: 110px;">
+              <span class="username-status hidden" id="username-status"></span>
+            </div>
+            <span class="field-hint">3–30 characters. Letters, numbers and underscores only.</span>
+            <span class="field-error" id="username-error">Choose a valid username.</span>
+          </div>
+
+          <!-- Phone with +234 prefix -->
           <div class="field-group">
             <label class="field-label" for="suPhone">Phone number</label>
-            <input class="text-input" type="text" id="suPhone" placeholder="080X XXX XXXX" required>
-            <span class="field-error">Phone number is required for OTP verification.</span>
+            <div class="phone-input-wrap">
+              <span class="phone-prefix">
+                <span class="flag">🇳🇬</span>
+                +234
+              </span>
+              <input class="text-input phone-prefix-input" type="tel" id="suPhone"
+                     placeholder="080X XXX XXXX" required
+                     maxlength="11">
+            </div>
+            <span class="field-error" id="phone-error">Phone number is required.</span>
           </div>
+
           <div class="field-group">
             <label class="field-label" for="suEmail">Email address</label>
             <input class="text-input" type="email" id="suEmail" placeholder="ada@email.com" required>
@@ -91,7 +197,9 @@
           </label>
           <!-- Required by Clerk headless custom flow for Cloudflare Turnstile CAPTCHA -->
           <div id="clerk-captcha" style="margin-bottom:16px;"></div>
-          <button type="submit" class="btn btn-primary btn-block">Create account</button>
+          <button type="submit" id="signup-btn" class="btn btn-primary btn-block">
+            <span class="btn-text">Create account</span>
+          </button>
         </form>
 
         <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
@@ -109,7 +217,9 @@
             <label class="field-label" for="otpCode">Verification Code</label>
             <input class="text-input" type="text" id="otpCode" placeholder="Enter code" required>
           </div>
-          <button type="submit" class="btn btn-primary btn-block" data-toast="Verified">Verify</button>
+          <button type="submit" id="otp-btn" class="btn btn-primary btn-block">
+            <span class="btn-text">Verify</span>
+          </button>
         </form>
         
         <p style="text-align:center; margin-top:20px; font-size:0.85rem; color:var(--muted);">
@@ -132,6 +242,72 @@
   type="text/javascript">
 </script>
 <script>
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  function setLoading(btn, loading) {
+    if (loading) {
+      btn.classList.add('btn-loading');
+      btn.disabled = true;
+    } else {
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }
+  }
+
+  // ─── Username availability check ─────────────────────────────────────────────
+
+  const statusEl   = document.getElementById('username-status');
+  const usernameEl = document.getElementById('suUsername');
+  let usernameAvailable = false;
+  let usernameCheckTimer = null;
+
+  function setUsernameStatus(state, text) {
+    statusEl.className = 'username-status ' + state;
+    statusEl.textContent = text;
+  }
+
+  usernameEl.addEventListener('input', function () {
+    const val = this.value.trim();
+
+    if (usernameCheckTimer) clearTimeout(usernameCheckTimer);
+
+    // Reset
+    usernameAvailable = false;
+    document.getElementById('username-error').style.display = 'none';
+
+    if (!val || val.length < 3) {
+      statusEl.className = 'username-status hidden';
+      return;
+    }
+
+    if (!/^[a-z0-9_]+$/i.test(val)) {
+      setUsernameStatus('taken', '✗ Invalid characters');
+      return;
+    }
+
+    setUsernameStatus('checking', '⟳ Checking…');
+
+    usernameCheckTimer = setTimeout(async function () {
+      try {
+        const res = await fetch(`/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (data.available) {
+          setUsernameStatus('available', '✓ Available');
+          usernameAvailable = true;
+        } else {
+          setUsernameStatus('taken', data.message || '✗ Already taken');
+          usernameAvailable = false;
+        }
+      } catch (_) {
+        // If backend is unreachable during dev, allow submission
+        setUsernameStatus('hidden', '');
+        usernameAvailable = true;
+      }
+    }, 600); // debounce 600ms
+  });
+
+  // ─── Main Clerk flow ─────────────────────────────────────────────────────────
+
   window.addEventListener('load', async function () {
     try {
       await window.Clerk.load();
@@ -140,41 +316,65 @@
         window.location.replace('../Dashboard/dashboard.html');
       }
 
-      const signupForm = document.getElementById('signup-form');
-      const otpForm = document.getElementById('otp-form');
+      const signupForm  = document.getElementById('signup-form');
+      const otpForm     = document.getElementById('otp-form');
       const signupPanel = document.getElementById('signup-panel');
-      const otpPanel = document.getElementById('otp-panel');
+      const otpPanel    = document.getElementById('otp-panel');
+      const signupBtn   = document.getElementById('signup-btn');
+      const otpBtn      = document.getElementById('otp-btn');
+
       let currentSignUpAttempt = null;
-      let isEmailVerification = true;
       let userRole = 'poster';
 
       // Capture role selection
       document.querySelectorAll('.toggle-option').forEach(el => {
-        el.addEventListener('click', (e) => {
+        el.addEventListener('click', () => {
           userRole = el.dataset.role;
         });
       });
 
+      // ── Signup form submit ──────────────────────────────────────────────────
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const firstName = document.getElementById('fname').value;
-        const lastName = document.getElementById('lname').value;
-        const phoneNumber = document.getElementById('suPhone').value;
+
+        // Validate username availability
+        const usernameVal = usernameEl.value.trim();
+        if (!usernameVal || usernameVal.length < 3) {
+          document.getElementById('username-error').textContent = 'Username must be at least 3 characters.';
+          document.getElementById('username-error').style.display = 'block';
+          usernameEl.focus();
+          return;
+        }
+        if (!usernameAvailable) {
+          document.getElementById('username-error').textContent = 'Please choose an available username before continuing.';
+          document.getElementById('username-error').style.display = 'block';
+          usernameEl.focus();
+          return;
+        }
+
+        // Build full phone number with country code
+        const rawPhone   = document.getElementById('suPhone').value.trim();
+        // Strip leading 0 if user types it (e.g. 08012345678 → 8012345678), then prepend +234
+        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+        const fullPhone  = '+234' + digitsOnly;
+
+        const firstName    = document.getElementById('fname').value;
+        const lastName     = document.getElementById('lname').value;
         const emailAddress = document.getElementById('suEmail').value;
-        const password = document.getElementById('suPassword').value;
-        
+        const password     = document.getElementById('suPassword').value;
+
+        setLoading(signupBtn, true);
+
         try {
           currentSignUpAttempt = await window.Clerk.client.signUp.create({
             firstName,
             lastName,
             emailAddress,
-            phoneNumber,
+            phoneNumber: fullPhone,
             password
           });
           
           await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
-          isEmailVerification = true;
 
           // Hide signup, show OTP
           signupPanel.style.display = 'none';
@@ -184,35 +384,44 @@
 
         } catch (err) {
           console.error('Signup error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Signup failed';
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Signup failed. Please try again.';
           if (window.showToast) window.showToast(errorMsg);
+        } finally {
+          setLoading(signupBtn, false);
         }
       });
 
+      // ── OTP form submit ─────────────────────────────────────────────────────
       otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const code = document.getElementById('otpCode').value;
-        
+
+        setLoading(otpBtn, true);
+
         try {
-          const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({
-            code
-          });
+          const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({ code });
 
           if (verifyAttempt.status === 'complete') {
             await window.Clerk.setActive({ session: verifyAttempt.createdSessionId });
             
+            // Build phone for backend
+            const rawPhone   = document.getElementById('suPhone').value.trim();
+            const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+            const fullPhone  = '+234' + digitsOnly;
+
             // Sync user to our backend
             const token = await window.Clerk.session.getToken();
-            const res = await fetch('/auth/register', {
+            const res = await fetch('/api/v1/auth/register', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
               },
               body: JSON.stringify({
+                username: document.getElementById('suUsername').value.trim().toLowerCase(),
                 firstName: document.getElementById('fname').value,
                 lastName: document.getElementById('lname').value,
-                phone: document.getElementById('suPhone').value,
+                phone: fullPhone,
                 email: document.getElementById('suEmail').value,
                 role: userRole.toUpperCase()
               })
@@ -222,7 +431,7 @@
               window.location.replace('../Dashboard/dashboard.html');
             } else {
               const data = await res.json();
-              if (window.showToast) window.showToast(data.message || 'Failed to create profile.');
+              if (window.showToast) window.showToast(data.error || data.message || 'Failed to create profile.');
             }
           } else {
             console.warn('Verification requires further steps', verifyAttempt);
@@ -230,11 +439,14 @@
           }
         } catch (err) {
           console.error('OTP Verification error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Invalid code';
+          const errorMsg = err.errors ? err.errors[0].longMessage : 'Invalid or expired code.';
           if (window.showToast) window.showToast(errorMsg);
+        } finally {
+          setLoading(otpBtn, false);
         }
       });
 
+      // ── Resend code ─────────────────────────────────────────────────────────
       document.getElementById('resend-code').addEventListener('click', async (e) => {
         e.preventDefault();
         try {
