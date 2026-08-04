@@ -34,7 +34,6 @@
     user-select: none;
     flex-shrink: 0;
   }
-  .phone-prefix .flag { font-size: 1rem; }
   .phone-prefix-input {
     flex: 1;
     border: none !important;
@@ -61,12 +60,35 @@
   .username-status.checking { color: var(--muted); }
   .username-status.available { color: #229151; }
   .username-status.taken { color: #d9534f; }
+  .input-error { border-color: #d9534f !important; }
+
+  .username-suggestions {
+    display: none; /* hidden by default */
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .suggestion-pill {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--body);
+    transition: all 0.2s;
+  }
+  .suggestion-pill:hover {
+    border-color: var(--green-600);
+    color: var(--green-700);
+  }
 
   /* ── Button loading state ─────────────────────────────────── */
   .btn-loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.82;
+    position: relative !important;
+    pointer-events: none !important;
+    opacity: 0.85 !important;
+    color: transparent !important;
   }
   .btn-loading .btn-text { visibility: hidden; }
   .btn-loading::after {
@@ -74,16 +96,18 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 18px;
-    height: 18px;
-    margin: -9px 0 0 -9px;
-    border: 2.5px solid rgba(255,255,255,0.4);
-    border-top-color: #fff;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #ffffff;
     border-radius: 50%;
-    animation: btn-spin 0.7s linear infinite;
+    animation: btn-spin 0.8s infinite linear;
+    display: block;
   }
   @keyframes btn-spin {
-    to { transform: rotate(360deg); }
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 </style>
 </head>
@@ -163,16 +187,16 @@
             </div>
             <span class="field-hint">3–30 characters. Letters, numbers and underscores only.</span>
             <span class="field-error" id="username-error">Choose a valid username.</span>
+            <div class="username-suggestions" id="username-suggestions">
+              <!-- Suggestion pills injected here -->
+            </div>
           </div>
 
-          <!-- Phone with +234 prefix -->
+          <!-- Phone with +234 prefix (No flag) -->
           <div class="field-group">
             <label class="field-label" for="suPhone">Phone number</label>
             <div class="phone-input-wrap">
-              <span class="phone-prefix">
-                <span class="flag">🇳🇬</span>
-                +234
-              </span>
+              <span class="phone-prefix">+234</span>
               <input class="text-input phone-prefix-input" type="tel" id="suPhone"
                      placeholder="080X XXX XXXX" required
                      maxlength="11">
@@ -209,8 +233,8 @@
 
       <!-- OTP PANEL -->
       <div id="otp-panel" style="display:none;">
-        <h1 style="font-size:1.5rem; margin-bottom:6px;">Verify your number/email</h1>
-        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:28px;">We sent a verification code to you.</p>
+        <h1 id="otp-title" style="font-size:1.5rem; margin-bottom:6px;">Verify your email</h1>
+        <p id="otp-desc" style="color:var(--muted); font-size:0.9rem; margin-bottom:28px;">We sent a verification code to you.</p>
         
         <form id="otp-form">
           <div class="field-group">
@@ -256,14 +280,22 @@
 
   // ─── Username availability check ─────────────────────────────────────────────
 
-  const statusEl   = document.getElementById('username-status');
-  const usernameEl = document.getElementById('suUsername');
+  const statusEl      = document.getElementById('username-status');
+  const usernameEl    = document.getElementById('suUsername');
+  const suggestionsEl = document.getElementById('username-suggestions');
   let usernameAvailable = false;
   let usernameCheckTimer = null;
 
   function setUsernameStatus(state, text) {
     statusEl.className = 'username-status ' + state;
     statusEl.textContent = text;
+    
+    // Manage input border color
+    if (state === 'taken') {
+      usernameEl.classList.add('input-error');
+    } else {
+      usernameEl.classList.remove('input-error');
+    }
   }
 
   usernameEl.addEventListener('input', function () {
@@ -274,9 +306,11 @@
     // Reset
     usernameAvailable = false;
     document.getElementById('username-error').style.display = 'none';
+    suggestionsEl.style.display = 'none';
+    suggestionsEl.innerHTML = '';
+    setUsernameStatus('hidden', '');
 
     if (!val || val.length < 3) {
-      statusEl.className = 'username-status hidden';
       return;
     }
 
@@ -291,12 +325,30 @@
       try {
         const res = await fetch(`/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
         const data = await res.json();
+        
         if (data.available) {
           setUsernameStatus('available', '✓ Available');
           usernameAvailable = true;
         } else {
           setUsernameStatus('taken', data.message || '✗ Already taken');
           usernameAvailable = false;
+          
+          // Display suggestions if provided
+          if (data.suggestions && data.suggestions.length > 0) {
+            suggestionsEl.innerHTML = '';
+            data.suggestions.forEach(suggestion => {
+              const pill = document.createElement('span');
+              pill.className = 'suggestion-pill';
+              pill.textContent = suggestion;
+              pill.onclick = () => {
+                usernameEl.value = suggestion;
+                // Trigger input event to re-check the new suggestion
+                usernameEl.dispatchEvent(new Event('input'));
+              };
+              suggestionsEl.appendChild(pill);
+            });
+            suggestionsEl.style.display = 'flex';
+          }
         }
       } catch (_) {
         // If backend is unreachable during dev, allow submission
@@ -325,6 +377,7 @@
 
       let currentSignUpAttempt = null;
       let userRole = 'poster';
+      let currentVerificationType = 'email'; // 'email' or 'phone'
 
       // Capture role selection
       document.querySelectorAll('.toggle-option').forEach(el => {
@@ -332,6 +385,41 @@
           userRole = el.dataset.role;
         });
       });
+
+      // ── Finalize Backend Sync ────────────────────────────────────────────────
+      async function finalizeBackendSync(sessionId) {
+        await window.Clerk.setActive({ session: sessionId });
+        
+        // Build phone for backend
+        const rawPhone   = document.getElementById('suPhone').value.trim();
+        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+        const fullPhone  = '+234' + digitsOnly;
+
+        // Sync user to our backend
+        const token = await window.Clerk.session.getToken();
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            username: document.getElementById('suUsername').value.trim().toLowerCase(),
+            firstName: document.getElementById('fname').value,
+            lastName: document.getElementById('lname').value,
+            phone: fullPhone,
+            email: document.getElementById('suEmail').value,
+            role: userRole.toUpperCase()
+          })
+        });
+
+        if (res.ok) {
+          window.location.replace('../Dashboard/dashboard.html');
+        } else {
+          const data = await res.json();
+          if (window.showToast) window.showToast(data.error || data.message || 'Failed to create profile.');
+        }
+      }
 
       // ── Signup form submit ──────────────────────────────────────────────────
       signupForm.addEventListener('submit', async (e) => {
@@ -352,16 +440,14 @@
           return;
         }
 
-        // Build full phone number with country code
-        const rawPhone   = document.getElementById('suPhone').value.trim();
-        // Strip leading 0 if user types it (e.g. 08012345678 → 8012345678), then prepend +234
-        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-        const fullPhone  = '+234' + digitsOnly;
-
         const firstName    = document.getElementById('fname').value;
         const lastName     = document.getElementById('lname').value;
         const emailAddress = document.getElementById('suEmail').value;
         const password     = document.getElementById('suPassword').value;
+        
+        const rawPhone   = document.getElementById('suPhone').value.trim();
+        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+        const fullPhone  = '+234' + digitsOnly;
 
         setLoading(signupBtn, true);
 
@@ -375,11 +461,14 @@
           });
           
           await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+          currentVerificationType = 'email';
 
           // Hide signup, show OTP
           signupPanel.style.display = 'none';
           otpPanel.style.display = 'block';
           
+          document.getElementById('otp-title').textContent = 'Verify your email';
+          document.getElementById('otp-desc').textContent = 'We sent a verification code to your email address.';
           if (window.showToast) window.showToast('Verification code sent to your email.');
 
         } catch (err) {
@@ -394,48 +483,40 @@
       // ── OTP form submit ─────────────────────────────────────────────────────
       otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const code = document.getElementById('otpCode').value;
+        const codeInput = document.getElementById('otpCode');
+        const code = codeInput.value;
 
         setLoading(otpBtn, true);
 
         try {
-          const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({ code });
-
-          if (verifyAttempt.status === 'complete') {
-            await window.Clerk.setActive({ session: verifyAttempt.createdSessionId });
+          if (currentVerificationType === 'email') {
+            const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({ code });
             
-            // Build phone for backend
-            const rawPhone   = document.getElementById('suPhone').value.trim();
-            const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-            const fullPhone  = '+234' + digitsOnly;
-
-            // Sync user to our backend
-            const token = await window.Clerk.session.getToken();
-            const res = await fetch('/api/v1/auth/register', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                username: document.getElementById('suUsername').value.trim().toLowerCase(),
-                firstName: document.getElementById('fname').value,
-                lastName: document.getElementById('lname').value,
-                phone: fullPhone,
-                email: document.getElementById('suEmail').value,
-                role: userRole.toUpperCase()
-              })
-            });
-
-            if (res.ok) {
-              window.location.replace('../Dashboard/dashboard.html');
+            if (verifyAttempt.status === 'complete') {
+              await finalizeBackendSync(verifyAttempt.createdSessionId);
+            } else if (verifyAttempt.unverifiedFields && verifyAttempt.unverifiedFields.includes('phoneNumber')) {
+              // Email verified successfully, but phone still needs verification
+              await currentSignUpAttempt.preparePhoneNumberVerification({ strategy: "phone_code" });
+              currentVerificationType = 'phone';
+              
+              codeInput.value = ''; // Clear input for next code
+              document.getElementById('otp-title').textContent = 'Verify your phone number';
+              document.getElementById('otp-desc').textContent = 'We just sent an SMS code to your phone number.';
+              if (window.showToast) window.showToast('Email verified! Now verify your phone.');
             } else {
-              const data = await res.json();
-              if (window.showToast) window.showToast(data.error || data.message || 'Failed to create profile.');
+              console.warn('Unhandled verification state:', verifyAttempt);
+              if (window.showToast) window.showToast('Further verification required.');
             }
-          } else {
-            console.warn('Verification requires further steps', verifyAttempt);
-            if (window.showToast) window.showToast('Further verification required.');
+          } 
+          else if (currentVerificationType === 'phone') {
+            const verifyAttempt = await currentSignUpAttempt.attemptPhoneNumberVerification({ code });
+            
+            if (verifyAttempt.status === 'complete') {
+              await finalizeBackendSync(verifyAttempt.createdSessionId);
+            } else {
+              console.warn('Unhandled verification state:', verifyAttempt);
+              if (window.showToast) window.showToast('Further verification required.');
+            }
           }
         } catch (err) {
           console.error('OTP Verification error:', err);
@@ -450,8 +531,13 @@
       document.getElementById('resend-code').addEventListener('click', async (e) => {
         e.preventDefault();
         try {
-          await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
-          if (window.showToast) window.showToast('Verification code resent.');
+          if (currentVerificationType === 'email') {
+            await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+            if (window.showToast) window.showToast('Email verification code resent.');
+          } else if (currentVerificationType === 'phone') {
+            await currentSignUpAttempt.preparePhoneNumberVerification({ strategy: "phone_code" });
+            if (window.showToast) window.showToast('SMS code resent.');
+          }
         } catch (err) {
           if (window.showToast) window.showToast('Failed to resend code.');
         }

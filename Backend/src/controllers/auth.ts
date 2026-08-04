@@ -29,7 +29,17 @@ export async function checkUsername(req: Request, res: Response): Promise<void> 
     select: { id: true },
   });
 
-  res.json({ available: !existing });
+  if (existing) {
+    // Generate 4 suggestions
+    const suggestions: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      suggestions.push(`${username}${Math.floor(Math.random() * 1000)}`);
+    }
+    res.json({ available: false, suggestions });
+    return;
+  }
+
+  res.json({ available: true });
 }
 
 /**
