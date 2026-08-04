@@ -8,6 +8,9 @@ const router = Router();
 // GET /api/v1/tasks — public listing of open tasks
 router.get('/', asyncHandler(tasksController.getTasks));
 
+// POST /api/v1/tasks — authenticated users can create a task
+router.post('/', authenticate, asyncHandler(tasksController.createTask));
+
 // POST /api/v1/tasks/:id/apply — authenticated taskers only
 router.post('/:id/apply', authenticate, asyncHandler(tasksController.applyToTask));
 

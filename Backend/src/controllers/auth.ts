@@ -24,19 +24,39 @@ export async function checkUsername(req: Request, res: Response): Promise<void> 
     return;
   }
 
-  const { data: existing } = await supabase
+  // 1. Check Supabase Profile table
+  const { data: existingProfile } = await supabase
     .from('Profile')
     .select('id')
     .ilike('username', username)
     .maybeSingle();
 
-  if (existing) {
+  let isTaken = !!existingProfile;
+
+  // 2. Check Clerk API if not already taken in Supabase
+  if (!isTaken && process.env.CLERK_SECRET_KEY) {
+    try {
+      const clerkRes = await fetch(`https://api.clerk.com/v1/users?username=${encodeURIComponent(username)}`, {
+        headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
+      });
+      if (clerkRes.ok) {
+        const clerkUsers = await clerkRes.json();
+        if (Array.isArray(clerkUsers) && clerkUsers.length > 0) {
+          isTaken = true;
+        }
+      }
+    } catch (err) {
+      logger.warn('Clerk API username check failed', { error: (err as Error).message });
+    }
+  }
+
+  if (isTaken) {
     // Generate 4 suggestions
     const suggestions: string[] = [];
     for (let i = 0; i < 4; i++) {
       suggestions.push(`${username}${Math.floor(Math.random() * 1000)}`);
     }
-    res.json({ available: false, suggestions });
+    res.json({ available: false, message: '✗ Already taken', suggestions });
     return;
   }
 

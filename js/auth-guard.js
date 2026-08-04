@@ -12,7 +12,11 @@ window.__taskaProfile = null;
 window.getTaskaToken = async function () {
   if (window.__taskaToken) return window.__taskaToken;
   if (!window.Clerk?.session) return null;
-  window.__taskaToken = await window.Clerk.session.getToken();
+  try {
+    window.__taskaToken = await window.Clerk.session.getToken();
+  } catch (err) {
+    console.warn('getTaskaToken error:', err);
+  }
   return window.__taskaToken;
 };
 
@@ -22,6 +26,7 @@ window.getTaskaProfile = function () {
 
 // Populate every sidebar / mobile topbar on the page with real user data
 function populateSidebar(profile) {
+  if (!profile) return;
   const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || '--';
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
   const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : profile.role || '';
@@ -38,57 +43,82 @@ function populateSidebar(profile) {
   if (mobileAv)  mobileAv.textContent  = initials;
 }
 
-window.addEventListener('load', async function () {
-  try {
-    await window.Clerk.load();
+async function runAuthGuard() {
+  // 1. Wait for window.Clerk script to be defined (up to 5s)
+  let attempts = 0;
+  while (!window.Clerk && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
 
-    // Session guard — redirect if not logged in
-    if (!window.Clerk.session) {
-      window.location.replace('../../App/Auth/login.html');
-      return;
+  if (!window.Clerk) {
+    console.error('auth-guard: Clerk SDK failed to load');
+    return;
+  }
+
+  // 2. Initialize Clerk if not ready
+  if (!window.Clerk.isReady) {
+    try {
+      await window.Clerk.load();
+    } catch (err) {
+      console.warn('auth-guard: Clerk load notice', err);
     }
+  }
 
+  // 3. Check active session
+  if (!window.Clerk.session) {
+    console.warn('auth-guard: No active Clerk session. Redirecting to login.');
+    // Determine relative path to login page (case-insensitive check)
+    const isDashboardSubfolder = window.location.pathname.toLowerCase().includes('/app/dashboard/');
+    const loginUrl = isDashboardSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+    window.location.replace(loginUrl);
+    return;
+  }
+
+  // 4. Obtain token & load backend profile
+  try {
     const token = await window.Clerk.session.getToken();
     window.__taskaToken = token;
 
-    // Fetch profile from our backend
-    try {
-      const res = await fetch(`${API_BASE}/profiles/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    const res = await fetch(`${API_BASE}/profiles/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
-      if (res.status === 401) {
-        window.Clerk.signOut().then(() => window.location.replace('../../App/Auth/login.html'));
-        return;
-      }
-
-      if (res.ok) {
-        const json = await res.json();
-        window.__taskaProfile = json.profile;
-        populateSidebar(json.profile);
-      }
-    } catch (err) {
-      console.warn('auth-guard: could not fetch profile', err);
+    if (res.status === 401) {
+      console.warn('auth-guard: profile fetch returned 401 — token verification notice');
+    } else if (res.ok) {
+      const json = await res.json();
+      window.__taskaProfile = json.profile;
+      populateSidebar(json.profile);
     }
-
-    // Bind logout button if present
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-          await window.Clerk.signOut();
-          window.location.replace('../../App/Auth/login.html');
-        } catch (err) {
-          console.error('Logout failed', err);
-        }
-      });
-    }
-
-    // Fire a custom event so page scripts know the guard has completed
-    window.dispatchEvent(new Event('taska:ready'));
-
   } catch (err) {
-    console.error('auth-guard: Clerk load failed', err);
+    console.warn('auth-guard: profile fetch notice', err);
   }
-});
+
+  // 5. Bind logout button
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.onclick = async (e) => {
+      e.preventDefault();
+      try {
+        await window.Clerk.signOut();
+        const isDashboardSubfolder = window.location.pathname.toLowerCase().includes('/app/dashboard/');
+        const loginUrl = isDashboardSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+        window.location.replace(loginUrl);
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    };
+  }
+
+  // 5. Signal that auth guard is ready
+  window.__taskaReady = true;
+  window.dispatchEvent(new Event('taska:ready'));
+}
+
+// Boot auth guard on DOMReady
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', runAuthGuard);
+} else {
+  runAuthGuard();
+}

@@ -138,3 +138,57 @@ export async function applyToTask(req: Request, res: Response): Promise<void> {
 
   res.status(201).json({ success: true, application });
 }
+
+// ─── POST /api/v1/tasks ────────────────────────────────────────────────────────
+// Create a new task (authenticated Task Poster or any logged-in user)
+
+export async function createTask(req: Request, res: Response): Promise<void> {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError('Not authenticated.', 401);
+
+  const { title, category, description, taskType, location, deadline, preferredTime, budgetType, budget, budgetMin, budgetMax } = req.body;
+
+  if (!title || !category || !description) {
+    throw new AppError('Title, category, and description are required.', 400);
+  }
+
+  // Get user profile
+  const { data: profile } = await supabase
+    .from('Profile')
+    .select('id, role')
+    .eq('userId', userId)
+    .single();
+
+  if (!profile) throw new AppError('Profile not found. Please complete registration.', 404);
+
+  const normalizedTaskType = (taskType || 'PHYSICAL').toUpperCase();
+  const normalizedBudgetType = (budgetType || 'FIXED').toUpperCase() === 'OPEN' ? 'OPEN_BID' : 'FIXED';
+
+  const { data: task, error } = await supabase
+    .from('Task')
+    .insert({
+      posterId: profile.id,
+      title: title.trim(),
+      category: category.trim(),
+      description: description.trim(),
+      taskType: normalizedTaskType === 'REMOTE' ? 'REMOTE' : 'PHYSICAL',
+      location: location ? location.trim() : (normalizedTaskType === 'REMOTE' ? 'Remote' : null),
+      deadline: deadline ? new Date(deadline).toISOString() : null,
+      preferredTime: preferredTime || null,
+      budgetType: normalizedBudgetType,
+      budget: budget ? parseFloat(budget) : null,
+      budgetMin: budgetMin ? parseFloat(budgetMin) : null,
+      budgetMax: budgetMax ? parseFloat(budgetMax) : null,
+      status: 'OPEN',
+    })
+    .select()
+    .single();
+
+  if (error || !task) {
+    console.error('Task creation error:', error);
+    throw new AppError('Failed to create task.', 500);
+  }
+
+  res.status(201).json({ success: true, task });
+}
+

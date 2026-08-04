@@ -87,25 +87,28 @@
   .btn-loading {
     position: relative !important;
     pointer-events: none !important;
-    opacity: 0.85 !important;
     color: transparent !important;
   }
-  .btn-loading .btn-text { visibility: hidden; }
-  .btn-loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    margin: -10px 0 0 -10px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: btn-spin 0.8s infinite linear;
-    display: block;
+  .btn-loading .btn-text {
+    opacity: 0 !important;
   }
-  @keyframes btn-spin {
+  .btn-loading::after {
+    content: '' !important;
+    position: absolute !important;
+    box-sizing: border-box !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 20px !important;
+    height: 20px !important;
+    margin-top: -10px !important;
+    margin-left: -10px !important;
+    border: 3px solid rgba(255, 255, 255, 0.25) !important;
+    border-top-color: #ffffff !important;
+    border-radius: 50% !important;
+    animation: taskaSpin 0.75s linear infinite !important;
+    display: block !important;
+  }
+  @keyframes taskaSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
@@ -347,7 +350,6 @@
               pill.textContent = suggestion;
               pill.onclick = () => {
                 usernameEl.value = suggestion;
-                // Trigger input event to re-check the new suggestion
                 usernameEl.dispatchEvent(new Event('input'));
               };
               suggestionsEl.appendChild(pill);
@@ -355,12 +357,13 @@
             suggestionsEl.style.display = 'flex';
           }
         }
-      } catch (_) {
-        // If backend is unreachable during dev, allow submission
-        setUsernameStatus('hidden', '');
+      } catch (err) {
+        console.warn('Username check network notice:', err);
+        // Fallback: don't block if local server is starting, but don't fake availability either
+        setUsernameStatus('checking', 'Username will be validated on submit');
         usernameAvailable = true;
       }
-    }, 600); // debounce 600ms
+    }, 300); // 300ms debounce
   });
 
   // ─── Main Clerk flow ─────────────────────────────────────────────────────────
@@ -371,7 +374,16 @@
       
       if (window.Clerk.session) {
         window.location.replace('../Dashboard/dashboard.html');
+        return;
       }
+
+      // Eagerly mount CAPTCHA widget if available
+      try {
+        const captchaContainer = document.getElementById('clerk-captcha');
+        if (captchaContainer && window.Clerk.renderCaptcha) {
+          window.Clerk.renderCaptcha(captchaContainer);
+        }
+      } catch (_) { /* ignore optional captcha render notice */ }
 
       const signupForm  = document.getElementById('signup-form');
       const otpForm     = document.getElementById('otp-form');
@@ -478,13 +490,45 @@
           otpPanel.style.display = 'block';
           
           document.getElementById('otp-title').textContent = 'Verify your email';
-          document.getElementById('otp-desc').textContent = 'We sent a verification code to your email address.';
+          document.getElementById('otp-desc').textContent = `We sent a 6-digit verification code to ${emailAddress}.`;
           if (window.showToast) window.showToast('Verification code sent to your email.');
 
         } catch (err) {
           console.error('Signup error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Signup failed. Please try again.';
-          if (window.showToast) window.showToast(errorMsg);
+          currentSignUpAttempt = null; // Reset attempt on failure
+
+          let errorMsg = 'Signup failed. Please try again.';
+          if (err.errors && err.errors.length > 0) {
+            const firstErr = err.errors[0];
+            const code = firstErr.code;
+            const msg = firstErr.longMessage || firstErr.message;
+
+            if (code === 'form_identifier_exists' || msg.includes('taken') || msg.includes('exists')) {
+              errorMsg = `${msg} If you already created an account, please <a href="login.html" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Log in here</a>.`;
+            } else if (msg.includes('captcha') || msg.includes('Turnstile') || msg.includes('bot')) {
+              errorMsg = 'Security verification timed out. <a href="#" id="clerk-modal-signup" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Click here to use standard Clerk Sign Up</a>.';
+            } else {
+              errorMsg = msg;
+            }
+          }
+
+          const errContainer = document.getElementById('username-error');
+          errContainer.innerHTML = errorMsg;
+          errContainer.style.display = 'block';
+          if (window.showToast) window.showToast('Signup error — check form details');
+
+          // Bind fallback click if present
+          setTimeout(() => {
+            document.getElementById('clerk-modal-signup')?.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (window.Clerk?.openSignUp) {
+                window.Clerk.openSignUp({
+                  redirectUrl: '../Dashboard/dashboard.html'
+                });
+              }
+            });
+          }, 100);
+
         } finally {
           setLoading(signupBtn, false);
         }
@@ -494,7 +538,14 @@
       otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const codeInput = document.getElementById('otpCode');
-        const code = codeInput.value;
+        const code = codeInput.value.trim();
+
+        if (!currentSignUpAttempt) {
+          if (window.showToast) window.showToast('No active signup session found. Please fill out the form again.');
+          otpPanel.style.display = 'none';
+          signupPanel.style.display = 'block';
+          return;
+        }
 
         setLoading(otpBtn, true);
 

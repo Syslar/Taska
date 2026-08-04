@@ -32,11 +32,14 @@ export async function authenticate(
   }
 
   const token = authHeader.split(' ')[1];
-  const publicKey = process.env.JWKS_PUBLIC_KEY;
+  const rawKey = process.env.JWKS_PUBLIC_KEY;
 
-  if (!publicKey) {
+  if (!rawKey) {
     return next(new AppError('Server auth configuration error: JWKS_PUBLIC_KEY missing.', 500));
   }
+
+  // Convert literal '\n' strings from .env into actual RSA PEM newlines
+  const publicKey = rawKey.replace(/\\n/g, '\n');
 
   try {
     const parts = token.split('.');

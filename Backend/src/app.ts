@@ -25,8 +25,13 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no Origin header (Postman, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no Origin header, dev environments, or local dev origins
+      if (
+        !origin ||
+        process.env.NODE_ENV === 'development' ||
+        allowedOrigins.includes(origin) ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin ${origin} not allowed`));
