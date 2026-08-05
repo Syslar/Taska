@@ -1,0 +1,13 @@
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs"]
+
+[phases.install]
+cmds = ["cd Backend && npm install --include=dev"]
+
+[phases.build]
+cmds = ["cd Backend && npm run build"]
+
+[start]
+cmd = "cd Backend && node dist/index.js"
