@@ -3,7 +3,7 @@
    Manages tab switching, live API data loading for all views, modals, & forms.
    ========================================================================== */
 
-const DASHBOARD_API_BASE = 'http://localhost:4000/api/v1';
+const DASHBOARD_API_BASE = 'https://taska-production-89b8.up.railway.app/api/v1';
 
 // Global state
 let currentTab = 'dashboard';
@@ -81,7 +81,7 @@ function getStatusClass(status) {
 // ─── SPA Tab Switching ────────────────────────────────────────────────────────
 
 window.switchTab = function switchTab(tabName) {
-  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile'];
+  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile', 'settings'];
   if (!validTabs.includes(tabName)) tabName = 'dashboard';
 
   currentTab = tabName;
@@ -136,6 +136,8 @@ window.switchTab = function switchTab(tabName) {
     loadWalletData();
   } else if (tabName === 'profile') {
     renderProfileTab();
+  } else if (tabName === 'settings') {
+    renderSettingsTab();
   }
 };
 
@@ -796,3 +798,111 @@ if (window.__taskaReady || window.__taskaToken) {
 } else {
   window.addEventListener('taska:ready', bootSPA, { once: true });
 }
+
+// ─── TAB 6: Settings & Profile Edit ────────────────────────────────────────────
+
+function renderSettingsTab() {
+  const profile = window.getTaskaProfile();
+  if (!profile) return;
+
+  document.getElementById('settingsFname').value = profile.firstName || '';
+  document.getElementById('settingsLname').value = profile.lastName || '';
+  
+  // Format phone number back to 10 digits for local display
+  const rawPhone = profile.phone || '';
+  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
+  document.getElementById('settingsPhone').value = digitsOnly;
+  
+  document.getElementById('settingsLocation').value = profile.location || '';
+  document.getElementById('settingsBio').value = profile.bio || '';
+}
+
+// Bind Settings Profile Save Form
+document.getElementById('settingsProfileForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const token = await window.getTaskaToken();
+  if (!token) return;
+
+  const btn = document.getElementById('settingsSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const rawPhone = document.getElementById('settingsPhone').value.trim();
+  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+  const fullPhone = digitsOnly ? '+234' + digitsOnly : '';
+
+  const body = {
+    firstName: document.getElementById('settingsFname').value.trim(),
+    lastName: document.getElementById('settingsLname').value.trim(),
+    phone: fullPhone,
+    location: document.getElementById('settingsLocation').value.trim(),
+    bio: document.getElementById('settingsBio').value.trim()
+  };
+
+  try {
+    const res = await fetch(`${DASHBOARD_API_BASE}/profiles/me`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const json = await res.json();
+    if (res.ok && json.success) {
+      window.__taskaProfile = json.profile;
+      
+      // Update sidebar avatar & name immediately
+      if (window.populateSidebar) {
+        populateSidebar(json.profile);
+      }
+      
+      if (window.showToast) window.showToast('Profile updated successfully!');
+    } else {
+      if (window.showToast) window.showToast(json.error || 'Failed to update profile.');
+    }
+  } catch (err) {
+    console.error('Settings save profile error:', err);
+    if (window.showToast) window.showToast('Network error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+});
+
+// Bind Delete Account Danger Action
+document.getElementById('settingsDeleteBtn')?.addEventListener('click', async () => {
+  const confirmed = confirm('WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent, and cannot be undone.');
+  if (!confirmed) return;
+
+  const token = await window.getTaskaToken();
+  if (!token) return;
+
+  const btn = document.getElementById('settingsDeleteBtn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting Account...';
+
+  try {
+    const res = await fetch(`${DASHBOARD_API_BASE}/profiles/me`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const json = await res.json();
+    if (res.ok && json.success) {
+      if (window.showToast) window.showToast('Account deleted. Signing out...');
+      await window.Clerk.signOut();
+      window.location.replace('../Auth/login.html');
+    } else {
+      if (window.showToast) window.showToast(json.error || 'Failed to delete account.');
+      btn.disabled = false;
+      btn.textContent = 'Delete Account';
+    }
+  } catch (err) {
+    console.error('Settings delete account error:', err);
+    if (window.showToast) window.showToast('Network error. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Delete Account';
+  }
+});

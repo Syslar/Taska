@@ -124,7 +124,7 @@
             // Sync profile to backend (in case it doesn't exist yet)
             try {
               const token = await window.Clerk.session.getToken();
-              await fetch('http://localhost:4000/api/v1/profiles/me', {
+              await fetch('https://taska-production-89b8.up.railway.app/api/v1/profiles/me', {
                 headers: { Authorization: `Bearer ${token}` }
               });
             } catch (_) { /* ignore — profile fetch is best-effort */ }

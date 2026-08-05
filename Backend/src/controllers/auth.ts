@@ -97,6 +97,23 @@ export async function register(req: Request, res: Response): Promise<void> {
     .maybeSingle();
 
   if (existing) {
+    // If the profile was auto-provisioned but has missing fields, update them
+    const updates: any = {};
+    if (!existing.phone && phone) updates.phone = phone;
+    if (!existing.firstName && firstName) updates.firstName = firstName;
+    if (!existing.lastName && lastName) updates.lastName = lastName;
+
+    if (Object.keys(updates).length > 0) {
+      const { data: updated } = await supabase
+        .from('Profile')
+        .update(updates)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      res.status(200).json({ success: true, profile: updated || existing });
+      return;
+    }
+
     res.status(200).json({ success: true, profile: existing });
     return;
   }

@@ -11,6 +11,9 @@ router.get('/me', authenticate, asyncHandler(profileController.getMe));
 // PUT /profiles/me — update own profile (protected)
 router.put('/me', authenticate, asyncHandler(profileController.updateMe));
 
+// DELETE /profiles/me — delete own account (protected)
+router.delete('/me', authenticate, asyncHandler(profileController.deleteMe));
+
 // GET /profiles/:id — any public profile (public)
 router.get('/:id', asyncHandler(profileController.getProfile));
 
