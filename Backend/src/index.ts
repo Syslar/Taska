@@ -5,10 +5,11 @@ import { app } from './app';
 
 import { logger } from './utils/logger';
 
-const PORT = process.env.PORT ?? 4000;
+const PORT = Number(process.env.PORT ?? 4000);
+const HOST = '0.0.0.0'; // Bind to all interfaces — required inside Docker/Railway containers
 
-const server = app.listen(PORT, () => {
-  logger.info(`Taska API running`, { port: PORT, env: process.env.NODE_ENV ?? 'development' });
+const server = app.listen(PORT, HOST, () => {
+  logger.info(`Taska API running`, { port: PORT, host: HOST, env: process.env.NODE_ENV ?? 'development' });
 });
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────
