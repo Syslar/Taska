@@ -132,6 +132,19 @@
             window.location.replace('../Dashboard/dashboard.html');
             return;
           }
+
+          if (signInAttempt.status === 'needs_client_trust') {
+            if (signInAttempt.createdSessionId) {
+              await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
+              window.location.replace('../Dashboard/dashboard.html');
+              return;
+            }
+            console.warn('Clerk needs_client_trust status:', signInAttempt);
+            if (window.showToast) {
+              window.showToast('Security check triggered by Clerk. Please authorize origin in Clerk Dashboard.');
+            }
+            return;
+          }
           
           if (signInAttempt.status === 'needs_first_factor') {
             // Try submitting password as first factor

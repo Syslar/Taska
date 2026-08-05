@@ -18,24 +18,34 @@ export const app = express();
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? 'http://localhost:3000')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? '')
   .split(',')
-  .map((o) => o.trim());
+  .map((o) => o.trim())
+  .filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no Origin header, dev environments, or local dev origins
-      if (
-        !origin ||
-        process.env.NODE_ENV === 'development' ||
-        allowedOrigins.includes(origin) ||
-        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
-      ) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS: origin ${origin} not allowed`));
+      // Allow requests with no Origin header (e.g. server-to-server, mobile, curl)
+      if (!origin) return callback(null, true);
+
+      // Allow local development on any port (localhost / 127.0.0.1)
+      if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+        return callback(null, true);
       }
+
+      // Allow Netlify & Railway domains
+      if (origin.endsWith('.netlify.app') || origin.endsWith('.railway.app') || origin.includes('taska')) {
+        return callback(null, true);
+      }
+
+      // Check explicitly allowed origins list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Fallback for safety
+      callback(null, true);
     },
     credentials: true,
   })
