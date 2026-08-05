@@ -3,7 +3,7 @@
    Include this AFTER Clerk JS on every protected app page.
    ========================================================================== */
 
-const API_BASE = 'https://taska-production-89b8.up.railway.app/api/v1';
+const API_BASE = 'https://taska-development.up.railway.app/api/v1';
 
 // Expose so other page scripts can use the token without re-fetching
 window.__taskaToken = null;

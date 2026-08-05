@@ -3,7 +3,7 @@
    Manages tab switching, live API data loading for all views, modals, & forms.
    ========================================================================== */
 
-const DASHBOARD_API_BASE = 'https://taska-production-89b8.up.railway.app/api/v1';
+const DASHBOARD_API_BASE = 'https://taska-development.up.railway.app/api/v1';
 
 // Global state
 let currentTab = 'dashboard';
