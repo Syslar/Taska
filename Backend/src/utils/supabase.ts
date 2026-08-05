@@ -10,4 +10,15 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Realtime is disabled — this is a pure REST/PostgREST backend.
+// Disabling it removes the native WebSocket requirement from @supabase/realtime-js.
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  realtime: {
+    timeout: 0,
+    heartbeatIntervalMs: 0,
+    reconnectAfterMs: () => 99_999_999,
+  },
+  global: {
+    headers: { 'X-Client-Info': 'taska-backend' },
+  },
+});
