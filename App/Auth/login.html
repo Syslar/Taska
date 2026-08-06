@@ -68,6 +68,7 @@
             </label>
             <a href="#" style="font-size:0.85rem; font-weight:600; color:var(--green-700);">Forgot password?</a>
           </div>
+          <div id="clerk-captcha" style="margin-bottom: 16px;"></div>
           <button type="submit" class="btn btn-primary btn-block">Log in</button>
         </form>
 
@@ -101,9 +102,17 @@
         return;
       }
 
+      // Render CAPTCHA widget if required by Clerk Bot Protection
+      try {
+        const captchaContainer = document.getElementById('clerk-captcha');
+        if (captchaContainer && window.Clerk.renderCaptcha) {
+          window.Clerk.renderCaptcha(captchaContainer);
+        }
+      } catch (_) { /* ignore optional captcha notice */ }
+
       document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const identifier = document.getElementById('loginEmail').value;
+        const identifier = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
         const submitBtn = e.target.querySelector('button[type="submit"]');
         
@@ -123,7 +132,22 @@
             return;
           }
 
-          if (signInAttempt.status === 'needs_first_factor' || signInAttempt.status === 'needs_client_trust') {
+          if (signInAttempt.status === 'needs_client_trust' || signInAttempt.status === 'needs_first_factor') {
+            // Check if password was already verified
+            if (signInAttempt.firstFactorVerification && signInAttempt.firstFactorVerification.status === 'verified') {
+              if (signInAttempt.createdSessionId) {
+                await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
+                window.location.replace('../Dashboard/dashboard.html');
+                return;
+              }
+              if (typeof signInAttempt.authenticateWithRedirect === 'function') {
+                await signInAttempt.authenticateWithRedirect({
+                  redirectUrlComplete: window.location.href.replace('Auth/login.html', 'Dashboard/dashboard.html')
+                });
+                return;
+              }
+            }
+
             if (typeof signInAttempt.submitProtectCheck === 'function') {
               try {
                 const protectRes = await signInAttempt.submitProtectCheck();
@@ -151,17 +175,6 @@
               window.location.replace('../Dashboard/dashboard.html');
               return;
             }
-
-            if (typeof firstFactorResult.submitProtectCheck === 'function') {
-              try {
-                const protectRes = await firstFactorResult.submitProtectCheck();
-                if (protectRes.createdSessionId) {
-                  await window.Clerk.setActive({ session: protectRes.createdSessionId });
-                  window.location.replace('../Dashboard/dashboard.html');
-                  return;
-                }
-              } catch (_) {}
-            }
           }
           
           if (signInAttempt.status === 'needs_second_factor') {
@@ -169,9 +182,18 @@
             return;
           }
 
-          // Fallback
-          console.warn('Unhandled sign-in status:', signInAttempt.status, signInAttempt);
-          if (window.showToast) window.showToast('Login could not be completed. Please try again.');
+          // Fallback: If password was verified, force redirect verification
+          if (signInAttempt.firstFactorVerification && signInAttempt.firstFactorVerification.status === 'verified') {
+            if (typeof signInAttempt.authenticateWithRedirect === 'function') {
+              await signInAttempt.authenticateWithRedirect({
+                redirectUrlComplete: window.location.href.replace('Auth/login.html', 'Dashboard/dashboard.html')
+              });
+              return;
+            }
+          }
+
+          console.warn('Sign in status notice:', signInAttempt.status, signInAttempt);
+          if (window.showToast) window.showToast('Login could not be completed. Please check your credentials.');
           
         } catch (err) {
           console.error('Login error:', err);
