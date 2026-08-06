@@ -120,45 +120,21 @@
         submitBtn.textContent = 'Logging in…';
         
         try {
-          // Step 1: Create the sign-in attempt
+          // Step 1: Create sign-in attempt
           let signInAttempt = await window.Clerk.client.signIn.create({
             identifier,
             password,
           });
           
+          // Step 2: Check if complete
           if (signInAttempt.status === 'complete' && signInAttempt.createdSessionId) {
             await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
             window.location.replace('../Dashboard/dashboard.html');
             return;
           }
 
-          if (signInAttempt.status === 'needs_client_trust' || signInAttempt.status === 'needs_first_factor') {
-            // Check if password was already verified
-            if (signInAttempt.firstFactorVerification && signInAttempt.firstFactorVerification.status === 'verified') {
-              if (signInAttempt.createdSessionId) {
-                await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
-                window.location.replace('../Dashboard/dashboard.html');
-                return;
-              }
-              if (typeof signInAttempt.authenticateWithRedirect === 'function') {
-                await signInAttempt.authenticateWithRedirect({
-                  redirectUrlComplete: window.location.href.replace('Auth/login.html', 'Dashboard/dashboard.html')
-                });
-                return;
-              }
-            }
-
-            if (typeof signInAttempt.submitProtectCheck === 'function') {
-              try {
-                const protectRes = await signInAttempt.submitProtectCheck();
-                if (protectRes.createdSessionId) {
-                  await window.Clerk.setActive({ session: protectRes.createdSessionId });
-                  window.location.replace('../Dashboard/dashboard.html');
-                  return;
-                }
-              } catch (_) {}
-            }
-
+          // Step 3: Handle needs_first_factor or needs_client_trust
+          if (signInAttempt.status === 'needs_first_factor' || signInAttempt.status === 'needs_client_trust') {
             const firstFactorResult = await signInAttempt.attemptFirstFactor({
               strategy: 'password',
               password,
@@ -182,22 +158,14 @@
             return;
           }
 
-          // Fallback: If password was verified, force redirect verification
-          if (signInAttempt.firstFactorVerification && signInAttempt.firstFactorVerification.status === 'verified') {
-            if (typeof signInAttempt.authenticateWithRedirect === 'function') {
-              await signInAttempt.authenticateWithRedirect({
-                redirectUrlComplete: window.location.href.replace('Auth/login.html', 'Dashboard/dashboard.html')
-              });
-              return;
-            }
-          }
-
-          console.warn('Sign in status notice:', signInAttempt.status, signInAttempt);
           if (window.showToast) window.showToast('Login could not be completed. Please check your credentials.');
           
         } catch (err) {
           console.error('Login error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Incorrect email or password.';
+          let errorMsg = 'Incorrect email or password.';
+          if (err && err.errors && err.errors.length > 0) {
+            errorMsg = err.errors[0].longMessage || err.errors[0].message || errorMsg;
+          }
           if (window.showToast) window.showToast(errorMsg);
         } finally {
           submitBtn.disabled = false;
