@@ -1,19 +1,16 @@
 /* ==========================================================================
    dashboard.js — Single Page Application (SPA) Controller for Taska Dashboard.
-   Manages tab switching, live API data loading for all views, modals, & forms.
+   Direct Supabase Data Layer, Unified Roles, & Media Integration.
    ========================================================================== */
-
-const DASHBOARD_API_BASE = 'https://taska-development.up.railway.app/api/v1';
 
 // Global state
 let currentTab = 'dashboard';
-let browsePage = 1;
-let browseTotalPages = 1;
 let browseFilters = { search: '', category: 'all', location: 'all', sort: 'newest' };
 let currentTaskId = null;
-let appliedTaskIds = new Set();
 let allWalletTxs = [];
 let cachedTasks = [];
+let selectedTaskType = 'PHYSICAL';
+let selectedBudgetType = 'FIXED';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -86,35 +83,22 @@ window.switchTab = function switchTab(tabName) {
 
   currentTab = tabName;
 
-  // Update URL hash without scroll jumping
   try {
     if (window.location.hash !== `#${tabName}`) {
       history.pushState(null, '', `#${tabName}`);
     }
   } catch (e) {
-    console.warn('history.pushState failed, falling back to direct hash update:', e);
     window.location.hash = `#${tabName}`;
   }
 
-  // Update sidebar active states
   document.querySelectorAll('.sidebar-link[data-tab]').forEach(el => {
-    if (el.dataset.tab === tabName) {
-      el.classList.add('is-active');
-    } else {
-      el.classList.remove('is-active');
-    }
+    el.classList.toggle('is-active', el.dataset.tab === tabName);
   });
 
-  // Update mobile bottom tab bar active states
   document.querySelectorAll('.tab-bar .tab-item[data-tab]').forEach(el => {
-    if (el.dataset.tab === tabName) {
-      el.classList.add('is-active');
-    } else {
-      el.classList.remove('is-active');
-    }
+    el.classList.toggle('is-active', el.dataset.tab === tabName);
   });
 
-  // Toggle tab panels
   document.querySelectorAll('.tab-panel').forEach(panel => {
     panel.classList.remove('is-active');
   });
@@ -124,10 +108,8 @@ window.switchTab = function switchTab(tabName) {
     activePanel.classList.add('is-active');
   }
 
-  // Scroll to top of main content
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Load data for active tab
   if (tabName === 'dashboard') {
     loadDashboardData();
   } else if (tabName === 'browse') {
@@ -141,62 +123,86 @@ window.switchTab = function switchTab(tabName) {
   }
 };
 
-// Handle browser back/forward buttons & URL hash on load
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '');
   if (hash && hash !== currentTab) {
-    switchTab(hash);
+    window.switchTab(hash);
   }
 });
 
 // ─── TAB 1: Dashboard Data Loading ────────────────────────────────────────────
 
 async function loadDashboardData() {
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
   try {
-    const token = await window.getTaskaToken();
-    if (!token) return;
-
-    const res = await fetch(`${DASHBOARD_API_BASE}/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      console.warn('Dashboard API failed', res.status);
-      return;
-    }
-
-    const { data } = await res.json();
-    const { profile, wallet, stats, activeTasks } = data;
-
-    // Greeting
+    // 1. Greeting
     const firstName = profile.firstName || 'there';
-    document.getElementById('greeting').textContent = `${getGreeting()}, ${firstName}`;
+    const greetingEl = document.getElementById('greeting');
+    if (greetingEl) greetingEl.textContent = `${getGreeting()}, ${firstName}`;
 
-    // Stats
+    // 2. Fetch Wallet directly
+    const { data: wallet } = await window.supabaseClient
+      .from('Wallet')
+      .select('*, WalletTransaction(*)')
+      .eq('profileId', profile.id)
+      .maybeSingle();
+
+    const balanceEl = document.getElementById('stat-balance');
+    const escrowEl = document.getElementById('stat-escrow');
+
     if (wallet) {
-      document.getElementById('stat-balance').textContent = formatNaira(wallet.balance);
-      document.getElementById('stat-escrow').textContent =
-        wallet.escrowBalance > 0 ? `${formatNaira(wallet.escrowBalance)} in escrow` : 'No escrow holds';
+      if (balanceEl) balanceEl.textContent = formatNaira(wallet.balance || 0);
+      if (escrowEl) escrowEl.textContent = (wallet.escrowBalance > 0) ? `${formatNaira(wallet.escrowBalance)} in escrow` : 'No escrow holds';
+    } else {
+      if (balanceEl) balanceEl.textContent = '₦0';
+      if (escrowEl) escrowEl.textContent = 'No escrow holds';
     }
 
-    document.getElementById('stat-active-tasks').textContent = stats.activeTasks;
-    document.getElementById('stat-active-tasks-sub').textContent =
-      stats.activeTasks === 1 ? '1 task in progress' : `${stats.activeTasks} tasks in progress`;
-    document.getElementById('stat-completed-tasks').textContent = stats.completedTasks;
+    // 3. Fetch Active Tasks
+    const { data: activeTasks } = await window.supabaseClient
+      .from('Task')
+      .select('id, title, status, budget, budgetType, assignedTo, createdAt')
+      .eq('posterId', profile.id)
+      .in('status', ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'PROOF_SUBMITTED'])
+      .order('createdAt', { ascending: false })
+      .limit(5);
+
+    // 4. Count Completed Tasks
+    const { count: completedCount } = await window.supabaseClient
+      .from('Task')
+      .select('*', { count: 'exact', head: true })
+      .eq('posterId', profile.id)
+      .in('status', ['COMPLETED', 'CLOSED']);
+
+    const activeCount = activeTasks?.length || 0;
+    const activeTasksEl = document.getElementById('stat-active-tasks');
+    const activeTasksSubEl = document.getElementById('stat-active-tasks-sub');
+    const completedTasksEl = document.getElementById('stat-completed-tasks');
+
+    if (activeTasksEl) activeTasksEl.textContent = activeCount;
+    if (activeTasksSubEl) activeTasksSubEl.textContent = activeCount === 1 ? '1 task in progress' : `${activeCount} tasks in progress`;
+    if (completedTasksEl) completedTasksEl.textContent = completedCount || 0;
 
     const rating = profile.averageRating;
-    document.getElementById('stat-rating').innerHTML = rating
-      ? `${rating.toFixed(1)}<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`
-      : `—<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`;
-    document.getElementById('stat-reviews').textContent = profile.totalReviews > 0
-      ? `From ${profile.totalReviews} review${profile.totalReviews > 1 ? 's' : ''}`
-      : 'No reviews yet';
+    const ratingEl = document.getElementById('stat-rating');
+    const reviewsEl = document.getElementById('stat-reviews');
 
-    // Render active tasks
-    renderActiveTasksList(activeTasks);
+    if (ratingEl) {
+      ratingEl.innerHTML = (rating && rating > 0)
+        ? `${rating.toFixed(1)}<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`
+        : `—<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`;
+    }
 
-    // Render recent activity
-    renderRecentActivityList(wallet ? wallet.recentTransactions : []);
+    if (reviewsEl) {
+      reviewsEl.textContent = (profile.totalReviews > 0)
+        ? `From ${profile.totalReviews} review${profile.totalReviews > 1 ? 's' : ''}`
+        : 'No reviews yet';
+    }
+
+    renderActiveTasksList(activeTasks || []);
+    renderRecentActivityList(wallet?.WalletTransaction || []);
 
   } catch (err) {
     console.error('loadDashboardData error:', err);
@@ -205,19 +211,13 @@ async function loadDashboardData() {
 
 function renderActiveTasksList(tasks) {
   const el = document.getElementById('active-tasks-list');
+  if (!el) return;
   if (!tasks || tasks.length === 0) {
     el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No active tasks yet. <a href="#post" onclick="switchTab(\'post\')" style="color:var(--green-700); font-weight:600;">Post one now.</a></div>';
     return;
   }
   el.innerHTML = tasks.map(task => {
-    const assignee = task.applications && task.applications[0]
-      ? `Assigned to ${task.applications[0].tasker.firstName} ${task.applications[0].tasker.lastName}`
-      : task._count && task._count.applications > 0
-        ? `${task._count.applications} applicant${task._count.applications > 1 ? 's' : ''}`
-        : 'Open for bids';
-
     const budget = task.budget != null ? formatNaira(task.budget) : 'Open bid';
-
     return `
       <div class="task-row">
         <div class="task-row-icon">
@@ -225,7 +225,7 @@ function renderActiveTasksList(tasks) {
         </div>
         <div class="task-row-body">
           <div class="task-row-title">${task.title}</div>
-          <div class="task-row-meta">${assignee} · <span class="status ${getStatusClass(task.status)}">${getStatusLabel(task.status)}</span></div>
+          <div class="task-row-meta"><span class="status ${getStatusClass(task.status)}">${getStatusLabel(task.status)}</span></div>
         </div>
         <div class="task-row-amt mono">${budget}</div>
       </div>`;
@@ -234,12 +234,13 @@ function renderActiveTasksList(tasks) {
 
 function renderRecentActivityList(transactions) {
   const el = document.getElementById('activity-list');
+  if (!el) return;
   if (!transactions || transactions.length === 0) {
     el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No wallet activity yet.</div>';
     return;
   }
   el.innerHTML = transactions.map(tx => {
-    const isCredit = tx.type === 'credit' || tx.type === 'escrow_release' || tx.type === 'top_up';
+    const isCredit = ['top_up', 'task_payout', 'escrow_release', 'credit'].includes(tx.type);
     const sign     = isCredit ? '+' : '−';
     const color    = isCredit ? 'var(--green-700)' : 'var(--ink)';
     return `
@@ -256,273 +257,252 @@ function renderRecentActivityList(transactions) {
 // ─── TAB 2: Browse Gigs Loading & Filters ──────────────────────────────────────
 
 async function loadBrowseGigsData(append = false) {
+  if (!window.supabaseClient) return;
+
+  const grid = document.getElementById('gig-grid');
+  if (!grid) return;
+
   if (!append) {
-    document.getElementById('gig-grid').innerHTML = `
-      <div class="gig-grid-loading">
-        ${Array(4).fill('<div class="skeleton skeleton-card"></div>').join('')}
-      </div>`;
+    grid.innerHTML = `<div class="gig-grid-loading">${Array(4).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>`;
   }
 
-  const params = new URLSearchParams({
-    page:     browsePage,
-    limit:    '12',
-    sort:     browseFilters.sort,
-    ...(browseFilters.search   && { search:   browseFilters.search }),
-    ...(browseFilters.location !== 'all' && { location: browseFilters.location }),
-    ...(browseFilters.category !== 'all' && { category: browseFilters.category }),
-  });
-
   try {
-    const res  = await fetch(`${DASHBOARD_API_BASE}/tasks?${params}`);
-    const json = await res.json();
+    let query = window.supabaseClient
+      .from('Task')
+      .select('*, Profile!posterId(firstName, lastName, avatarUrl, averageRating, isVerified)')
+      .eq('status', 'OPEN');
 
-    if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load tasks');
-
-    const { tasks, pagination } = json.data;
-    browseTotalPages = pagination.totalPages;
-
-    const label = document.getElementById('task-count-label');
-    if (label) label.textContent = `${pagination.total} open task${pagination.total !== 1 ? 's' : ''} available right now.`;
-
-    const grid = document.getElementById('gig-grid');
-    if (!append) grid.innerHTML = '';
-
-    if (tasks.length === 0 && !append) {
-      grid.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No tasks match your filters. Try adjusting your search.</div>`;
-    } else {
-      grid.insertAdjacentHTML('beforeend', tasks.map(renderTaskCard).join(''));
-      grid.querySelectorAll('.gig-card:not([data-bound])').forEach(card => {
-        card.setAttribute('data-bound', '1');
-        card.addEventListener('click', () => openTaskModal(card.dataset.taskId, tasks));
-      });
+    if (browseFilters.category && browseFilters.category !== 'all') {
+      query = query.eq('category', browseFilters.category);
+    }
+    if (browseFilters.location && browseFilters.location !== 'all') {
+      query = query.ilike('location', `%${browseFilters.location}%`);
+    }
+    if (browseFilters.search) {
+      query = query.or(`title.ilike.%${browseFilters.search}%,description.ilike.%${browseFilters.search}%`);
     }
 
-    const loadMoreWrap = document.getElementById('load-more-wrap');
-    if (loadMoreWrap) loadMoreWrap.style.display = browsePage < browseTotalPages ? 'block' : 'none';
+    if (browseFilters.sort === 'budget_high') {
+      query = query.order('budget', { ascending: false, nullsFirst: false });
+    } else {
+      query = query.order('createdAt', { ascending: false });
+    }
 
+    const { data: tasks, error } = await query;
+    if (error) throw error;
+
+    cachedTasks = tasks || [];
+    const label = document.getElementById('task-count-label');
+    if (label) label.textContent = `${cachedTasks.length} open task${cachedTasks.length !== 1 ? 's' : ''} available right now.`;
+
+    if (!append) grid.innerHTML = '';
+
+    if (cachedTasks.length === 0 && !append) {
+      grid.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No tasks match your filters. Try adjusting your search.</div>`;
+    } else {
+      grid.insertAdjacentHTML('beforeend', cachedTasks.map(renderTaskCard).join(''));
+      grid.querySelectorAll('.gig-card:not([data-bound])').forEach(card => {
+        card.setAttribute('data-bound', '1');
+        card.addEventListener('click', () => openTaskModal(card.dataset.taskId, cachedTasks));
+      });
+    }
   } catch (err) {
-    console.error('Browse gigs error:', err);
-    document.getElementById('gig-grid').innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">Failed to load tasks. Is the backend running?</div>`;
+    console.error('loadBrowseGigsData error:', err);
+    if (!append) grid.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">Failed to load gigs.</div>`;
   }
 }
 
 function renderTaskCard(task) {
-  const budget   = task.budget != null ? formatNaira(task.budget) : 'Open bid';
-  const location = task.location || 'Remote';
-  const poster   = task.poster ? `${task.poster.firstName} ${task.poster.lastName}`.trim() : 'Unknown';
-  const appCount = task.applicationCount || 0;
-  const isRemote = location.toLowerCase() === 'remote';
-  const alreadyApplied = appliedTaskIds.has(task.id);
+  const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() : 'Poster';
+  const posterInitials = `${(task.Profile?.firstName || '')[0] || ''}${(task.Profile?.lastName || '')[0] || ''}`.toUpperCase() || 'P';
+  const budget = task.budget != null ? formatNaira(task.budget) : task.budgetMin ? `${formatNaira(task.budgetMin)} - ${formatNaira(task.budgetMax)}` : 'Open Bid';
 
   return `
     <div class="gig-card" data-task-id="${task.id}">
-      <div class="gig-card-top">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
         <span class="gig-category">${task.category || 'General'}</span>
-        <span class="status status-open">${appCount > 0 ? `Open · ${appCount} bid${appCount > 1 ? 's' : ''}` : 'Open'}</span>
-      </div>
-      <h3>${task.title}</h3>
-      <p class="gig-desc">${(task.description || '').slice(0, 120)}${(task.description || '').length > 120 ? '…' : ''}</p>
-      <div class="gig-card-foot">
         <span class="gig-budget mono">${budget}</span>
-        <span class="gig-loc">
-          ${isRemote
-            ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 4L20 12L4 20L7 12L4 4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>`
-            : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.1 2 5 5.1 5 9C5 14.2 12 22 12 22C12 22 19 14.2 19 9C19 5.1 15.9 2 12 2Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>`
-          }
-          ${location}
-        </span>
       </div>
-      <div style="margin-top:10px; display:flex; align-items:center; justify-content:space-between; font-size:0.78rem; color:var(--muted);">
-        <span>By ${poster} · ${timeAgo(task.createdAt)}</span>
-        ${alreadyApplied ? `<span class="applied-badge">✓ Applied</span>` : ''}
+      <h3 class="gig-title">${task.title}</h3>
+      <p class="gig-desc">${task.description || ''}</p>
+      <div class="gig-footer">
+        <div class="gig-author">
+          <div class="gig-author-avatar">${posterInitials}</div>
+          <span class="gig-author-name">${posterName}</span>
+        </div>
+        <span class="gig-time">${timeAgo(task.createdAt)}</span>
       </div>
     </div>`;
 }
 
-// ─── TAB 3: Post a Task Form Logic ──────────────────────────────────────────────
+// ─── Filter Events for Browse Gigs ─────────────────────────────────────────────
 
-let selectedTaskType = 'PHYSICAL';
-let selectedBudgetType = 'FIXED';
+const handleSearchInput = window.TaskaRateLimiter ? window.TaskaRateLimiter.debounce(() => {
+  const searchInput = document.getElementById('gigSearch');
+  if (searchInput) {
+    browseFilters.search = searchInput.value.trim();
+    loadBrowseGigsData();
+  }
+}, 350) : () => {};
+
+document.getElementById('gigSearch')?.addEventListener('input', handleSearchInput);
+
+document.getElementById('filterLocation')?.addEventListener('change', (e) => {
+  browseFilters.location = e.target.value;
+  loadBrowseGigsData();
+});
+
+document.getElementById('filterSort')?.addEventListener('change', (e) => {
+  browseFilters.sort = e.target.value;
+  loadBrowseGigsData();
+});
+
+// ─── TAB 3: Post a Task Form Submission & Interactivity ──────────────────────
 
 function initPostTask() {
-  const titleEl = document.getElementById('taskTitle');
-  const catEl = document.getElementById('taskCategory');
-  const dateEl = document.getElementById('taskDate');
-  const budgetEl = document.getElementById('taskBudget');
+  const form = document.getElementById('postTaskForm');
+  if (!form || form.dataset.bound) return;
+  form.dataset.bound = '1';
 
-  const sumCategory = document.getElementById('sumCategory');
-  const sumType = document.getElementById('sumType');
-  const sumBudget = document.getElementById('sumBudget');
-  const sumDate = document.getElementById('sumDate');
-  const sumFee = document.getElementById('sumFee');
-  const sumTotal = document.getElementById('sumTotal');
-
-  // Toggle Task Type (Physical vs Remote)
-  document.querySelectorAll('#postTaskTypeToggle .toggle-option').forEach(opt => {
-    opt.onclick = () => {
-      document.querySelectorAll('#postTaskTypeToggle .toggle-option').forEach(o => o.classList.remove('is-active'));
+  // 1. Task Type toggle buttons (Physical / Remote)
+  const taskTypeOptions = document.querySelectorAll('#postTaskTypeToggle .toggle-option');
+  taskTypeOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      taskTypeOptions.forEach(o => o.classList.remove('is-active'));
       opt.classList.add('is-active');
-      selectedTaskType = opt.dataset.value;
-      
+      selectedTaskType = opt.dataset.value || 'PHYSICAL';
+
       const locWrap = document.getElementById('locationWrap');
-      if (selectedTaskType === 'REMOTE') {
-        locWrap.style.display = 'none';
-        sumType.textContent = 'Remote';
-      } else {
-        locWrap.style.display = 'block';
-        sumType.textContent = 'Physical';
+      if (locWrap) {
+        locWrap.style.display = selectedTaskType === 'REMOTE' ? 'none' : 'block';
       }
-    };
+    });
   });
 
-  // Toggle Budget Type (Fixed vs Open)
-  document.querySelectorAll('#postBudgetTypeToggle .toggle-option').forEach(opt => {
-    opt.onclick = () => {
-      document.querySelectorAll('#postBudgetTypeToggle .toggle-option').forEach(o => o.classList.remove('is-active'));
+  // 2. Budget Type toggle buttons (Fixed / Open)
+  const budgetTypeOptions = document.querySelectorAll('#postBudgetTypeToggle .toggle-option');
+  budgetTypeOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      budgetTypeOptions.forEach(o => o.classList.remove('is-active'));
       opt.classList.add('is-active');
-      selectedBudgetType = opt.dataset.value;
+      selectedBudgetType = opt.dataset.value || 'FIXED';
 
       const fixedWrap = document.getElementById('budgetFixedWrap');
       const openWrap = document.getElementById('budgetOpenWrap');
-
-      if (selectedBudgetType === 'OPEN') {
-        fixedWrap.style.display = 'none';
-        openWrap.style.display = 'block';
-        sumBudget.textContent = 'Open bid';
-        sumFee.textContent = '—';
-        sumTotal.textContent = '—';
-      } else {
-        fixedWrap.style.display = 'block';
-        openWrap.style.display = 'none';
-        updateBudgetSummary();
+      if (fixedWrap && openWrap) {
+        fixedWrap.style.display = selectedBudgetType === 'OPEN' ? 'none' : 'block';
+        openWrap.style.display = selectedBudgetType === 'OPEN' ? 'block' : 'none';
       }
-    };
+    });
   });
 
-  function updateBudgetSummary() {
-    if (selectedBudgetType === 'OPEN') return;
-    const v = parseFloat(budgetEl.value) || 0;
-    const fee = v * 0.1;
-    const total = v + fee;
-    sumBudget.textContent = v ? formatNaira(v) : '—';
-    sumFee.textContent = v ? formatNaira(Math.round(fee)) : '—';
-    sumTotal.textContent = v ? formatNaira(Math.round(total)) : '—';
-  }
+  // 3. Form submit
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-  if (budgetEl) budgetEl.oninput = updateBudgetSummary;
-
-  if (catEl) {
-    catEl.onchange = () => {
-      sumCategory.textContent = catEl.options[catEl.selectedIndex]?.text || '—';
-    };
-  }
-
-  if (dateEl) {
-    dateEl.onchange = () => {
-      if (dateEl.value) {
-        const d = new Date(dateEl.value);
-        sumDate.textContent = d.toLocaleDateString('en-NG', { weekday: 'short', day: 'numeric', month: 'short' });
-      } else {
-        sumDate.textContent = '—';
-      }
-    };
-  }
-}
-
-// Submit Post Task Form
-document.getElementById('postTaskForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const token = await window.getTaskaToken();
-  if (!token) {
-    if (window.showToast) window.showToast('Please log in to post a task.');
-    return;
-  }
-
-  const submitBtn = document.getElementById('submitPostTaskBtn');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Posting task…';
-
-  const body = {
-    title: document.getElementById('taskTitle').value.trim(),
-    category: document.getElementById('taskCategory').value,
-    description: document.getElementById('taskDesc').value.trim(),
-    taskType: selectedTaskType,
-    location: document.getElementById('taskLocation')?.value.trim() || (selectedTaskType === 'REMOTE' ? 'Remote' : ''),
-    deadline: document.getElementById('taskDate')?.value || null,
-    preferredTime: document.getElementById('taskTime')?.value || 'Flexible',
-    budgetType: selectedBudgetType,
-    budget: document.getElementById('taskBudget')?.value || null,
-    budgetMin: document.getElementById('budgetMin')?.value || null,
-    budgetMax: document.getElementById('budgetMax')?.value || null,
-  };
-
-  try {
-    const res = await fetch(`${DASHBOARD_API_BASE}/tasks`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body),
-    });
-
-    const json = await res.json();
-    if (res.ok && json.success) {
-      if (window.showToast) window.showToast('Task posted successfully!');
-      document.getElementById('postTaskForm').reset();
-      switchTab('browse');
-    } else {
-      if (window.showToast) window.showToast(json.error || 'Failed to post task.');
+    if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('post-task', 3000)) {
+      if (window.showToast) window.showToast('Please wait a moment before posting another task.');
+      return;
     }
-  } catch (err) {
-    console.error('Post task error:', err);
-    if (window.showToast) window.showToast('Network error. Failed to post task.');
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Post task';
-  }
-});
+
+    const profile = await window.ensureTaskaProfile();
+    if (!profile || !window.supabaseClient) {
+      if (window.showToast) window.showToast('Please sign in to post a task.');
+      return;
+    }
+
+    const submitBtn = document.getElementById('submitPostTaskBtn');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Posting task…';
+    }
+
+    const title = document.getElementById('taskTitle').value.trim();
+    const category = document.getElementById('taskCategory').value;
+    const description = document.getElementById('taskDesc').value.trim();
+    const location = document.getElementById('taskLocation')?.value.trim() || (selectedTaskType === 'REMOTE' ? 'Remote' : 'Lagos');
+    const deadline = document.getElementById('taskDate')?.value || null;
+    const preferredTime = document.getElementById('taskTime')?.value || 'Flexible';
+    const budget = document.getElementById('taskBudget')?.value || null;
+    const budgetMin = document.getElementById('budgetMin')?.value || null;
+    const budgetMax = document.getElementById('budgetMax')?.value || null;
+
+    try {
+      const { data: task, error } = await window.supabaseClient
+        .from('Task')
+        .insert({
+          posterId: profile.id,
+          title,
+          category,
+          description,
+          taskType: selectedTaskType,
+          location,
+          deadline: deadline ? new Date(deadline).toISOString() : null,
+          preferredTime,
+          budgetType: selectedBudgetType,
+          budget: budget ? parseFloat(budget) : null,
+          budgetMin: budgetMin ? parseFloat(budgetMin) : null,
+          budgetMax: budgetMax ? parseFloat(budgetMax) : null,
+          status: 'OPEN'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (window.showToast) window.showToast('Task posted successfully!');
+      form.reset();
+      window.switchTab('browse');
+    } catch (err) {
+      console.error('Post task error:', err);
+      if (window.showToast) window.showToast('Failed to post task. Please try again.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Post task';
+      }
+    }
+  });
+}
 
 // ─── TAB 4: Wallet Loading & Filtering ────────────────────────────────────────
 
 async function loadWalletData() {
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
   try {
-    const token = await window.getTaskaToken();
-    if (!token) return;
+    const { data: wallet } = await window.supabaseClient
+      .from('Wallet')
+      .select('*, WalletTransaction(*)')
+      .eq('profileId', profile.id)
+      .maybeSingle();
 
-    const res = await fetch(`${DASHBOARD_API_BASE}/wallet/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    if (wallet) {
+      const balance = wallet.balance || 0;
+      const escrow = wallet.escrowBalance || 0;
+      const lifetime = wallet.lifetimeEarned || 0;
 
-    const json = await res.json();
-    if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load wallet');
+      const wBal = document.getElementById('wallet-balance');
+      const wEsc = document.getElementById('wallet-escrow');
+      const wLife = document.getElementById('wallet-lifetime');
+      const mBal = document.getElementById('modal-withdraw-balance');
 
-    const { balance, escrowBalance, lifetimeEarned, transactions, stats } = json.data;
-    allWalletTxs = transactions || [];
+      if (wBal) wBal.textContent = formatNairaDecimals(balance);
+      if (mBal) mBal.textContent = formatNairaDecimals(balance);
+      if (wEsc) wEsc.textContent  = formatNaira(escrow);
+      if (wLife) wLife.textContent = formatNaira(lifetime);
 
-    document.getElementById('wallet-balance').textContent = formatNairaDecimals(balance);
-    document.getElementById('modal-withdraw-balance').textContent = formatNairaDecimals(balance);
-
-    document.getElementById('wallet-escrow').textContent  = formatNaira(escrowBalance);
-    document.getElementById('wallet-lifetime').textContent = formatNaira(lifetimeEarned);
-
-    document.getElementById('stat-earned').textContent        = formatNaira(stats?.totalEarned || 0);
-    document.getElementById('stat-wallet-escrow').textContent = formatNaira(stats?.inEscrow || 0);
-    document.getElementById('stat-withdrawn').textContent     = formatNaira(stats?.totalWithdrawn || 0);
-    document.getElementById('stat-month').textContent         = formatNaira(stats?.thisMonth || 0);
-
-    renderWalletTransactions('all');
-
+      allWalletTxs = wallet.WalletTransaction || [];
+      renderWalletTransactions('all');
+    }
   } catch (err) {
     console.error('loadWalletData error:', err);
-    if (window.showToast) window.showToast('Could not load wallet data.');
   }
 }
 
 function renderWalletTransactions(filter = 'all') {
   let txs = allWalletTxs;
-
   if (filter === 'earnings') {
     txs = txs.filter(t => ['task_payout', 'escrow_release', 'credit'].includes(t.type));
   } else if (filter === 'payments') {
@@ -572,337 +552,263 @@ function renderWalletTransactions(filter = 'all') {
 
 // ─── TAB 5: Profile Rendering ──────────────────────────────────────────────────
 
-function renderProfileTab() {
-  const profile = window.getTaskaProfile();
+async function renderProfileTab() {
+  const profile = await window.ensureTaskaProfile();
   if (!profile) return;
 
-  const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || '--';
-  document.getElementById('profile-big-avatar').textContent = initials;
-  document.getElementById('profile-full-name').textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
+  const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
   
-  const roleLabel = profile.role === 'TASKER' ? 'Tasker (Earn money)' : 'Task Poster (Hire people)';
-  document.getElementById('profile-role-badge').textContent = roleLabel;
+  const bigAv = document.getElementById('profile-big-avatar');
+  const fName = document.getElementById('profile-full-name');
+  const roleBadge = document.getElementById('profile-role-badge');
+  const pEmail = document.getElementById('profile-email-val');
+  const pPhone = document.getElementById('profile-phone-val');
+  const pUser = document.getElementById('profile-username-val');
+  const pVer = document.getElementById('profile-verified-val');
 
-  document.getElementById('profile-email-val').textContent = profile.email || 'Not set';
-  document.getElementById('profile-phone-val').textContent = profile.phone || 'Not set';
-  document.getElementById('profile-username-val').textContent = profile.username ? `@${profile.username}` : 'Not set';
-  document.getElementById('profile-verified-val').textContent = profile.isVerified ? '✓ Identity Verified' : 'Unverified';
+  if (bigAv) bigAv.textContent = initials;
+  if (fName) fName.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
+  if (roleBadge) roleBadge.textContent = profile.role === 'TASKER' ? 'Tasker (Earn money)' : 'Task Poster (Hire people)';
+
+  if (pEmail) pEmail.textContent = profile.email || 'Not set';
+  if (pPhone) pPhone.textContent = profile.phone || 'Not set';
+  if (pUser) pUser.textContent = profile.username ? `@${profile.username}` : 'Not set';
+  if (pVer) pVer.textContent = profile.isVerified ? '✓ Identity Verified' : 'Unverified';
 }
 
-// ─── Task Modal & Applying ────────────────────────────────────────────────────
+// ─── Task Modal & Application (Unified for ALL users) ──────────────────────────
 
-function openTaskModal(taskId, tasks) {
+async function openTaskModal(taskId, tasks) {
   if (tasks) cachedTasks = tasks;
   const task = cachedTasks.find(t => t.id === taskId);
   if (!task) return;
 
   currentTaskId = taskId;
+  const profile = window.getTaskaProfile();
 
   document.getElementById('modal-category').textContent = task.category || 'General';
-  document.getElementById('modal-title').textContent    = task.title;
-  document.getElementById('modal-desc').textContent     = task.description || 'No description provided.';
-  document.getElementById('modal-budget').textContent   = task.budget != null ? formatNaira(task.budget) : 'Open bid';
+  document.getElementById('modal-title').textContent = task.title;
+  
+  const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() : 'Poster';
+  document.getElementById('modal-poster').textContent = posterName;
+  document.getElementById('modal-desc').textContent = task.description || 'No detailed description provided.';
+
+  const budget = task.budget != null ? formatNaira(task.budget) : task.budgetMin ? `${formatNaira(task.budgetMin)} - ${formatNaira(task.budgetMax)}` : 'Open Bid';
+  document.getElementById('modal-budget').textContent = budget;
   document.getElementById('modal-location').textContent = task.location || 'Remote';
 
-  const poster = task.poster ? `${task.poster.firstName} ${task.poster.lastName}`.trim() : 'Unknown';
-  document.getElementById('modal-poster').textContent   = poster;
+  const applyBtn = document.getElementById('modal-apply-btn');
 
-  const verifiedBadge = document.getElementById('modal-verified-badge');
-  if (verifiedBadge) verifiedBadge.style.display = task.poster?.isVerified ? 'inline-flex' : 'none';
+  if (profile && profile.id === task.posterId) {
+    if (applyBtn) {
+      applyBtn.disabled = true;
+      applyBtn.textContent = 'You posted this task';
+    }
+  } else if (profile && window.supabaseClient) {
+    // Check if user already applied
+    const { data: existingApp } = await window.supabaseClient
+      .from('Application')
+      .select('id')
+      .eq('taskId', taskId)
+      .eq('taskerId', profile.id)
+      .maybeSingle();
+
+    if (applyBtn) {
+      if (existingApp) {
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Applied ✓';
+      } else {
+        applyBtn.disabled = false;
+        applyBtn.textContent = 'Apply for this task';
+      }
+    }
+  } else if (applyBtn) {
+    applyBtn.disabled = false;
+    applyBtn.textContent = 'Apply for this task';
+  }
+
+  const modal = document.getElementById('task-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+document.getElementById('modal-close')?.addEventListener('click', () => {
+  const modal = document.getElementById('task-modal');
+  if (modal) modal.style.display = 'none';
+});
+
+document.getElementById('modal-apply-btn')?.addEventListener('click', async () => {
+  if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('apply-task', 3000)) {
+    if (window.showToast) window.showToast('Please wait before applying again.');
+    return;
+  }
+
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient || !currentTaskId) {
+    if (window.showToast) window.showToast('Please sign in to apply.');
+    return;
+  }
 
   const applyBtn = document.getElementById('modal-apply-btn');
-  if (appliedTaskIds.has(taskId)) {
-    applyBtn.textContent = '✓ Already applied';
-    applyBtn.disabled    = true;
-    applyBtn.classList.add('btn-secondary');
-    applyBtn.classList.remove('btn-primary');
-  } else {
-    applyBtn.textContent = 'Apply for this task';
-    applyBtn.disabled    = false;
-    applyBtn.classList.add('btn-primary');
-    applyBtn.classList.remove('btn-secondary');
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.textContent = 'Submitting application…';
   }
-
-  const modal = document.getElementById('task-modal');
-  modal.style.display = 'flex';
-  setTimeout(() => modal.classList.add('is-open'), 10);
-}
-
-function closeModal() {
-  const modal = document.getElementById('task-modal');
-  modal.classList.remove('is-open');
-  setTimeout(() => { modal.style.display = 'none'; }, 200);
-}
-
-// Apply for task button
-document.getElementById('modal-apply-btn')?.addEventListener('click', async () => {
-  const profile = window.getTaskaProfile();
-  if (!profile) { if (window.showToast) window.showToast('Loading your profile…'); return; }
-  if (profile.role !== 'TASKER') { if (window.showToast) window.showToast('Only Taskers can apply to tasks. You are signed up as a Task Poster.'); return; }
-
-  const token = await window.getTaskaToken();
-  if (!token) { if (window.showToast) window.showToast('Please log in again.'); return; }
-
-  const btn = document.getElementById('modal-apply-btn');
-  btn.textContent = 'Submitting…';
-  btn.disabled    = true;
 
   try {
-    const res = await fetch(`${DASHBOARD_API_BASE}/tasks/${currentTaskId}/apply`, {
-      method:  'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body:    JSON.stringify({}),
-    });
+    const { error } = await window.supabaseClient
+      .from('Application')
+      .insert({
+        taskId: currentTaskId,
+        taskerId: profile.id,
+        status: 'PENDING'
+      });
 
-    const json = await res.json();
-    if (res.ok && json.success) {
-      appliedTaskIds.add(currentTaskId);
-      btn.textContent = '✓ Applied!';
-      if (window.showToast) window.showToast('Application submitted successfully!');
-      setTimeout(closeModal, 1200);
+    if (error) {
+      if (error.code === '23505') {
+        if (window.showToast) window.showToast('You have already applied for this task.');
+      } else {
+        throw error;
+      }
     } else {
-      btn.textContent = 'Apply for this task';
-      btn.disabled    = false;
-      if (window.showToast) window.showToast(json.error || 'Failed to apply.');
+      if (window.showToast) window.showToast('Application submitted successfully!');
+      if (applyBtn) applyBtn.textContent = 'Applied ✓';
+      setTimeout(() => {
+        const modal = document.getElementById('task-modal');
+        if (modal) modal.style.display = 'none';
+      }, 1000);
     }
   } catch (err) {
-    btn.textContent = 'Apply for this task';
-    btn.disabled    = false;
-    if (window.showToast) window.showToast('Network error. Please try again.');
+    console.error('Apply task error:', err);
+    if (window.showToast) window.showToast('Could not submit application.');
+    if (applyBtn) {
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Apply for this task';
+    }
   }
 });
 
-// Modal close triggers
-document.getElementById('modal-close')?.addEventListener('click', closeModal);
-document.getElementById('modal-close-2')?.addEventListener('click', closeModal);
-document.getElementById('task-modal')?.addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+// ─── TAB 6: Settings & Profile Edit (with Media Upload) ─────────────────────────
 
-// ─── Fund / Withdraw Modals ───────────────────────────────────────────────────
+async function renderSettingsTab() {
+  const profile = await window.ensureTaskaProfile();
+  if (!profile) return;
 
-document.getElementById('openFundModalBtn')?.addEventListener('click', () => {
-  const m = document.getElementById('fundModal');
-  m.style.display = 'flex';
-  setTimeout(() => m.classList.add('is-open'), 10);
-});
+  const fname = document.getElementById('settingsFname');
+  const lname = document.getElementById('settingsLname');
+  const phone = document.getElementById('settingsPhone');
+  const loc = document.getElementById('settingsLocation');
+  const bio = document.getElementById('settingsBio');
 
-document.getElementById('openWithdrawModalBtn')?.addEventListener('click', () => {
-  const m = document.getElementById('withdrawModal');
-  m.style.display = 'flex';
-  setTimeout(() => m.classList.add('is-open'), 10);
-});
+  if (fname) fname.value = profile.firstName || '';
+  if (lname) lname.value = profile.lastName || '';
 
-function closeFundModal() {
-  const m = document.getElementById('fundModal');
-  m.classList.remove('is-open');
-  setTimeout(() => m.style.display = 'none', 200);
+  const rawPhone = profile.phone || '';
+  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
+  if (phone) phone.value = digitsOnly;
+
+  if (loc) loc.value = profile.location || '';
+  if (bio) bio.value = profile.bio || '';
 }
 
-function closeWithdrawModal() {
-  const m = document.getElementById('withdrawModal');
-  m.classList.remove('is-open');
-  setTimeout(() => m.style.display = 'none', 200);
-}
-
-document.getElementById('closeFundModalBtn')?.addEventListener('click', closeFundModal);
-document.getElementById('closeWithdrawModalBtn')?.addEventListener('click', closeWithdrawModal);
-
-document.getElementById('fundWalletForm')?.addEventListener('submit', (e) => {
+// Save Profile Form Submission
+document.getElementById('settingsProfileForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (window.showToast) window.showToast('Wallet funding (Paystack demo) submitted!');
-  closeFundModal();
-});
 
-document.getElementById('withdrawForm')?.addEventListener('submit', (e) => {
-  e.preventDefault();
-  if (window.showToast) window.showToast('Withdrawal request (Demo) submitted!');
-  closeWithdrawModal();
-});
+  if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('save-profile', 2000)) {
+    return;
+  }
 
-// Wallet Tab Filters
-document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(tab => {
-  tab.addEventListener('click', (e) => {
-    document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(t => t.classList.remove('is-active'));
-    e.target.classList.add('is-active');
-    renderWalletTransactions(e.target.dataset.walletFilter);
-  });
-});
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
 
-// ─── Browse Filters Binding ────────────────────────────────────────────────────
+  const btn = document.getElementById('settingsSaveBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+  }
 
-let searchTimer = null;
-document.getElementById('gigSearch')?.addEventListener('input', function () {
-  clearTimeout(searchTimer);
-  searchTimer = setTimeout(() => {
-    browseFilters.search = this.value.trim();
-    browsePage = 1;
-    loadBrowseGigsData();
-  }, 400);
-});
+  const rawPhone = document.getElementById('settingsPhone').value.trim();
+  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
+  const fullPhone = digitsOnly ? '+234' + digitsOnly : '';
 
-document.getElementById('filterLocation')?.addEventListener('change', function () {
-  browseFilters.location = this.value;
-  browsePage = 1;
-  loadBrowseGigsData();
-});
+  const firstName = document.getElementById('settingsFname').value.trim();
+  const lastName = document.getElementById('settingsLname').value.trim();
+  const location = document.getElementById('settingsLocation').value.trim();
+  const bio = document.getElementById('settingsBio').value.trim();
 
-document.getElementById('filterSort')?.addEventListener('change', function () {
-  browseFilters.sort = this.value;
-  browsePage = 1;
-  loadBrowseGigsData();
-});
+  try {
+    const { data: updated, error } = await window.supabaseClient
+      .from('Profile')
+      .update({ firstName, lastName, phone: fullPhone, location, bio })
+      .eq('id', profile.id)
+      .select()
+      .single();
 
-// Category Chips
-document.querySelectorAll('[data-chip-group="category"] .chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('[data-chip-group="category"] .chip').forEach(c => c.classList.remove('is-active'));
-    chip.classList.add('is-active');
-    browseFilters.category = chip.dataset.value;
-    browsePage = 1;
-    loadBrowseGigsData();
-  });
-});
+    if (error || !updated) throw error || new Error('Update failed');
 
-// Load More
-document.getElementById('load-more-btn')?.addEventListener('click', () => {
-  browsePage++;
-  loadBrowseGigsData(true);
-});
+    window.__taskaProfile = { ...window.__taskaProfile, ...updated };
+    if (window.populateSidebar) {
+      populateSidebar(window.__taskaProfile);
+    }
 
-// ─── Initialization ────────────────────────────────────────────────────────────
-
-// Delegated click listener for all tabs and anchor links
-document.addEventListener('click', (e) => {
-  const link = e.target.closest('[data-tab], a[href^="#"]');
-  if (!link) return;
-
-  const targetTab = link.dataset.tab || (link.getAttribute('href') || '').replace('#', '');
-  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile'];
-
-  if (validTabs.includes(targetTab)) {
-    e.preventDefault();
-    window.switchTab(targetTab);
+    if (window.showToast) window.showToast('Profile updated successfully!');
+  } catch (err) {
+    console.error('Settings save profile error:', err);
+    if (window.showToast) window.showToast('Failed to update profile.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+    }
   }
 });
 
+// Delete Account Action
+document.getElementById('settingsDeleteBtn')?.addEventListener('click', async () => {
+  const confirmed = confirm('WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent.');
+  if (!confirmed) return;
+
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
+  const btn = document.getElementById('settingsDeleteBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Deleting Account...';
+  }
+
+  try {
+    const { data: wallet } = await window.supabaseClient.from('Wallet').select('id').eq('profileId', profile.id).maybeSingle();
+    if (wallet) {
+      await window.supabaseClient.from('WalletTransaction').delete().eq('walletId', wallet.id);
+      await window.supabaseClient.from('Wallet').delete().eq('id', wallet.id);
+    }
+    await window.supabaseClient.from('Application').delete().eq('taskerId', profile.id);
+    await window.supabaseClient.from('Task').delete().eq('posterId', profile.id);
+    await window.supabaseClient.from('Profile').delete().eq('id', profile.id);
+
+    if (window.showToast) window.showToast('Account deleted. Signing out...');
+    await window.Clerk.signOut();
+    window.location.replace('../Auth/login.html');
+  } catch (err) {
+    console.error('Delete account error:', err);
+    if (window.showToast) window.showToast('Failed to delete account.');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Delete Account';
+    }
+  }
+});
+
+// Boot SPA
 function bootSPA() {
   initPostTask();
   const initialHash = window.location.hash.replace('#', '') || 'dashboard';
   window.switchTab(initialHash);
 }
 
-if (window.__taskaReady || window.__taskaToken) {
+if (window.__taskaReady) {
   bootSPA();
 } else {
   window.addEventListener('taska:ready', bootSPA, { once: true });
 }
-
-// ─── TAB 6: Settings & Profile Edit ────────────────────────────────────────────
-
-function renderSettingsTab() {
-  const profile = window.getTaskaProfile();
-  if (!profile) return;
-
-  document.getElementById('settingsFname').value = profile.firstName || '';
-  document.getElementById('settingsLname').value = profile.lastName || '';
-  
-  // Format phone number back to 10 digits for local display
-  const rawPhone = profile.phone || '';
-  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
-  document.getElementById('settingsPhone').value = digitsOnly;
-  
-  document.getElementById('settingsLocation').value = profile.location || '';
-  document.getElementById('settingsBio').value = profile.bio || '';
-}
-
-// Bind Settings Profile Save Form
-document.getElementById('settingsProfileForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const token = await window.getTaskaToken();
-  if (!token) return;
-
-  const btn = document.getElementById('settingsSaveBtn');
-  btn.disabled = true;
-  btn.textContent = 'Saving...';
-
-  const rawPhone = document.getElementById('settingsPhone').value.trim();
-  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-  const fullPhone = digitsOnly ? '+234' + digitsOnly : '';
-
-  const body = {
-    firstName: document.getElementById('settingsFname').value.trim(),
-    lastName: document.getElementById('settingsLname').value.trim(),
-    phone: fullPhone,
-    location: document.getElementById('settingsLocation').value.trim(),
-    bio: document.getElementById('settingsBio').value.trim()
-  };
-
-  try {
-    const res = await fetch(`${DASHBOARD_API_BASE}/profiles/me`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    const json = await res.json();
-    if (res.ok && json.success) {
-      window.__taskaProfile = json.profile;
-      
-      // Update sidebar avatar & name immediately
-      if (window.populateSidebar) {
-        populateSidebar(json.profile);
-      }
-      
-      if (window.showToast) window.showToast('Profile updated successfully!');
-    } else {
-      if (window.showToast) window.showToast(json.error || 'Failed to update profile.');
-    }
-  } catch (err) {
-    console.error('Settings save profile error:', err);
-    if (window.showToast) window.showToast('Network error. Please try again.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Save Changes';
-  }
-});
-
-// Bind Delete Account Danger Action
-document.getElementById('settingsDeleteBtn')?.addEventListener('click', async () => {
-  const confirmed = confirm('WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent, and cannot be undone.');
-  if (!confirmed) return;
-
-  const token = await window.getTaskaToken();
-  if (!token) return;
-
-  const btn = document.getElementById('settingsDeleteBtn');
-  btn.disabled = true;
-  btn.textContent = 'Deleting Account...';
-
-  try {
-    const res = await fetch(`${DASHBOARD_API_BASE}/profiles/me`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    const json = await res.json();
-    if (res.ok && json.success) {
-      if (window.showToast) window.showToast('Account deleted. Signing out...');
-      await window.Clerk.signOut();
-      window.location.replace('../Auth/login.html');
-    } else {
-      if (window.showToast) window.showToast(json.error || 'Failed to delete account.');
-      btn.disabled = false;
-      btn.textContent = 'Delete Account';
-    }
-  } catch (err) {
-    console.error('Settings delete account error:', err);
-    if (window.showToast) window.showToast('Network error. Please try again.');
-    btn.disabled = false;
-    btn.textContent = 'Delete Account';
-  }
-});
