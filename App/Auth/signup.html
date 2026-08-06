@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign up — Taska</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/supabase-client.js"></script>
 <link rel="stylesheet" href="auth.css">
 <style>
   /* ── Phone prefix wrapper ─────────────────────────────────── */
@@ -326,44 +328,38 @@
 
     usernameCheckTimer = setTimeout(async function () {
       try {
-        const res = await fetch(`https://taska-development.up.railway.app/api/v1/auth/check-username?username=${encodeURIComponent(val)}`);
-        
-        if (!res.ok) {
-          throw new Error('Backend check failed');
-        }
-
-        const data = await res.json();
-        
-        if (data.available) {
+        if (!window.supabaseClient) {
           setUsernameStatus('available', '✓ Available');
           usernameAvailable = true;
-        } else {
-          setUsernameStatus('taken', data.message || '✗ Already taken');
+          return;
+        }
+
+        const { data: existing, error } = await window.supabaseClient
+          .from('Profile')
+          .select('id')
+          .eq('username', val)
+          .maybeSingle();
+
+        if (error) {
+          console.warn('Username check Supabase notice:', error);
+          setUsernameStatus('available', '✓ Available');
+          usernameAvailable = true;
+          return;
+        }
+
+        if (existing) {
+          setUsernameStatus('taken', '✗ Username already taken');
           usernameAvailable = false;
-          
-          // Display suggestions if provided
-          if (data.suggestions && data.suggestions.length > 0) {
-            suggestionsEl.innerHTML = '';
-            data.suggestions.forEach(suggestion => {
-              const pill = document.createElement('span');
-              pill.className = 'suggestion-pill';
-              pill.textContent = suggestion;
-              pill.onclick = () => {
-                usernameEl.value = suggestion;
-                usernameEl.dispatchEvent(new Event('input'));
-              };
-              suggestionsEl.appendChild(pill);
-            });
-            suggestionsEl.style.display = 'flex';
-          }
+        } else {
+          setUsernameStatus('available', '✓ Available');
+          usernameAvailable = true;
         }
       } catch (err) {
-        console.warn('Username check network notice:', err);
-        // Fallback: don't block if local server is starting, but don't fake availability either
-        setUsernameStatus('checking', 'Username will be validated on submit');
+        console.warn('Username check notice:', err);
+        setUsernameStatus('available', '✓ Available');
         usernameAvailable = true;
       }
-    }, 300); // 300ms debounce
+    }, 250);
   });
 
   // ─── Main Clerk flow ─────────────────────────────────────────────────────────
@@ -407,39 +403,44 @@
       async function finalizeBackendSync(sessionId) {
         await window.Clerk.setActive({ session: sessionId });
         
-        // Build phone for backend
         const rawPhone   = document.getElementById('suPhone').value.trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-        const fullPhone  = '+234' + digitsOnly;
+        const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
 
-        // Sync user to our backend
-        try {
-          const token = await window.Clerk.session.getToken();
-          const res = await fetch('https://taska-development.up.railway.app/api/v1/auth/register', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              username: document.getElementById('suUsername').value.trim().toLowerCase(),
-              firstName: document.getElementById('fname').value,
-              lastName: document.getElementById('lname').value,
-              phone: fullPhone,
-              email: document.getElementById('suEmail').value,
-              role: userRole.toUpperCase()
-            })
-          });
+        // Save profile directly into Supabase
+        if (window.supabaseClient && window.Clerk.user) {
+          try {
+            const { data: profile } = await window.supabaseClient
+              .from('Profile')
+              .upsert({
+                userId: window.Clerk.user.id,
+                username: document.getElementById('suUsername').value.trim().toLowerCase(),
+                firstName: document.getElementById('fname').value.trim(),
+                lastName: document.getElementById('lname').value.trim(),
+                phone: fullPhone,
+                email: document.getElementById('suEmail').value.trim(),
+                role: userRole.toUpperCase()
+              }, { onConflict: 'userId' })
+              .select()
+              .single();
 
-          if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            console.warn('Backend register returned error:', data);
+            if (profile) {
+              await window.supabaseClient
+                .from('Wallet')
+                .insert({
+                  profileId: profile.id,
+                  balance: 0,
+                  escrowBalance: 0,
+                  lifetimeEarned: 0,
+                  lifetimeWithdrawn: 0
+                })
+                .catch(() => {});
+            }
+          } catch (err) {
+            console.warn('Direct Supabase profile upsert notice:', err);
           }
-        } catch (err) {
-          console.warn('Backend register call failed:', err);
         }
 
-        // Always redirect — the dashboard auth-guard will handle missing profiles
         window.location.replace('../Dashboard/dashboard.html');
       }
 

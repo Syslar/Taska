@@ -5,5 +5,8 @@ TASKA_AGENTS.md
 *.pem
 *.key
 *.cert
+# Backend (decoupled for direct Supabase architecture)
+Backend/
+
 # Local Netlify folder
 .netlify
