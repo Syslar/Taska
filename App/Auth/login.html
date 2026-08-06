@@ -124,6 +124,17 @@
           }
 
           if (signInAttempt.status === 'needs_first_factor' || signInAttempt.status === 'needs_client_trust') {
+            if (typeof signInAttempt.submitProtectCheck === 'function') {
+              try {
+                const protectRes = await signInAttempt.submitProtectCheck();
+                if (protectRes.createdSessionId) {
+                  await window.Clerk.setActive({ session: protectRes.createdSessionId });
+                  window.location.replace('../Dashboard/dashboard.html');
+                  return;
+                }
+              } catch (_) {}
+            }
+
             const firstFactorResult = await signInAttempt.attemptFirstFactor({
               strategy: 'password',
               password,
@@ -139,6 +150,17 @@
               await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
               window.location.replace('../Dashboard/dashboard.html');
               return;
+            }
+
+            if (typeof firstFactorResult.submitProtectCheck === 'function') {
+              try {
+                const protectRes = await firstFactorResult.submitProtectCheck();
+                if (protectRes.createdSessionId) {
+                  await window.Clerk.setActive({ session: protectRes.createdSessionId });
+                  window.location.replace('../Dashboard/dashboard.html');
+                  return;
+                }
+              } catch (_) {}
             }
           }
           
