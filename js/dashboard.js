@@ -269,7 +269,7 @@ async function loadBrowseGigsData(append = false) {
   try {
     let query = window.supabaseClient
       .from('Task')
-      .select('*, Profile!posterId(firstName, lastName, avatarUrl, averageRating, isVerified)')
+      .select('*, Profile!posterId(firstName, lastName, username, avatarUrl, averageRating, isVerified)')
       .eq('status', 'OPEN');
 
     if (browseFilters.category && browseFilters.category !== 'all') {
@@ -303,7 +303,15 @@ async function loadBrowseGigsData(append = false) {
       grid.insertAdjacentHTML('beforeend', cachedTasks.map(renderTaskCard).join(''));
       grid.querySelectorAll('.gig-card:not([data-bound])').forEach(card => {
         card.setAttribute('data-bound', '1');
-        card.addEventListener('click', () => openTaskModal(card.dataset.taskId, cachedTasks));
+        card.addEventListener('click', (e) => {
+          const posterArea = e.target.closest('.gig-poster-area');
+          if (posterArea) {
+            e.stopPropagation();
+            openPublicProfileModal(posterArea.dataset.posterId);
+          } else {
+            openTaskModal(card.dataset.taskId, cachedTasks);
+          }
+        });
       });
     }
   } catch (err) {
@@ -322,7 +330,7 @@ function renderTaskCard(task) {
   return `
     <div class="gig-card" data-task-id="${task.id}" style="cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);">
-        <div style="display:flex; align-items:center; gap:10px;">
+        <div class="gig-poster-area" data-poster-id="${task.posterId}" style="display:flex; align-items:center; gap:10px; cursor:pointer;" title="View poster profile">
           <div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>
           <div>
             <div style="font-weight:700; font-size:0.9rem; color:var(--body); display:flex; align-items:center; gap:4px;">
@@ -1061,14 +1069,20 @@ document.getElementById('pub-modal-edit-btn')?.addEventListener('click', () => {
 
 // Mobile Hamburger Menu Handler
 const hamburgerBtn = document.getElementById('mobile-hamburger-btn');
-if (hamburgerBtn) {
-  hamburgerBtn.addEventListener('click', () => {
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-      sidebar.classList.toggle('is-mobile-open');
-    }
-  });
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) {
+    const isOpen = sidebar.classList.toggle('is-mobile-open');
+    if (sidebarOverlay) sidebarOverlay.style.display = isOpen ? 'block' : 'none';
+  }
 }
+
+if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileSidebar);
+if (sidebarOverlay) sidebarOverlay.addEventListener('click', toggleMobileSidebar);
+if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', toggleMobileSidebar);
 
 // ─── TAB 6: Messaging & Chats Controller ─────────────────────────────────────
 let activeChatPeer = null;

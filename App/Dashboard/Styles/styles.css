@@ -153,7 +153,10 @@
 .tab-item.is-active { color: var(--green-700); }
 .tab-item svg { width: 20px; height: 20px; }
 
+.mobile-only { display: none !important; }
+
 @media (max-width: 980px) {
+  .mobile-only { display: block !important; }
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .mobile-topbar { display: flex; }

@@ -150,6 +150,21 @@
               return;
             }
 
+            if (firstFactorResult.status === 'needs_client_trust') {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Log in';
+              try {
+                if (window.Clerk.handleUnauthenticated) {
+                  await window.Clerk.handleUnauthenticated();
+                  return;
+                }
+              } catch(e) {
+                console.warn('handleUnauthenticated failed, fallback to hosted UI:', e);
+              }
+              window.location.href = window.Clerk.buildSignInUrl({ redirectUrl: window.location.href });
+              return;
+            }
+
             if (firstFactorResult.createdSessionId) {
               await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
               window.location.replace('../Dashboard/dashboard.html');
