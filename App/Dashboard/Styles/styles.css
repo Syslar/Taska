@@ -424,3 +424,26 @@
 .sidebar-user:hover {
   background: rgba(255, 255, 255, 0.08) !important;
 }
+
+/* Responsive Fixes for Wallet & Messaging */
+.wallet-hero {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.wallet-hero-balance {
+  word-break: break-all;
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    grid-template-columns: 1fr !important;
+  }
+  .stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

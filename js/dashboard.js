@@ -116,8 +116,8 @@ window.switchTab = function switchTab(tabName) {
     loadBrowseGigsData();
   } else if (tabName === 'wallet') {
     loadWalletData();
-  } else if (tabName === 'profile') {
-    renderProfileTab();
+  } else if (tabName === 'messages') {
+    loadMessagesData();
   } else if (tabName === 'settings') {
     renderSettingsTab();
   }
@@ -313,24 +313,38 @@ async function loadBrowseGigsData(append = false) {
 }
 
 function renderTaskCard(task) {
-  const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() : 'Poster';
+  const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() || 'Poster' : 'Poster';
+  const posterUsername = task.Profile?.username ? `@${task.Profile.username}` : '@user';
   const posterInitials = `${(task.Profile?.firstName || '')[0] || ''}${(task.Profile?.lastName || '')[0] || ''}`.toUpperCase() || 'P';
+  const isVerified = task.Profile?.isVerified;
   const budget = task.budget != null ? formatNaira(task.budget) : task.budgetMin ? `${formatNaira(task.budgetMin)} - ${formatNaira(task.budgetMax)}` : 'Open Bid';
 
   return `
-    <div class="gig-card" data-task-id="${task.id}">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-        <span class="gig-category">${task.category || 'General'}</span>
-        <span class="gig-budget mono">${budget}</span>
-      </div>
-      <h3 class="gig-title">${task.title}</h3>
-      <p class="gig-desc">${task.description || ''}</p>
-      <div class="gig-footer">
-        <div class="gig-author">
-          <div class="gig-author-avatar">${posterInitials}</div>
-          <span class="gig-author-name">${posterName}</span>
+    <div class="gig-card" data-task-id="${task.id}" style="cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>
+          <div>
+            <div style="font-weight:700; font-size:0.9rem; color:var(--body); display:flex; align-items:center; gap:4px;">
+              ${posterName} ${isVerified ? '<span style="color:var(--green-700); font-size:0.75rem;">✓</span>' : ''}
+            </div>
+            <div class="mono" style="font-size:0.76rem; color:var(--muted);">${posterUsername}</div>
+          </div>
         </div>
-        <span class="gig-time">${timeAgo(task.createdAt)}</span>
+        <span class="gig-budget mono" style="font-weight:700; font-size:1.05rem; color:var(--green-900);">${budget}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span class="gig-category">${task.category || 'General'}</span>
+        <span style="font-size:0.78rem; color:var(--muted);">${task.taskType === 'REMOTE' ? '🌐 Remote' : `📍 ${task.location || 'Lagos'}`}</span>
+      </div>
+
+      <h3 class="gig-title" style="margin-bottom:6px; font-size:1.05rem;">${task.title}</h3>
+      <p class="gig-desc" style="color:var(--ink-soft); font-size:0.88rem; line-height:1.5; margin-bottom:14px;">${task.description || ''}</p>
+
+      <div class="gig-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--muted); border-top:1px dashed var(--line); padding-top:10px;">
+        <span>Posted ${timeAgo(task.createdAt)}</span>
+        <span class="btn btn-sm btn-secondary" style="pointer-events:none; border-radius:16px;">View & Apply →</span>
       </div>
     </div>`;
 }
@@ -921,6 +935,154 @@ if (hamburgerBtn) {
     }
   });
 }
+
+// ─── TAB 6: Messaging & Chats Controller ─────────────────────────────────────
+let activeChatPeer = null;
+
+async function loadMessagesData() {
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
+  const threadsList = document.getElementById('chat-threads-list');
+  if (!threadsList) return;
+
+  try {
+    const { data: messages, error } = await window.supabaseClient
+      .from('Message')
+      .select('*, sender:senderId(id, firstName, lastName, username, avatarUrl), receiver:receiverId(id, firstName, lastName, username, avatarUrl)')
+      .or(`senderId.eq.${profile.id},receiverId.eq.${profile.id}`)
+      .order('createdAt', { ascending: false });
+
+    if (error) throw error;
+
+    const peerMap = new Map();
+    (messages || []).forEach(msg => {
+      const peer = msg.senderId === profile.id ? msg.receiver : msg.sender;
+      if (peer && !peerMap.has(peer.id)) {
+        peerMap.set(peer.id, { peer, lastMessage: msg });
+      }
+    });
+
+    const threads = Array.from(peerMap.values());
+
+    if (threads.length === 0) {
+      threadsList.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted); font-size:0.85rem;">No active chats yet. Click "Message Poster" on any task to start chatting!</div>`;
+    } else {
+      threadsList.innerHTML = threads.map(t => {
+        const pName = `${t.peer.firstName || ''} ${t.peer.lastName || ''}`.trim() || 'User';
+        const pInit = `${(t.peer.firstName || '')[0] || ''}${(t.peer.lastName || '')[0] || ''}`.toUpperCase() || 'U';
+        const isSelected = activeChatPeer && activeChatPeer.id === t.peer.id;
+        return `
+          <div class="chat-thread-item ${isSelected ? 'is-active' : ''}" data-peer-id="${t.peer.id}" style="padding:10px 12px; border-radius:var(--radius-sm); cursor:pointer; display:flex; gap:10px; align-items:center; background:${isSelected ? 'var(--mint-050)' : 'transparent'}; border:1px solid ${isSelected ? 'var(--mint-150)' : 'transparent'};">
+            <div class="sidebar-user-avatar" style="width:36px; height:36px; font-size:0.85rem;">${pInit}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:0.86rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pName}</div>
+              <div style="font-size:0.78rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${t.lastMessage.content || ''}</div>
+            </div>
+          </div>`;
+      }).join('');
+
+      threadsList.querySelectorAll('.chat-thread-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const peerId = item.dataset.peerId;
+          const found = threads.find(t => t.peer.id === peerId);
+          if (found) selectChatThread(found.peer);
+        });
+      });
+
+      if (!activeChatPeer && threads.length > 0) {
+        selectChatThread(threads[0].peer);
+      }
+    }
+  } catch (err) {
+    console.error('loadMessagesData error:', err);
+  }
+}
+
+async function selectChatThread(peer) {
+  activeChatPeer = peer;
+  const profile = window.getTaskaProfile();
+  if (!profile || !peer) return;
+
+  const pName = `${peer.firstName || ''} ${peer.lastName || ''}`.trim() || 'User';
+  const pUsername = `@${peer.username || 'user'}`;
+  const pInit = `${(peer.firstName || '')[0] || ''}${(peer.lastName || '')[0] || ''}`.toUpperCase() || 'U';
+
+  const avatarEl = document.getElementById('chat-peer-avatar');
+  const nameEl = document.getElementById('chat-peer-name');
+  const usernameEl = document.getElementById('chat-peer-username');
+  if (avatarEl) avatarEl.textContent = pInit;
+  if (nameEl) nameEl.textContent = pName;
+  if (usernameEl) usernameEl.textContent = pUsername;
+
+  await loadChatMessages();
+}
+
+async function loadChatMessages() {
+  const profile = window.getTaskaProfile();
+  const bodyEl = document.getElementById('chat-messages-body');
+  if (!profile || !activeChatPeer || !bodyEl) return;
+
+  try {
+    const { data: msgs, error } = await window.supabaseClient
+      .from('Message')
+      .select('*')
+      .or(`and(senderId.eq.${profile.id},receiverId.eq.${activeChatPeer.id}),and(senderId.eq.${activeChatPeer.id},receiverId.eq.${profile.id})`)
+      .order('createdAt', { ascending: true });
+
+    if (error) throw error;
+
+    if (!msgs || msgs.length === 0) {
+      bodyEl.innerHTML = `<div style="margin:auto; text-align:center; color:var(--muted); font-size:0.85rem;">Say hello to start the conversation!</div>`;
+    } else {
+      bodyEl.innerHTML = msgs.map(m => {
+        const isMine = m.senderId === profile.id;
+        return `
+          <div style="align-self:${isMine ? 'flex-end' : 'flex-start'}; max-width:75%; background:${isMine ? 'var(--green-700)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; padding:10px 14px; border-radius:14px; border:${isMine ? 'none' : '1px solid var(--line)'}; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+            <div style="font-size:0.88rem; line-height:1.4;">${m.content}</div>
+            <div style="font-size:0.7rem; color:${isMine ? 'rgba(255,255,255,0.7)' : 'var(--muted)'}; margin-top:4px; text-align:right;">${timeAgo(m.createdAt)}</div>
+          </div>`;
+      }).join('');
+      bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+  } catch (err) {
+    console.error('loadChatMessages error:', err);
+  }
+}
+
+document.getElementById('chat-send-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('chatInputText');
+  const content = input?.value.trim();
+  const profile = await window.ensureTaskaProfile();
+
+  if (!content || !profile || !activeChatPeer || !window.supabaseClient) return;
+
+  input.value = '';
+  try {
+    const { error } = await window.supabaseClient
+      .from('Message')
+      .insert({
+        senderId: profile.id,
+        receiverId: activeChatPeer.id,
+        content
+      });
+
+    if (error) throw error;
+    loadChatMessages();
+    loadMessagesData();
+  } catch (err) {
+    console.error('Send message error:', err);
+    if (window.showToast) window.showToast('Failed to send message.');
+  }
+});
+
+// Settings Logout Button Handler
+document.getElementById('settings-logout-btn')?.addEventListener('click', async () => {
+  if (window.showToast) window.showToast('Signing out...');
+  await window.Clerk.signOut();
+  window.location.replace('../Auth/login.html');
+});
 
 // Boot SPA
 function bootSPA() {
