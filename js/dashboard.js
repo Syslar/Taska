@@ -853,6 +853,75 @@ document.getElementById('settingsDeleteBtn')?.addEventListener('click', async ()
   }
 });
 
+// Settings Subtabs Handler
+document.querySelectorAll('[data-settings-subtab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-settings-subtab]').forEach(b => b.classList.remove('is-active'));
+    btn.classList.add('is-active');
+    const target = btn.dataset.settingsSubtab;
+    document.querySelectorAll('.settings-subpanel').forEach(p => p.style.display = 'none');
+    const activeSubpanel = document.getElementById(`settings-subpanel-${target}`);
+    if (activeSubpanel) activeSubpanel.style.display = 'block';
+  });
+});
+
+// Public Profile Modal Handlers
+function openPublicProfileModal() {
+  const profile = window.getTaskaProfile();
+  if (!profile) return;
+
+  const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
+  const username = `@${profile.username || 'user'}`;
+  const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
+
+  const avatarEl   = document.getElementById('pub-modal-avatar');
+  const nameEl     = document.getElementById('pub-modal-name');
+  const usernameEl = document.getElementById('pub-modal-username');
+  const roleEl     = document.getElementById('pub-modal-role');
+  const bioEl      = document.getElementById('pub-modal-bio');
+  const locationEl = document.getElementById('pub-modal-location');
+  const ratingEl   = document.getElementById('pub-modal-rating');
+  const verifiedEl = document.getElementById('pub-modal-verified');
+
+  if (avatarEl)   avatarEl.textContent   = initials;
+  if (nameEl)     nameEl.textContent     = fullName;
+  if (usernameEl) usernameEl.textContent = username;
+  if (roleEl)     roleEl.textContent     = roleLabel;
+  if (bioEl)      bioEl.textContent      = profile.bio || 'No bio provided yet.';
+  if (locationEl) locationEl.textContent = profile.location || 'Lagos, Nigeria';
+  if (ratingEl)   ratingEl.textContent   = `★ ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
+  if (verifiedEl) verifiedEl.textContent = profile.isVerified ? '✓ Verified' : 'Standard Member';
+
+  const modal = document.getElementById('public-profile-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+document.getElementById('sidebar-user-btn')?.addEventListener('click', openPublicProfileModal);
+document.getElementById('mobile-avatar')?.addEventListener('click', openPublicProfileModal);
+
+document.getElementById('public-profile-close')?.addEventListener('click', () => {
+  const modal = document.getElementById('public-profile-modal');
+  if (modal) modal.style.display = 'none';
+});
+
+document.getElementById('pub-modal-edit-btn')?.addEventListener('click', () => {
+  const modal = document.getElementById('public-profile-modal');
+  if (modal) modal.style.display = 'none';
+  if (window.switchTab) window.switchTab('settings');
+});
+
+// Mobile Hamburger Menu Handler
+const hamburgerBtn = document.getElementById('mobile-hamburger-btn');
+if (hamburgerBtn) {
+  hamburgerBtn.addEventListener('click', () => {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('is-mobile-open');
+    }
+  });
+}
+
 // Boot SPA
 function bootSPA() {
   initPostTask();

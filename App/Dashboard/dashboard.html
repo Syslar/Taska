@@ -98,10 +98,6 @@
 
       <div class="sidebar-divider"></div>
 
-      <a href="#profile" class="sidebar-link" data-tab="profile">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.7"/><path d="M4 21C4 16.6 7.6 14 12 14C16.4 14 20 16.6 20 21" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-        Profile
-      </a>
       <a href="#settings" class="sidebar-link" data-tab="settings">
         <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.7"/></svg></span>
         Settings
@@ -113,11 +109,11 @@
     </nav>
 
     <div class="sidebar-footer">
-      <div class="sidebar-user">
+      <div class="sidebar-user" id="sidebar-user-btn" style="cursor:pointer; padding:8px 12px; border-radius:var(--radius-sm); transition:background 0.2s;" title="View public profile">
         <div class="sidebar-user-avatar" id="sidebar-avatar">--</div>
-        <div>
-          <div class="sidebar-user-name" id="sidebar-name">Loading…</div>
-          <div class="sidebar-user-role" id="sidebar-role"></div>
+        <div style="flex:1; min-width:0;">
+          <div class="sidebar-user-name" id="sidebar-name" style="font-weight:600; font-size:0.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Loading…</div>
+          <div class="sidebar-user-username mono" id="sidebar-username" style="font-size:0.76rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@user</div>
         </div>
       </div>
     </div>
@@ -125,8 +121,13 @@
 
   <!-- ============ MOBILE TOP BAR ============ -->
   <div class="mobile-topbar">
-    <a href="../../index.html" class="sidebar-logo"><span class="logo-mark">T</span>Taska</a>
-    <div class="sidebar-user-avatar" id="mobile-avatar">--</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="hamburger-btn" id="mobile-hamburger-btn" aria-label="Toggle navigation" style="background:none; border:none; color:var(--body); cursor:pointer; padding:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <a href="../../index.html" class="sidebar-logo"><span class="logo-mark">T</span>Taska</a>
+    </div>
+    <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">--</div>
   </div>
 
   <!-- ============ MAIN CONTENT AREA ============ -->
@@ -482,97 +483,116 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 5: PROFILE ==================== -->
-    <section class="tab-panel" id="tab-profile">
-      <div class="app-header">
-        <div>
-          <h1>Your Profile</h1>
-          <p class="sub">Manage your account details and role preferences.</p>
-        </div>
-      </div>
-
-      <div class="panel" style="max-width: 600px;">
-        <div style="display:flex; align-items:center; gap:20px; margin-bottom:24px;">
-          <div class="sidebar-user-avatar" id="profile-big-avatar" style="width:64px; height:64px; font-size:1.4rem;">--</div>
-          <div>
-            <h2 id="profile-full-name" style="font-size:1.3rem;">User Profile</h2>
-            <span class="badge" id="profile-role-badge" style="margin-top:4px;">Loading…</span>
-          </div>
-        </div>
-
-        <div class="summary-row" style="padding: 12px 0;">
-          <span class="k">Email Address</span>
-          <span class="v" id="profile-email-val">—</span>
-        </div>
-        <div class="summary-row" style="padding: 12px 0;">
-          <span class="k">Phone Number</span>
-          <span class="v" id="profile-phone-val">—</span>
-        </div>
-        <div class="summary-row" style="padding: 12px 0;">
-          <span class="k">Username</span>
-          <span class="v mono" id="profile-username-val">—</span>
-        </div>
-        <div class="summary-row" style="padding: 12px 0;">
-          <span class="k">Verification Status</span>
-          <span class="v" id="profile-verified-val">—</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 6: SETTINGS ==================== -->
+    <!-- ==================== TAB 5: SETTINGS ==================== -->
     <section class="tab-panel" id="tab-settings">
       <div class="app-header">
         <div>
           <h1>Settings</h1>
-          <p class="sub">Update your account settings, personal details, or manage your account.</p>
+          <p class="sub">Manage your profile card, account preferences, and personal details.</p>
         </div>
       </div>
 
-      <div class="dash-grid">
-        <!-- Profile Settings Form -->
-        <div class="panel">
-          <h2 style="font-size:1.15rem; margin-bottom:18px;">Edit Profile</h2>
-          <form id="settingsProfileForm">
-            <div style="display:flex; gap:16px;">
-              <div class="field-group" style="flex:1;">
-                <label class="field-label" for="settingsFname">First name</label>
-                <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+      <!-- Settings Internal Subtabs -->
+      <div class="settings-subtabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <button class="btn btn-sm btn-secondary is-active" data-settings-subtab="profile" style="border-radius:20px;">Profile</button>
+        <button class="btn btn-sm btn-secondary" data-settings-subtab="account" style="border-radius:20px;">Account & Security</button>
+      </div>
+
+      <!-- SUBTAB 1: PROFILE (Profile Card + Edit Profile Form) -->
+      <div class="settings-subpanel" id="settings-subpanel-profile">
+        <div class="dash-grid">
+          
+          <!-- Live Profile Card -->
+          <div class="panel" style="display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; align-items:center; gap:18px; margin-bottom:20px;">
+                <div class="sidebar-user-avatar" id="profile-big-avatar" style="width:72px; height:72px; font-size:1.6rem; border:2px solid var(--green-700);">--</div>
+                <div>
+                  <h2 id="profile-full-name" style="font-size:1.25rem; font-weight:700;">User Profile</h2>
+                  <div class="mono" id="profile-username-val" style="font-size:0.85rem; color:var(--muted); margin-top:2px;">@username</div>
+                  <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+                    <span class="badge" id="profile-role-badge">Poster / Tasker</span>
+                    <span id="profile-verified-val" style="font-size:0.78rem; font-weight:600; color:var(--green-700);">✓ Verified</span>
+                  </div>
+                </div>
               </div>
-              <div class="field-group" style="flex:1;">
-                <label class="field-label" for="settingsLname">Last name</label>
-                <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+
+              <div style="border-top:1px dashed var(--line); padding-top:16px; margin-top:16px;">
+                <div class="summary-row" style="padding:10px 0;">
+                  <span class="k">Email</span>
+                  <span class="v" id="profile-email-val">—</span>
+                </div>
+                <div class="summary-row" style="padding:10px 0;">
+                  <span class="k">Phone</span>
+                  <span class="v" id="profile-phone-val">—</span>
+                </div>
+                <div class="summary-row" style="padding:10px 0;">
+                  <span class="k">Location</span>
+                  <span class="v" id="profile-location-val">Lagos, Nigeria</span>
+                </div>
+                <div class="summary-row" style="padding:10px 0;">
+                  <span class="k">Rating</span>
+                  <span class="v" id="profile-rating-val">★ 5.0 (0 reviews)</span>
+                </div>
               </div>
             </div>
-            
-            <div class="field-group">
-              <label class="field-label" for="settingsPhone">Phone number</label>
-              <div class="phone-input-wrap">
-                <span class="phone-prefix">+234</span>
-                <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+
+            <div style="margin-top:20px; padding:14px; background:var(--surface); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--ink-soft);">
+              💡 Your public profile card is visible to other Taskers and Posters when you create or apply for tasks.
+            </div>
+          </div>
+
+          <!-- Edit Profile Form -->
+          <div class="panel">
+            <h2 style="font-size:1.15rem; margin-bottom:18px;">Edit Profile Details</h2>
+            <form id="settingsProfileForm">
+              <div style="display:flex; gap:16px;">
+                <div class="field-group" style="flex:1;">
+                  <label class="field-label" for="settingsFname">First name</label>
+                  <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+                </div>
+                <div class="field-group" style="flex:1;">
+                  <label class="field-label" for="settingsLname">Last name</label>
+                  <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+                </div>
               </div>
-            </div>
+              
+              <div class="field-group">
+                <label class="field-label" for="settingsPhone">Phone number</label>
+                <div class="phone-input-wrap">
+                  <span class="phone-prefix">+234</span>
+                  <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+                </div>
+              </div>
 
-            <div class="field-group">
-              <label class="field-label" for="settingsLocation">Location</label>
-              <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
-            </div>
+              <div class="field-group">
+                <label class="field-label" for="settingsLocation">Location</label>
+                <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
+              </div>
 
-            <div class="field-group">
-              <label class="field-label" for="settingsBio">Bio</label>
-              <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell us about yourself..." style="resize:vertical; min-height:80px;"></textarea>
-            </div>
+              <div class="field-group">
+                <label class="field-label" for="settingsBio">Bio</label>
+                <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell us about yourself..." style="resize:vertical; min-height:80px;"></textarea>
+              </div>
 
-            <button type="submit" class="btn btn-primary" id="settingsSaveBtn">Save Changes</button>
-          </form>
-        </div>
+              <button type="submit" class="btn btn-primary" id="settingsSaveBtn">Save Changes</button>
+            </form>
+          </div>
 
-        <!-- Danger Zone Panel -->
-        <div class="panel" style="border:1px solid #fda4af; background:#fff1f2;">
-          <h2 style="font-size:1.15rem; color:#be123c; margin-bottom:6px;">Danger Zone</h2>
-          <p style="font-size:0.85rem; color:#4c0519; margin-bottom:20px;">Permanently delete your account and all associated task history, wallet balances, and active bids. This action is irreversible.</p>
-          <button type="button" class="btn" style="background:#e11d48; color:#fff;" id="settingsDeleteBtn">Delete Account</button>
         </div>
       </div>
+
+      <!-- SUBTAB 2: ACCOUNT & SECURITY -->
+      <div class="settings-subpanel" id="settings-subpanel-account" style="display:none;">
+        <div class="dash-grid">
+          <div class="panel" style="border:1px solid #fda4af; background:#fff1f2;">
+            <h2 style="font-size:1.15rem; color:#be123c; margin-bottom:6px;">Danger Zone</h2>
+            <p style="font-size:0.85rem; color:#4c0519; margin-bottom:20px;">Permanently delete your account and all associated task history, wallet balances, and active bids. This action is irreversible.</p>
+            <button type="button" class="btn" style="background:#e11d48; color:#fff;" id="settingsDeleteBtn">Delete Account</button>
+          </div>
+        </div>
+      </div>
+
     </section>
 
   </main>
@@ -676,6 +696,43 @@
       </div>
       <button type="submit" class="btn btn-primary btn-block">Submit Withdrawal (Demo)</button>
     </form>
+  </div>
+<!-- Public Profile Preview Modal -->
+<div class="modal-overlay" id="public-profile-modal" style="display:none;">
+  <div class="modal" style="max-width:500px;">
+    <button class="modal-close" id="public-profile-close" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    
+    <div style="text-align:center; padding:10px 0 20px 0; border-bottom:1px solid var(--line);">
+      <div class="sidebar-user-avatar" id="pub-modal-avatar" style="width:80px; height:80px; font-size:1.8rem; margin:0 auto 12px auto; border:3px solid var(--green-700);">--</div>
+      <h2 id="pub-modal-name" style="font-size:1.35rem; font-weight:700;">—</h2>
+      <div class="mono" id="pub-modal-username" style="font-size:0.88rem; color:var(--muted); margin-top:2px;">@username</div>
+      <div style="margin-top:10px; display:inline-flex; gap:8px; align-items:center;">
+        <span class="badge" id="pub-modal-role">Tasker / Poster</span>
+        <span id="pub-modal-verified" style="font-size:0.8rem; font-weight:600; color:var(--green-700);">✓ Verified</span>
+      </div>
+    </div>
+
+    <div style="padding:16px 0;">
+      <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); font-weight:700; margin-bottom:6px;">Bio</div>
+      <p style="font-size:0.9rem; color:var(--body); line-height:1.6;" id="pub-modal-bio">No bio provided yet.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;">
+        <div class="card" style="padding:14px; text-align:center;">
+          <div style="font-size:0.76rem; color:var(--muted);">Location</div>
+          <div style="font-size:0.9rem; font-weight:600; margin-top:2px;" id="pub-modal-location">Lagos, Nigeria</div>
+        </div>
+        <div class="card" style="padding:14px; text-align:center;">
+          <div style="font-size:0.76rem; color:var(--muted);">Average Rating</div>
+          <div style="font-size:0.9rem; font-weight:600; margin-top:2px;" id="pub-modal-rating">★ 5.0 (0 reviews)</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; text-align:center;">
+      <button class="btn btn-secondary btn-block" id="pub-modal-edit-btn">Edit My Profile</button>
+    </div>
   </div>
 </div>
 

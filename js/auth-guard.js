@@ -34,17 +34,39 @@ function populateSidebar(profile) {
   if (!profile) return;
   const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
-  const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : profile.role || 'User';
+  const username = `@${profile.username || 'user'}`;
+  const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
 
-  const avatarEl   = document.getElementById('sidebar-avatar');
-  const nameEl     = document.getElementById('sidebar-name');
-  const roleEl     = document.getElementById('sidebar-role');
-  const mobileAv   = document.getElementById('mobile-avatar');
+  const avatarEl     = document.getElementById('sidebar-avatar');
+  const nameEl       = document.getElementById('sidebar-name');
+  const usernameEl   = document.getElementById('sidebar-username');
+  const mobileAv     = document.getElementById('mobile-avatar');
 
-  if (avatarEl)  avatarEl.textContent  = initials;
-  if (nameEl)    nameEl.textContent    = fullName;
-  if (roleEl)    roleEl.textContent    = roleLabel;
-  if (mobileAv)  mobileAv.textContent  = initials;
+  if (avatarEl)    avatarEl.textContent   = initials;
+  if (nameEl)      nameEl.textContent     = fullName;
+  if (usernameEl)  usernameEl.textContent = username;
+  if (mobileAv)    mobileAv.textContent   = initials;
+
+  // Also populate Settings Live Profile Card elements
+  const profBigAvatar  = document.getElementById('profile-big-avatar');
+  const profFullName   = document.getElementById('profile-full-name');
+  const profUsername   = document.getElementById('profile-username-val');
+  const profRoleBadge  = document.getElementById('profile-role-badge');
+  const profEmail      = document.getElementById('profile-email-val');
+  const profPhone      = document.getElementById('profile-phone-val');
+  const profLocation   = document.getElementById('profile-location-val');
+  const profRating     = document.getElementById('profile-rating-val');
+  const profVerified   = document.getElementById('profile-verified-val');
+
+  if (profBigAvatar) profBigAvatar.textContent = initials;
+  if (profFullName)  profFullName.textContent  = fullName;
+  if (profUsername)  profUsername.textContent  = username;
+  if (profRoleBadge) profRoleBadge.textContent = roleLabel;
+  if (profEmail)     profEmail.textContent     = profile.email || '—';
+  if (profPhone)     profPhone.textContent     = profile.phone || '—';
+  if (profLocation)  profLocation.textContent  = profile.location || 'Lagos, Nigeria';
+  if (profRating)    profRating.textContent    = `★ ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
+  if (profVerified)  profVerified.textContent  = profile.isVerified ? '✓ Verified' : 'Standard Member';
 }
 
 // Fetch or JIT auto-provision user profile directly from Supabase

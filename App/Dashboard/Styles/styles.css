@@ -406,4 +406,21 @@
 
 @media (max-width: 980px) {
   .app-header, .wallet-hero-top { flex-direction: column; }
+  .app-shell { display: block; }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 260px;
+    z-index: 99999;
+    transition: left 0.3s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+  }
+  .sidebar.is-mobile-open {
+    left: 0 !important;
+  }
+}
+
+.sidebar-user:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
 }
