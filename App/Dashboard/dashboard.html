@@ -708,6 +708,7 @@
     </div>
     <div style="display:flex; gap:12px; margin-top:28px;">
       <button class="btn btn-primary btn-block apply-btn" id="modal-apply-btn">Apply for this task</button>
+      <button class="btn btn-secondary" id="modal-message-btn">Message Poster 💬</button>
       <button class="btn btn-secondary" id="modal-close-2">Close</button>
     </div>
   </div>
@@ -754,9 +755,11 @@
       <button type="submit" class="btn btn-primary btn-block">Submit Withdrawal (Demo)</button>
     </form>
   </div>
-<!-- Public Profile Preview Modal -->
+</div>
+
+<!-- Public Profile Preview & Reviews Modal -->
 <div class="modal-overlay" id="public-profile-modal" style="display:none;">
-  <div class="modal" style="max-width:500px;">
+  <div class="modal" style="max-width:550px; max-height:90vh; overflow-y:auto;">
     <button class="modal-close" id="public-profile-close" aria-label="Close">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
     </button>
@@ -766,7 +769,7 @@
       <h2 id="pub-modal-name" style="font-size:1.35rem; font-weight:700;">—</h2>
       <div class="mono" id="pub-modal-username" style="font-size:0.88rem; color:var(--muted); margin-top:2px;">@username</div>
       <div style="margin-top:10px; display:inline-flex; gap:8px; align-items:center;">
-        <span class="badge" id="pub-modal-role">Tasker / Poster</span>
+        <span class="badge" id="pub-modal-role">Poster & Tasker</span>
         <span id="pub-modal-verified" style="font-size:0.8rem; font-weight:600; color:var(--green-700);">✓ Verified</span>
       </div>
     </div>
@@ -787,7 +790,34 @@
       </div>
     </div>
 
-    <div style="margin-top:14px; text-align:center;">
+    <!-- Reviews Section -->
+    <div style="border-top:1px solid var(--line); padding-top:16px; margin-top:10px;">
+      <h3 style="font-size:1.05rem; margin-bottom:12px;">User Reviews</h3>
+      <div id="pub-modal-reviews-list" style="display:flex; flex-direction:column; gap:10px; max-height:180px; overflow-y:auto; margin-bottom:16px;">
+        <div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet for this user.</div>
+      </div>
+
+      <!-- Leave a Review Form -->
+      <form id="leave-review-form" style="background:var(--surface); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--line);">
+        <div style="font-weight:600; font-size:0.88rem; margin-bottom:8px;">Leave a Review</div>
+        <div class="field-group" style="margin-bottom:10px;">
+          <label class="field-label">Rating (1 to 5 Stars)</label>
+          <select class="select-input" id="reviewRatingSelect" required>
+            <option value="5">★★★★★ 5 Stars - Excellent</option>
+            <option value="4">★★★★☆ 4 Stars - Very Good</option>
+            <option value="3">★★★☆☆ 3 Stars - Average</option>
+            <option value="2">★★☆☆☆ 2 Stars - Poor</option>
+            <option value="1">★☆☆☆☆ 1 Star - Terrible</option>
+          </select>
+        </div>
+        <div class="field-group" style="margin-bottom:10px;">
+          <textarea class="text-input" id="reviewCommentText" rows="2" placeholder="Write an honest review about working with this user..." required style="resize:vertical;"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm btn-block" id="submitReviewBtn">Submit Review</button>
+      </form>
+    </div>
+
+    <div style="margin-top:14px; text-align:center;" id="pub-modal-edit-container">
       <button class="btn btn-secondary btn-block" id="pub-modal-edit-btn">Edit My Profile</button>
     </div>
   </div>
@@ -808,8 +838,8 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
-<script src="../../js/auth-guard.js?v=4"></script>
-<script src="../../js/dashboard.js?v=4"></script>
+<script src="../../js/auth-guard.js?v=6"></script>
+<script src="../../js/dashboard.js?v=6"></script>
 
 </body>
 </html>

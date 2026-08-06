@@ -408,6 +408,7 @@
   .app-header, .wallet-hero-top { flex-direction: column; }
   .app-shell { display: block; }
   .sidebar {
+    display: flex !important;
     position: fixed;
     top: 0;
     left: -280px;

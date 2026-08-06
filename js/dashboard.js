@@ -78,7 +78,7 @@ function getStatusClass(status) {
 // ─── SPA Tab Switching ────────────────────────────────────────────────────────
 
 window.switchTab = function switchTab(tabName) {
-  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile', 'settings'];
+  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile', 'settings', 'messages'];
   if (!validTabs.includes(tabName)) tabName = 'dashboard';
 
   currentTab = tabName;
@@ -694,6 +694,24 @@ async function openTaskModal(taskId, tasks) {
     applyBtn.textContent = 'Apply for this task';
   }
 
+  // Message Poster Handler
+  const msgBtn = document.getElementById('modal-message-btn');
+  if (msgBtn) {
+    if (profile && profile.id === task.posterId) {
+      msgBtn.style.display = 'none';
+    } else {
+      msgBtn.style.display = 'inline-flex';
+      msgBtn.onclick = () => {
+        const modal = document.getElementById('task-modal');
+        if (modal) modal.style.display = 'none';
+        if (window.switchTab) window.switchTab('messages');
+        if (window.selectChatThread && task.Profile) {
+          window.selectChatThread(task.Profile);
+        }
+      };
+    }
+  }
+
   const modal = document.getElementById('task-modal');
   if (modal) modal.style.display = 'flex';
 }
@@ -879,10 +897,24 @@ document.querySelectorAll('[data-settings-subtab]').forEach(btn => {
   });
 });
 
-// Public Profile Modal Handlers
-function openPublicProfileModal() {
-  const profile = window.getTaskaProfile();
+// Public Profile & Live Reviews Modal Controller
+let currentViewingProfileId = null;
+
+async function openPublicProfileModal(targetProfileOrId) {
+  let profile = window.getTaskaProfile();
+  if (targetProfileOrId) {
+    if (typeof targetProfileOrId === 'string') {
+      const { data } = await window.supabaseClient.from('Profile').select('*').eq('id', targetProfileOrId).single();
+      if (data) profile = data;
+    } else if (typeof targetProfileOrId === 'object') {
+      profile = targetProfileOrId;
+    }
+  }
+
   if (!profile) return;
+  currentViewingProfileId = profile.id;
+  const myProfile = window.getTaskaProfile();
+  const isSelf = myProfile && myProfile.id === profile.id;
 
   const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
@@ -897,6 +929,7 @@ function openPublicProfileModal() {
   const locationEl = document.getElementById('pub-modal-location');
   const ratingEl   = document.getElementById('pub-modal-rating');
   const verifiedEl = document.getElementById('pub-modal-verified');
+  const editContainer = document.getElementById('pub-modal-edit-container');
 
   if (avatarEl)   avatarEl.textContent   = initials;
   if (nameEl)     nameEl.textContent     = fullName;
@@ -906,13 +939,114 @@ function openPublicProfileModal() {
   if (locationEl) locationEl.textContent = profile.location || 'Lagos, Nigeria';
   if (ratingEl)   ratingEl.textContent   = `★ ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
   if (verifiedEl) verifiedEl.textContent = profile.isVerified ? '✓ Verified' : 'Standard Member';
+  if (editContainer) editContainer.style.display = isSelf ? 'block' : 'none';
+
+  // Fetch live reviews for this user
+  const reviewsList = document.getElementById('pub-modal-reviews-list');
+  if (reviewsList && window.supabaseClient) {
+    try {
+      const { data: reviews } = await window.supabaseClient
+        .from('Review')
+        .select('*, reviewer:reviewerId(firstName, lastName, username)')
+        .eq('revieweeId', profile.id)
+        .order('createdAt', { ascending: false });
+
+      if (!reviews || reviews.length === 0) {
+        reviewsList.innerHTML = `<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet for this user. Be the first to leave one!</div>`;
+      } else {
+        reviewsList.innerHTML = reviews.map(r => {
+          const rName = r.reviewer ? `${r.reviewer.firstName || ''} ${r.reviewer.lastName || ''}`.trim() : 'Anonymous';
+          const stars = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
+          return `
+            <div style="background:var(--surface); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-weight:600; font-size:0.85rem;">${rName}</span>
+                <span style="color:#f59e0b; font-size:0.8rem;">${stars}</span>
+              </div>
+              <p style="font-size:0.84rem; color:var(--ink-soft); margin:0;">${r.comment || ''}</p>
+              <div style="font-size:0.72rem; color:var(--muted); margin-top:4px; text-align:right;">${timeAgo(r.createdAt)}</div>
+            </div>`;
+        }).join('');
+      }
+    } catch (_) {
+      reviewsList.innerHTML = `<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet.</div>`;
+    }
+  }
 
   const modal = document.getElementById('public-profile-modal');
   if (modal) modal.style.display = 'flex';
 }
 
-document.getElementById('sidebar-user-btn')?.addEventListener('click', openPublicProfileModal);
-document.getElementById('mobile-avatar')?.addEventListener('click', openPublicProfileModal);
+// Leave a Review Form Handler
+document.getElementById('leave-review-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const myProfile = await window.ensureTaskaProfile();
+  if (!myProfile || !currentViewingProfileId || !window.supabaseClient) {
+    if (window.showToast) window.showToast('Please sign in to leave a review.');
+    return;
+  }
+
+  if (myProfile.id === currentViewingProfileId) {
+    if (window.showToast) window.showToast('You cannot leave a review for yourself.');
+    return;
+  }
+
+  const rating = parseInt(document.getElementById('reviewRatingSelect')?.value || '5');
+  const comment = document.getElementById('reviewCommentText')?.value.trim();
+  const btn = document.getElementById('submitReviewBtn');
+
+  if (!comment) return;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+  }
+
+  try {
+    const { error: reviewErr } = await window.supabaseClient
+      .from('Review')
+      .insert({
+        reviewerId: myProfile.id,
+        revieweeId: currentViewingProfileId,
+        rating,
+        comment
+      });
+
+    if (reviewErr) throw reviewErr;
+
+    // Recalculate average rating & review count for reviewee
+    const { data: allReviews } = await window.supabaseClient
+      .from('Review')
+      .select('rating')
+      .eq('revieweeId', currentViewingProfileId);
+
+    if (allReviews && allReviews.length > 0) {
+      const count = allReviews.length;
+      const sum = allReviews.reduce((acc, r) => acc + (r.rating || 5), 0);
+      const avg = parseFloat((sum / count).toFixed(1));
+
+      await window.supabaseClient
+        .from('Profile')
+        .update({ averageRating: avg, reviewCount: count })
+        .eq('id', currentViewingProfileId);
+    }
+
+    document.getElementById('reviewCommentText').value = '';
+    if (window.showToast) window.showToast('Review submitted successfully!');
+    openPublicProfileModal(currentViewingProfileId);
+
+  } catch (err) {
+    console.error('Leave review error:', err);
+    if (window.showToast) window.showToast('Failed to submit review.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Review';
+    }
+  }
+});
+
+document.getElementById('sidebar-user-btn')?.addEventListener('click', () => openPublicProfileModal());
+document.getElementById('mobile-avatar')?.addEventListener('click', () => openPublicProfileModal());
 
 document.getElementById('public-profile-close')?.addEventListener('click', () => {
   const modal = document.getElementById('public-profile-modal');
@@ -999,6 +1133,8 @@ async function loadMessagesData() {
   }
 }
 
+window.openPublicProfileModal = openPublicProfileModal;
+
 async function selectChatThread(peer) {
   activeChatPeer = peer;
   const profile = window.getTaskaProfile();
@@ -1017,6 +1153,8 @@ async function selectChatThread(peer) {
 
   await loadChatMessages();
 }
+
+window.selectChatThread = selectChatThread;
 
 async function loadChatMessages() {
   const profile = window.getTaskaProfile();
