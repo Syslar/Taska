@@ -364,6 +364,51 @@ function initPostTask() {
   if (!form || form.dataset.bound) return;
   form.dataset.bound = '1';
 
+  // Live update helper for the right-side summary card
+  function updateTaskSummaryPreview() {
+    const categoryVal = document.getElementById('taskCategory')?.value || '—';
+    const sumCategory = document.getElementById('sumCategory');
+    if (sumCategory) sumCategory.textContent = categoryVal;
+
+    const sumType = document.getElementById('sumType');
+    if (sumType) sumType.textContent = selectedTaskType === 'REMOTE' ? 'Remote (Online)' : 'Physical (In Person)';
+
+    const sumBudget = document.getElementById('sumBudget');
+    const sumFee = document.getElementById('sumFee');
+    const sumTotal = document.getElementById('sumTotal');
+
+    if (selectedBudgetType === 'FIXED') {
+      const bVal = parseFloat(document.getElementById('taskBudget')?.value) || 0;
+      if (bVal > 0) {
+        const fee = bVal * 0.10; // 10% platform cut
+        if (sumBudget) sumBudget.textContent = formatNaira(bVal);
+        if (sumFee) sumFee.textContent = formatNaira(fee);
+        if (sumTotal) sumTotal.textContent = formatNaira(bVal);
+      } else {
+        if (sumBudget) sumBudget.textContent = '—';
+        if (sumFee) sumFee.textContent = '—';
+        if (sumTotal) sumTotal.textContent = '—';
+      }
+    } else {
+      const bMin = parseFloat(document.getElementById('budgetMin')?.value) || 0;
+      const bMax = parseFloat(document.getElementById('budgetMax')?.value) || 0;
+      if (bMin > 0 || bMax > 0) {
+        if (sumBudget) sumBudget.textContent = `${formatNaira(bMin)} - ${formatNaira(bMax)}`;
+      } else {
+        if (sumBudget) sumBudget.textContent = 'Open to bids';
+      }
+      if (sumFee) sumFee.textContent = '10% on accepted bid';
+      if (sumTotal) sumTotal.textContent = 'Pending bids';
+    }
+
+    const dVal = document.getElementById('taskDate')?.value;
+    const tVal = document.getElementById('taskTime')?.value || 'Flexible';
+    const sumDate = document.getElementById('sumDate');
+    if (sumDate) {
+      sumDate.textContent = dVal ? `${dVal} (${tVal})` : tVal;
+    }
+  }
+
   // 1. Task Type toggle buttons (Physical / Remote)
   const taskTypeOptions = document.querySelectorAll('#postTaskTypeToggle .toggle-option');
   taskTypeOptions.forEach(opt => {
@@ -376,6 +421,7 @@ function initPostTask() {
       if (locWrap) {
         locWrap.style.display = selectedTaskType === 'REMOTE' ? 'none' : 'block';
       }
+      updateTaskSummaryPreview();
     });
   });
 
@@ -393,7 +439,14 @@ function initPostTask() {
         fixedWrap.style.display = selectedBudgetType === 'OPEN' ? 'none' : 'block';
         openWrap.style.display = selectedBudgetType === 'OPEN' ? 'block' : 'none';
       }
+      updateTaskSummaryPreview();
     });
+  });
+
+  // Attach live preview listeners to all inputs
+  ['taskCategory', 'taskBudget', 'budgetMin', 'budgetMax', 'taskDate', 'taskTime'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', updateTaskSummaryPreview);
+    document.getElementById(id)?.addEventListener('change', updateTaskSummaryPreview);
   });
 
   // 3. Form submit
