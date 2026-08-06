@@ -53,9 +53,9 @@
 
         <form id="login-form">
           <div class="field-group">
-            <label class="field-label" for="loginEmail">Email address</label>
-            <input class="text-input" type="email" id="loginEmail" placeholder="you@example.com" required>
-            <span class="field-error">Enter your email to continue.</span>
+            <label class="field-label" for="loginEmail">Email, Username, or Phone</label>
+            <input class="text-input" type="text" id="loginEmail" placeholder="you@example.com or username" required>
+            <span class="field-error">Enter your email, username, or phone to continue.</span>
           </div>
           <div class="field-group">
             <label class="field-label" for="loginPassword">Password</label>
@@ -126,6 +126,8 @@
             password,
           });
           
+          console.log('Clerk sign-in attempt:', signInAttempt.status, signInAttempt);
+
           // Step 2: Check if complete
           if (signInAttempt.status === 'complete' && signInAttempt.createdSessionId) {
             await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
@@ -140,6 +142,8 @@
               password,
             });
             
+            console.log('Clerk first factor result:', firstFactorResult.status, firstFactorResult);
+
             if (firstFactorResult.status === 'complete' && firstFactorResult.createdSessionId) {
               await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
               window.location.replace('../Dashboard/dashboard.html');
@@ -158,11 +162,11 @@
             return;
           }
 
-          if (window.showToast) window.showToast('Login could not be completed. Please check your credentials.');
+          if (window.showToast) window.showToast('Login could not be completed. Please check your email/username and password.');
           
         } catch (err) {
-          console.error('Login error:', err);
-          let errorMsg = 'Incorrect email or password.';
+          console.error('Clerk login error details:', err);
+          let errorMsg = 'Incorrect email, username, or password.';
           if (err && err.errors && err.errors.length > 0) {
             errorMsg = err.errors[0].longMessage || err.errors[0].message || errorMsg;
           }
