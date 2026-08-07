@@ -42,10 +42,22 @@ function populateSidebar(profile) {
   const usernameEl   = document.getElementById('sidebar-username');
   const mobileAv     = document.getElementById('mobile-avatar');
 
-  if (avatarEl)    avatarEl.textContent   = initials;
+  if (avatarEl) {
+    if (profile.avatarUrl) {
+      avatarEl.innerHTML = `<img src="${profile.avatarUrl}" alt="${fullName}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+      avatarEl.textContent = initials;
+    }
+  }
   if (nameEl)      nameEl.textContent     = fullName;
   if (usernameEl)  usernameEl.textContent = username;
-  if (mobileAv)    mobileAv.textContent   = initials;
+  if (mobileAv) {
+    if (profile.avatarUrl) {
+      mobileAv.innerHTML = `<img src="${profile.avatarUrl}" alt="${fullName}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+      mobileAv.textContent = initials;
+    }
+  }
 
   // Also populate Settings Live Profile Card elements
   const profBigAvatar  = document.getElementById('profile-big-avatar');
@@ -58,7 +70,13 @@ function populateSidebar(profile) {
   const profRating     = document.getElementById('profile-rating-val');
   const profVerified   = document.getElementById('profile-verified-val');
 
-  if (profBigAvatar) profBigAvatar.textContent = initials;
+  if (profBigAvatar) {
+    if (profile.avatarUrl) {
+      profBigAvatar.innerHTML = `<img src="${profile.avatarUrl}" alt="${fullName}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+      profBigAvatar.textContent = initials;
+    }
+  }
   if (profFullName)  profFullName.textContent  = fullName;
   if (profUsername)  profUsername.textContent  = username;
   if (profRoleBadge) profRoleBadge.textContent = roleLabel;

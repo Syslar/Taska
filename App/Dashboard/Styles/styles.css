@@ -154,9 +154,11 @@
 .tab-item svg { width: 20px; height: 20px; }
 
 .mobile-only { display: none !important; }
+.desktop-only { display: flex !important; }
 
 @media (max-width: 980px) {
   .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
   .app-shell { grid-template-columns: 1fr; }
   .sidebar { display: none; }
   .mobile-topbar { display: flex; }

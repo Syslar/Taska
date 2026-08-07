@@ -66,11 +66,17 @@ window.renderStandaloneProfile = async function(targetProfileId) {
   }
 
   const badgesHTML = `
-    <span class="badge verified">${profile.isVerified ? '✓ Verified' : 'Standard Member'}</span>
-    <span class="badge rating">★ ${rating} (${profile.reviewCount || 0} reviews)</span>
-    <span class="badge">📍 ${profile.location || 'Not specified'}</span>
-    <span class="badge">💼 ${roleLabel}</span>
+    <span class="badge verified">${profile.isVerified ? 'Verified Identity' : 'Standard Member'}</span>
+    <span class="badge rating">Rating: ${rating} (${profile.reviewCount || 0} reviews)</span>
+    <span class="badge">Location: ${profile.location || 'Not specified'}</span>
+    <span class="badge">Role: ${roleLabel}</span>
   `;
+
+  const messageBtnHTML = !isSelf ? `
+    <button id="profile-message-btn" class="btn btn-primary" style="margin-top:16px; display:inline-flex; align-items:center; gap:8px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg>
+      Message User
+    </button>` : '';
 
   document.getElementById('profile-card-container').innerHTML = `
     ${avatarHTML}
@@ -78,7 +84,13 @@ window.renderStandaloneProfile = async function(targetProfileId) {
     <div class="profile-username mono">${username}</div>
     <div class="profile-badges">${badgesHTML}</div>
     <div class="profile-bio">${profile.bio || 'This user hasn\'t added a bio yet.'}</div>
+    ${messageBtnHTML}
   `;
+
+  document.getElementById('profile-message-btn')?.addEventListener('click', () => {
+    localStorage.setItem('taska_open_chat_peer', JSON.stringify(profile));
+    window.location.href = '../Dashboard/index.html#messages';
+  });
 
   // Fetch reviews
   document.getElementById('reviews-section').style.display = 'block';

@@ -348,7 +348,7 @@ function renderTaskCard(task) {
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <span class="gig-category">${task.category || 'General'}</span>
-        <span style="font-size:0.78rem; color:var(--muted);">${task.taskType === 'REMOTE' ? '🌐 Remote' : `📍 ${task.location || 'Not specified'}`}</span>
+        <span style="font-size:0.78rem; color:var(--muted);">${task.taskType === 'REMOTE' ? 'Remote' : (task.location || 'Not specified')}</span>
       </div>
 
       <h3 class="gig-title" style="margin-bottom:6px; font-size:1.05rem;">${task.title}</h3>
@@ -693,7 +693,10 @@ async function openTaskModal(taskId, tasks) {
       msgBtn.style.display = 'inline-flex';
       msgBtn.onclick = () => {
         const modal = document.getElementById('task-modal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+          modal.classList.remove('is-open');
+          modal.style.display = 'none';
+        }
         if (window.switchTab) window.switchTab('messages');
         if (window.selectChatThread && task.Profile) {
           window.selectChatThread(task.Profile);
@@ -703,13 +706,22 @@ async function openTaskModal(taskId, tasks) {
   }
 
   const modal = document.getElementById('task-modal');
-  if (modal) modal.style.display = 'flex';
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('is-open');
+  }
 }
 
-document.getElementById('modal-close')?.addEventListener('click', () => {
+const closeTaskModal = () => {
   const modal = document.getElementById('task-modal');
-  if (modal) modal.style.display = 'none';
-});
+  if (modal) {
+    modal.classList.remove('is-open');
+    modal.style.display = 'none';
+  }
+};
+
+document.getElementById('modal-close')?.addEventListener('click', closeTaskModal);
+document.getElementById('modal-close-2')?.addEventListener('click', closeTaskModal);
 
 document.getElementById('modal-apply-btn')?.addEventListener('click', async () => {
   if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('apply-task', 3000)) {
@@ -1015,6 +1027,16 @@ async function loadMessagesData() {
           if (found) selectChatThread(found.peer);
         });
       });
+
+      const pendingPeerStr = localStorage.getItem('taska_open_chat_peer');
+      if (pendingPeerStr) {
+        try {
+          const pendingPeer = JSON.parse(pendingPeerStr);
+          localStorage.removeItem('taska_open_chat_peer');
+          selectChatThread(pendingPeer);
+          return;
+        } catch (_) {}
+      }
 
       if (!activeChatPeer && threads.length > 0) {
         selectChatThread(threads[0].peer);
