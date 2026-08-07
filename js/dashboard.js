@@ -307,7 +307,7 @@ async function loadBrowseGigsData(append = false) {
           const posterArea = e.target.closest('.gig-poster-area');
           if (posterArea) {
             e.stopPropagation();
-            openPublicProfileModal(posterArea.dataset.posterId);
+            window.location.href = '../Profile/index.html?id=' + posterArea.dataset.posterId;
           } else {
             openTaskModal(card.dataset.taskId, cachedTasks);
           }
@@ -324,6 +324,7 @@ function renderTaskCard(task) {
   const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() || 'Poster' : 'Poster';
   const posterUsername = task.Profile?.username ? `@${task.Profile.username}` : '@user';
   const posterInitials = `${(task.Profile?.firstName || '')[0] || ''}${(task.Profile?.lastName || '')[0] || ''}`.toUpperCase() || 'P';
+  const avatarUrl = task.Profile?.avatarUrl;
   const isVerified = task.Profile?.isVerified;
   const budget = task.budget != null ? formatNaira(task.budget) : task.budgetMin ? `${formatNaira(task.budgetMin)} - ${formatNaira(task.budgetMax)}` : 'Open Bid';
 
@@ -331,7 +332,10 @@ function renderTaskCard(task) {
     <div class="gig-card" data-task-id="${task.id}" style="cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);">
         <div class="gig-poster-area" data-poster-id="${task.posterId}" style="display:flex; align-items:center; gap:10px; cursor:pointer;" title="View poster profile">
-          <div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>
+          ${avatarUrl 
+            ? `<img src="${avatarUrl}" alt="${posterName}" class="gig-author-avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1.5px solid var(--green-700);">`
+            : `<div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>`
+          }
           <div>
             <div style="font-weight:700; font-size:0.9rem; color:var(--body); display:flex; align-items:center; gap:4px;">
               ${posterName} ${isVerified ? '<span style="color:var(--green-700); font-size:0.75rem;">✓</span>' : ''}
@@ -344,7 +348,7 @@ function renderTaskCard(task) {
 
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <span class="gig-category">${task.category || 'General'}</span>
-        <span style="font-size:0.78rem; color:var(--muted);">${task.taskType === 'REMOTE' ? '🌐 Remote' : `📍 ${task.location || 'Lagos'}`}</span>
+        <span style="font-size:0.78rem; color:var(--muted);">${task.taskType === 'REMOTE' ? '🌐 Remote' : `📍 ${task.location || 'Not specified'}`}</span>
       </div>
 
       <h3 class="gig-title" style="margin-bottom:6px; font-size:1.05rem;">${task.title}</h3>
@@ -352,7 +356,7 @@ function renderTaskCard(task) {
 
       <div class="gig-footer" style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--muted); border-top:1px dashed var(--line); padding-top:10px;">
         <span>Posted ${timeAgo(task.createdAt)}</span>
-        <span class="btn btn-sm btn-secondary" style="pointer-events:none; border-radius:16px;">View & Apply →</span>
+        <span class="btn btn-sm btn-secondary gig-view-btn" style="border-radius:16px;">View & Apply →</span>
       </div>
     </div>`;
 }
@@ -495,7 +499,7 @@ function initPostTask() {
     const title = document.getElementById('taskTitle').value.trim();
     const category = document.getElementById('taskCategory').value;
     const description = document.getElementById('taskDesc').value.trim();
-    const location = document.getElementById('taskLocation')?.value.trim() || (selectedTaskType === 'REMOTE' ? 'Remote' : 'Lagos');
+    const location = document.getElementById('taskLocation')?.value.trim() || (selectedTaskType === 'REMOTE' ? 'Remote' : (profile.location || 'Not specified'));
     const deadline = document.getElementById('taskDate')?.value || null;
     const preferredTime = document.getElementById('taskTime')?.value || 'Flexible';
     const budget = document.getElementById('taskBudget')?.value || null;
@@ -627,35 +631,13 @@ function renderWalletTransactions(filter = 'all') {
 
 // ─── TAB 5: Profile Rendering ──────────────────────────────────────────────────
 
-async function renderProfileTab() {
-  const profile = await window.ensureTaskaProfile();
-  if (!profile) return;
-
-  const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
-  
-  const bigAv = document.getElementById('profile-big-avatar');
-  const fName = document.getElementById('profile-full-name');
-  const roleBadge = document.getElementById('profile-role-badge');
-  const pEmail = document.getElementById('profile-email-val');
-  const pPhone = document.getElementById('profile-phone-val');
-  const pUser = document.getElementById('profile-username-val');
-  const pVer = document.getElementById('profile-verified-val');
-
-  if (bigAv) bigAv.textContent = initials;
-  if (fName) fName.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
-  if (roleBadge) roleBadge.textContent = profile.role === 'TASKER' ? 'Tasker (Earn money)' : 'Task Poster (Hire people)';
-
-  if (pEmail) pEmail.textContent = profile.email || 'Not set';
-  if (pPhone) pPhone.textContent = profile.phone || 'Not set';
-  if (pUser) pUser.textContent = profile.username ? `@${profile.username}` : 'Not set';
-  if (pVer) pVer.textContent = profile.isVerified ? '✓ Identity Verified' : 'Unverified';
-}
+// Profile rendering is now handled by js/profile.js
 
 // ─── Task Modal & Application (Unified for ALL users) ──────────────────────────
 
 async function openTaskModal(taskId, tasks) {
   if (tasks) cachedTasks = tasks;
-  const task = cachedTasks.find(t => t.id === taskId);
+  const task = cachedTasks.find(t => String(t.id) === String(taskId));
   if (!task) return;
 
   currentTaskId = taskId;
@@ -826,13 +808,27 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
 
   const firstName = document.getElementById('settingsFname').value.trim();
   const lastName = document.getElementById('settingsLname').value.trim();
+  const avatarFile = document.getElementById('settingsAvatarUpload')?.files[0];
+  let newAvatarUrl = undefined;
+
+  if (avatarFile) {
+    if (window.showToast) window.showToast('Uploading avatar...');
+    newAvatarUrl = await window.uploadTaskaMedia(avatarFile);
+    if (newAvatarUrl && window.Clerk && window.Clerk.user) {
+      try { await window.Clerk.user.setProfileImage({ file: avatarFile }); } catch(_) {}
+    }
+  }
+
   const location = document.getElementById('settingsLocation').value.trim();
   const bio = document.getElementById('settingsBio').value.trim();
 
   try {
+    const updatePayload = { firstName, lastName, phone: fullPhone, location, bio };
+    if (newAvatarUrl) updatePayload.avatarUrl = newAvatarUrl;
+
     const { data: updated, error } = await window.supabaseClient
       .from('Profile')
-      .update({ firstName, lastName, phone: fullPhone, location, bio })
+      .update(updatePayload)
       .eq('id', profile.id)
       .select()
       .single();
@@ -842,6 +838,11 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
     window.__taskaProfile = { ...window.__taskaProfile, ...updated };
     if (window.populateSidebar) {
       populateSidebar(window.__taskaProfile);
+    }
+    
+    if (newAvatarUrl) {
+      const pPreview = document.getElementById('settings-avatar-preview');
+      if (pPreview) pPreview.innerHTML = `<img src="${newAvatarUrl}" style="width:100%; height:100%; object-fit:cover;">`;
     }
 
     if (window.showToast) window.showToast('Profile updated successfully!');
@@ -856,6 +857,18 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   }
 });
 
+// Avatar local preview listener
+document.getElementById('settingsAvatarUpload')?.addEventListener('change', function() {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const preview = document.getElementById('settings-avatar-preview');
+      if (preview) preview.innerHTML = `<img src="${e.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+    };
+    reader.readAsDataURL(file);
+  }
+});
 // Delete Account Action
 document.getElementById('settingsDeleteBtn')?.addEventListener('click', async () => {
   const confirmed = confirm('WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent.');
@@ -906,155 +919,20 @@ document.querySelectorAll('[data-settings-subtab]').forEach(btn => {
 });
 
 // Public Profile & Live Reviews Modal Controller
-let currentViewingProfileId = null;
-
-async function openPublicProfileModal(targetProfileOrId) {
-  let profile = window.getTaskaProfile();
-  if (targetProfileOrId) {
-    if (typeof targetProfileOrId === 'string') {
-      const { data } = await window.supabaseClient.from('Profile').select('*').eq('id', targetProfileOrId).single();
-      if (data) profile = data;
-    } else if (typeof targetProfileOrId === 'object') {
-      profile = targetProfileOrId;
-    }
-  }
-
-  if (!profile) return;
-  currentViewingProfileId = profile.id;
-  const myProfile = window.getTaskaProfile();
-  const isSelf = myProfile && myProfile.id === profile.id;
-
-  const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
-  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
-  const username = `@${profile.username || 'user'}`;
-  const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
-
-  const avatarEl   = document.getElementById('pub-modal-avatar');
-  const nameEl     = document.getElementById('pub-modal-name');
-  const usernameEl = document.getElementById('pub-modal-username');
-  const roleEl     = document.getElementById('pub-modal-role');
-  const bioEl      = document.getElementById('pub-modal-bio');
-  const locationEl = document.getElementById('pub-modal-location');
-  const ratingEl   = document.getElementById('pub-modal-rating');
-  const verifiedEl = document.getElementById('pub-modal-verified');
-  const editContainer = document.getElementById('pub-modal-edit-container');
-
-  if (avatarEl)   avatarEl.textContent   = initials;
-  if (nameEl)     nameEl.textContent     = fullName;
-  if (usernameEl) usernameEl.textContent = username;
-  if (roleEl)     roleEl.textContent     = roleLabel;
-  if (bioEl)      bioEl.textContent      = profile.bio || 'No bio provided yet.';
-  if (locationEl) locationEl.textContent = profile.location || 'Lagos, Nigeria';
-  if (ratingEl)   ratingEl.textContent   = `★ ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
-  if (verifiedEl) verifiedEl.textContent = profile.isVerified ? '✓ Verified' : 'Standard Member';
-  if (editContainer) editContainer.style.display = isSelf ? 'block' : 'none';
-
-  // Fetch live reviews for this user
-  const reviewsList = document.getElementById('pub-modal-reviews-list');
-  if (reviewsList && window.supabaseClient) {
-    try {
-      const { data: reviews } = await window.supabaseClient
-        .from('Review')
-        .select('*, reviewer:reviewerId(firstName, lastName, username)')
-        .eq('revieweeId', profile.id)
-        .order('createdAt', { ascending: false });
-
-      if (!reviews || reviews.length === 0) {
-        reviewsList.innerHTML = `<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet for this user. Be the first to leave one!</div>`;
-      } else {
-        reviewsList.innerHTML = reviews.map(r => {
-          const rName = r.reviewer ? `${r.reviewer.firstName || ''} ${r.reviewer.lastName || ''}`.trim() : 'Anonymous';
-          const stars = '★'.repeat(r.rating || 5) + '☆'.repeat(5 - (r.rating || 5));
-          return `
-            <div style="background:var(--surface); padding:10px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span style="font-weight:600; font-size:0.85rem;">${rName}</span>
-                <span style="color:#f59e0b; font-size:0.8rem;">${stars}</span>
-              </div>
-              <p style="font-size:0.84rem; color:var(--ink-soft); margin:0;">${r.comment || ''}</p>
-              <div style="font-size:0.72rem; color:var(--muted); margin-top:4px; text-align:right;">${timeAgo(r.createdAt)}</div>
-            </div>`;
-        }).join('');
-      }
-    } catch (_) {
-      reviewsList.innerHTML = `<div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet.</div>`;
-    }
-  }
-
-  const modal = document.getElementById('public-profile-modal');
-  if (modal) modal.style.display = 'flex';
-}
+// Public Profile logic and Live Reviews are now handled by js/profile.js
 
 // Leave a Review Form Handler
-document.getElementById('leave-review-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const myProfile = await window.ensureTaskaProfile();
-  if (!myProfile || !currentViewingProfileId || !window.supabaseClient) {
-    if (window.showToast) window.showToast('Please sign in to leave a review.');
-    return;
-  }
 
-  if (myProfile.id === currentViewingProfileId) {
-    if (window.showToast) window.showToast('You cannot leave a review for yourself.');
-    return;
-  }
 
-  const rating = parseInt(document.getElementById('reviewRatingSelect')?.value || '5');
-  const comment = document.getElementById('reviewCommentText')?.value.trim();
-  const btn = document.getElementById('submitReviewBtn');
 
-  if (!comment) return;
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Submitting...';
-  }
-
-  try {
-    const { error: reviewErr } = await window.supabaseClient
-      .from('Review')
-      .insert({
-        reviewerId: myProfile.id,
-        revieweeId: currentViewingProfileId,
-        rating,
-        comment
-      });
-
-    if (reviewErr) throw reviewErr;
-
-    // Recalculate average rating & review count for reviewee
-    const { data: allReviews } = await window.supabaseClient
-      .from('Review')
-      .select('rating')
-      .eq('revieweeId', currentViewingProfileId);
-
-    if (allReviews && allReviews.length > 0) {
-      const count = allReviews.length;
-      const sum = allReviews.reduce((acc, r) => acc + (r.rating || 5), 0);
-      const avg = parseFloat((sum / count).toFixed(1));
-
-      await window.supabaseClient
-        .from('Profile')
-        .update({ averageRating: avg, reviewCount: count })
-        .eq('id', currentViewingProfileId);
-    }
-
-    document.getElementById('reviewCommentText').value = '';
-    if (window.showToast) window.showToast('Review submitted successfully!');
-    openPublicProfileModal(currentViewingProfileId);
-
-  } catch (err) {
-    console.error('Leave review error:', err);
-    if (window.showToast) window.showToast('Failed to submit review.');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Submit Review';
-    }
-  }
+document.getElementById('sidebar-user-btn')?.addEventListener('click', () => {
+  const profile = window.getTaskaProfile();
+  if (profile) window.location.href = '../Profile/index.html?id=' + profile.id;
 });
-
-document.getElementById('sidebar-user-btn')?.addEventListener('click', () => openPublicProfileModal());
-document.getElementById('mobile-avatar')?.addEventListener('click', () => openPublicProfileModal());
+document.getElementById('mobile-avatar')?.addEventListener('click', () => {
+  const profile = window.getTaskaProfile();
+  if (profile) window.location.href = '../Profile/index.html?id=' + profile.id;
+});
 
 document.getElementById('public-profile-close')?.addEventListener('click', () => {
   const modal = document.getElementById('public-profile-modal');
@@ -1147,8 +1025,6 @@ async function loadMessagesData() {
   }
 }
 
-window.openPublicProfileModal = openPublicProfileModal;
-
 async function selectChatThread(peer) {
   activeChatPeer = peer;
   const profile = window.getTaskaProfile();
@@ -1239,7 +1115,10 @@ document.getElementById('settings-logout-btn')?.addEventListener('click', async 
 // Boot SPA
 function bootSPA() {
   initPostTask();
-  const initialHash = window.location.hash.replace('#', '') || 'dashboard';
+  let initialHash = window.location.hash.replace('#', '');
+  if (!initialHash) {
+    initialHash = window.location.pathname.includes('/Profile/') ? 'profile-nav' : 'dashboard';
+  }
   window.switchTab(initialHash);
 }
 

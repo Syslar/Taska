@@ -3,7 +3,7 @@
    Provides high-performance media upload for avatars, task proofs, and attachments.
    ========================================================================== */
 
-const CLOUDINARY_CLOUD_NAME = 'taska-media'; 
+const CLOUDINARY_CLOUD_NAME = 'syslar-taska'; 
 const CLOUDINARY_UPLOAD_PRESET = 'taska_unsigned';
 
 /**

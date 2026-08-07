@@ -210,6 +210,26 @@
           </div>
 
           <div class="field-group">
+            <label class="field-label" for="suLocation">State (Location)</label>
+            <select class="text-input" id="suLocation" required style="width: 100%;">
+              <option value="" disabled selected>Select your state</option>
+              <option value="Abia">Abia</option>
+              <option value="Abuja">Abuja (FCT)</option>
+              <option value="Anambra">Anambra</option>
+              <option value="Delta">Delta</option>
+              <option value="Edo">Edo</option>
+              <option value="Enugu">Enugu</option>
+              <option value="Kano">Kano</option>
+              <option value="Lagos">Lagos</option>
+              <option value="Ogun">Ogun</option>
+              <option value="Oyo">Oyo</option>
+              <option value="Rivers">Rivers</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="field-error">Please select your location.</span>
+          </div>
+
+          <div class="field-group">
             <label class="field-label" for="suEmail">Email address</label>
             <input class="text-input" type="email" id="suEmail" placeholder="ada@email.com" required>
             <span class="field-error">Enter a valid email address.</span>
@@ -369,7 +389,7 @@
       await window.Clerk.load();
       
       if (window.Clerk.session) {
-        window.location.replace('../Dashboard/dashboard.html');
+        window.location.replace('../Dashboard/index.html');
         return;
       }
 
@@ -419,7 +439,8 @@
                 lastName: document.getElementById('lname').value.trim(),
                 phone: fullPhone,
                 email: document.getElementById('suEmail').value.trim(),
-                role: userRole.toUpperCase()
+                role: userRole.toUpperCase(),
+                location: document.getElementById('suLocation').value.trim()
               }, { onConflict: 'userId' })
               .select()
               .single();
@@ -441,7 +462,7 @@
           }
         }
 
-        window.location.replace('../Dashboard/dashboard.html');
+        window.location.replace('../Dashboard/index.html');
       }
 
       // ── Signup form submit ──────────────────────────────────────────────────

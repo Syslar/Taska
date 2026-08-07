@@ -153,8 +153,8 @@ async function runAuthGuard() {
 
   // 3. Check active session
   if (!window.Clerk.session || !window.Clerk.user) {
-    const isDashboardSubfolder = window.location.pathname.toLowerCase().includes('/app/dashboard/');
-    const loginUrl = isDashboardSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+    const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
+    const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
     window.location.replace(loginUrl);
     return;
   }
@@ -181,8 +181,8 @@ async function runAuthGuard() {
       e.preventDefault();
       try {
         await window.Clerk.signOut();
-        const isDashboardSubfolder = window.location.pathname.toLowerCase().includes('/app/dashboard/');
-        const loginUrl = isDashboardSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+        const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
+        const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
         window.location.replace(loginUrl);
       } catch (err) {
         console.error('Logout error:', err);
