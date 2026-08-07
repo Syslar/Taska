@@ -614,7 +614,8 @@
       });
 
     } catch (err) {
-      console.error('Clerk loading failed:', err);
+      console.error('Clerk loading notice:', err);
+      if (window.showToast) window.showToast('Unable to connect. Please connect to a stable network, refresh the page, and try again.');
     }
   });
 </script>

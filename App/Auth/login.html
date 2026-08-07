@@ -125,69 +125,73 @@
             identifier,
             password,
           });
-          
-          console.log('Clerk sign-in attempt:', signInAttempt.status, signInAttempt);
 
-          // Step 2: Check if complete
+          // Step 2: Completed sign in
           if (signInAttempt.status === 'complete') {
             try {
               await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
             } catch (err) {
-              console.warn('Network error during Clerk.setActive (touch endpoint intercept). Bypassing to dashboard.', err);
+              console.warn('Clerk setActive notice:', err);
             }
             window.location.replace('../Dashboard/index.html');
+            return;
           }
 
-          // Step 3: Handle needs_first_factor or needs_client_trust
-          if (signInAttempt.status === 'needs_first_factor' || signInAttempt.status === 'needs_client_trust') {
+          // Step 3: Handle first factor or client trust
+          if (signInAttempt.status === 'needs_first_factor') {
             const firstFactorResult = await signInAttempt.attemptFirstFactor({
               strategy: 'password',
               password,
             });
-            
-            console.log('Clerk first factor result:', firstFactorResult.status, firstFactorResult);
 
             if (firstFactorResult.status === 'complete' && firstFactorResult.createdSessionId) {
               await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
-              window.location.replace('../Dashboard/dashboard.html');
-              return;
-            }
-
-            if (firstFactorResult.status === 'needs_client_trust') {
-              submitBtn.disabled = false;
-              submitBtn.textContent = 'Log in';
-              try {
-                if (window.Clerk.handleUnauthenticated) {
-                  await window.Clerk.handleUnauthenticated();
-                  return;
-                }
-              } catch(e) {
-                console.warn('handleUnauthenticated failed, fallback to hosted UI:', e);
-              }
-              window.location.href = window.Clerk.buildSignInUrl({ redirectUrl: window.location.href });
-              return;
-            }
-
-            if (firstFactorResult.createdSessionId) {
-              await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
-              window.location.replace('../Dashboard/dashboard.html');
+              window.location.replace('../Dashboard/index.html');
               return;
             }
           }
-          
+
+          // Step 4: Handle second factor / new device trust verification
           if (signInAttempt.status === 'needs_second_factor') {
-            if (window.showToast) window.showToast('Two-factor authentication is not yet supported.');
+            try {
+              // Prepare email code verification for new device
+              await signInAttempt.prepareSecondFactor({ strategy: 'email_code' });
+            } catch (_) {}
+
+            const code = prompt('A verification code was sent to your email to verify this device. Please enter the 6-digit code:');
+            if (code) {
+              const secondFactorResult = await signInAttempt.attemptSecondFactor({
+                strategy: 'email_code',
+                code: code.trim(),
+              });
+
+              if (secondFactorResult.status === 'complete' && secondFactorResult.createdSessionId) {
+                await window.Clerk.setActive({ session: secondFactorResult.createdSessionId });
+                window.location.replace('../Dashboard/index.html');
+                return;
+              }
+            }
+            if (window.showToast) window.showToast('Device verification required. Please enter the code sent to your email.');
             return;
           }
 
-          if (window.showToast) window.showToast('Login could not be completed. Please check your email/username and password.');
+          if (window.showToast) window.showToast('Incorrect email, username, or password.');
           
         } catch (err) {
-          console.error('Clerk login error details:', err);
+          console.error('Login error details:', err);
           let errorMsg = 'Incorrect email, username, or password.';
-          if (err && err.errors && err.errors.length > 0) {
-            errorMsg = err.errors[0].longMessage || err.errors[0].message || errorMsg;
+          
+          if (!navigator.onLine || err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('failed to fetch')) {
+            errorMsg = 'Unable to connect. Please connect to a stable network and try again.';
+          } else if (err && err.errors && err.errors.length > 0) {
+            const code = err.errors[0].code;
+            if (code === 'form_identifier_not_found' || code === 'form_password_incorrect') {
+              errorMsg = 'Incorrect email, username, or password.';
+            } else {
+              errorMsg = err.errors[0].longMessage || err.errors[0].message || errorMsg;
+            }
           }
+          
           if (window.showToast) window.showToast(errorMsg);
         } finally {
           submitBtn.disabled = false;
@@ -195,7 +199,8 @@
         }
       });
     } catch (err) {
-      console.error('Clerk loading failed:', err);
+      console.error('Clerk loading notice:', err);
+      if (window.showToast) window.showToast('Unable to connect. Please connect to a stable network, refresh the page, and try again.');
     }
   });
 </script>
