@@ -66,15 +66,15 @@
       </div>
 
       <nav class="sidebar-nav">
-        <a href="${dashRoot}index.html#dashboard" class="sidebar-link ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
+        <a href="${dashRoot}index.html#dashboard" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
           <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></span>
           Dashboard
         </a>
-        <a href="${dashRoot}index.html#browse" class="sidebar-link ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
+        <a href="${dashRoot}index.html#browse" class="sidebar-link desktop-only ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
           <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
           Browse Gigs
         </a>
-        <a href="${dashRoot}index.html#post" class="sidebar-link ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
+        <a href="${dashRoot}index.html#post" class="sidebar-link desktop-only ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
           <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
           Post a Task
         </a>
@@ -86,7 +86,7 @@
           <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
           Chats
         </a>
-        <a href="${dashRoot}index.html#wallet" class="sidebar-link ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
+        <a href="${dashRoot}index.html#wallet" class="sidebar-link desktop-only ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
           <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/><path d="M7 15H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
           My Wallet
         </a>
@@ -129,6 +129,34 @@
         </button>
       </div>
       <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">${pAvatarHTML}</div>
+    `;
+
+    // Ensure mobile bottom tab bar exists
+    let tabBar = document.querySelector('nav.tab-bar');
+    if (!tabBar) {
+      tabBar = document.createElement('nav');
+      tabBar.className = 'tab-bar';
+      document.body.appendChild(tabBar);
+    }
+    tabBar.innerHTML = `
+      <div class="tab-bar-inner">
+        <a href="${dashRoot}index.html#dashboard" class="tab-item ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
+          Dashboard
+        </a>
+        <a href="${dashRoot}index.html#browse" class="tab-item ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          Browse
+        </a>
+        <a href="${dashRoot}index.html#post" class="tab-item ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          Post
+        </a>
+        <a href="${dashRoot}index.html#wallet" class="tab-item ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
+          <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/></svg>
+          Wallet
+        </a>
+      </div>
     `;
 
     // Bind event handlers

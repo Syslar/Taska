@@ -159,11 +159,10 @@
 @media (max-width: 980px) {
   .mobile-only { display: block !important; }
   .desktop-only { display: none !important; }
-  .app-shell { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-  .mobile-topbar { display: flex; }
-  .tab-bar { display: block; }
-  .app-main { padding: 22px 18px 96px; }
+  .app-shell, .dashboard-layout { display: block !important; grid-template-columns: 1fr !important; width: 100% !important; }
+  .app-main, .main-content { padding: 22px 18px 96px !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+  .mobile-topbar { display: flex !important; }
+  .tab-bar { display: block !important; }
 }
 
 /* ---- Stat cards ---- */
@@ -411,16 +410,16 @@
 
 @media (max-width: 980px) {
   .app-header, .wallet-hero-top { flex-direction: column; }
-  .app-shell { display: block; }
   .sidebar {
     display: flex !important;
-    position: fixed;
-    top: 0;
-    left: -280px;
-    width: 260px;
-    z-index: 99999;
-    transition: left 0.3s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+    position: fixed !important;
+    top: 0 !important;
+    left: -290px !important;
+    width: 270px !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    transition: left 0.3s ease !important;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.3) !important;
   }
   .sidebar.is-mobile-open, .sidebar.is-open {
     left: 0 !important;
