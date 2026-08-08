@@ -647,7 +647,18 @@ async function openTaskModal(taskId, tasks) {
   document.getElementById('modal-title').textContent = task.title;
   
   const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() : 'Poster';
-  document.getElementById('modal-poster').textContent = posterName;
+  const posterEl = document.getElementById('modal-poster');
+  if (posterEl) {
+    posterEl.textContent = posterName;
+    if (task.posterId) {
+      posterEl.style.cursor = 'pointer';
+      posterEl.style.color = 'var(--green-700)';
+      posterEl.style.textDecoration = 'underline';
+      posterEl.onclick = () => {
+        window.location.href = `../Profile/index.html?id=${task.posterId}`;
+      };
+    }
+  }
   document.getElementById('modal-desc').textContent = task.description || 'No detailed description provided.';
 
   const budget = task.budget != null ? formatNaira(task.budget) : task.budgetMin ? `${formatNaira(task.budgetMin)} - ${formatNaira(task.budgetMax)}` : 'Open Bid';
@@ -747,7 +758,7 @@ document.getElementById('modal-apply-btn')?.addEventListener('click', async () =
       .insert({
         taskId: currentTaskId,
         taskerId: profile.id,
-        status: 'PENDING'
+        isSelected: false
       });
 
     if (error) {
@@ -1059,9 +1070,24 @@ async function selectChatThread(peer) {
   const avatarEl = document.getElementById('chat-peer-avatar');
   const nameEl = document.getElementById('chat-peer-name');
   const usernameEl = document.getElementById('chat-peer-username');
-  if (avatarEl) avatarEl.textContent = pInit;
+  if (avatarEl) {
+    if (peer.avatarUrl) {
+      avatarEl.innerHTML = `<img src="${peer.avatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+      avatarEl.textContent = pInit;
+    }
+  }
   if (nameEl) nameEl.textContent = pName;
   if (usernameEl) usernameEl.textContent = pUsername;
+
+  const headerContainer = nameEl?.closest('div[style*="display:flex"]') || avatarEl?.parentElement;
+  if (headerContainer && peer.id) {
+    headerContainer.style.cursor = 'pointer';
+    headerContainer.title = 'Click to view user profile';
+    headerContainer.onclick = () => {
+      window.location.href = `../Profile/index.html?id=${peer.id}`;
+    };
+  }
 
   await loadChatMessages();
 }
@@ -1087,9 +1113,20 @@ async function loadChatMessages() {
     } else {
       bodyEl.innerHTML = msgs.map(m => {
         const isMine = m.senderId === profile.id;
+        const msgText = m.content || m.body || '';
+        let mediaHTML = '';
+        if (m.mediaUrl) {
+          const urlLower = m.mediaUrl.toLowerCase();
+          if (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.mov') || urlLower.includes('video/upload')) {
+            mediaHTML = `<video src="${m.mediaUrl}" controls style="max-width:100%; max-height:240px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
+          } else {
+            mediaHTML = `<a href="${m.mediaUrl}" target="_blank"><img src="${m.mediaUrl}" style="max-width:100%; max-height:240px; border-radius:8px; object-fit:cover; margin-bottom:6px; display:block;"></a>`;
+          }
+        }
         return `
           <div style="align-self:${isMine ? 'flex-end' : 'flex-start'}; max-width:75%; background:${isMine ? 'var(--green-700)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; padding:10px 14px; border-radius:14px; border:${isMine ? 'none' : '1px solid var(--line)'}; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-            <div style="font-size:0.88rem; line-height:1.4;">${m.content}</div>
+            ${mediaHTML}
+            ${msgText ? `<div style="font-size:0.88rem; line-height:1.4;">${msgText}</div>` : ''}
             <div style="font-size:0.7rem; color:${isMine ? 'rgba(255,255,255,0.7)' : 'var(--muted)'}; margin-top:4px; text-align:right;">${timeAgo(m.createdAt)}</div>
           </div>`;
       }).join('');
@@ -1100,30 +1137,95 @@ async function loadChatMessages() {
   }
 }
 
+let pendingChatFile = null;
+
+const chatFileInput = document.getElementById('chatFileInput');
+const chatMediaPreviewWrap = document.getElementById('chat-media-preview-wrap');
+const chatMediaFilename = document.getElementById('chat-media-filename');
+const chatMediaRemoveBtn = document.getElementById('chat-media-remove-btn');
+
+if (chatFileInput) {
+  chatFileInput.addEventListener('change', () => {
+    const file = chatFileInput.files[0];
+    if (!file) return;
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      const msg = 'Maximum size for media is 5MB.';
+      if (window.showToast) window.showToast(msg);
+      else alert(msg);
+      chatFileInput.value = '';
+      pendingChatFile = null;
+      if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'none';
+      return;
+    }
+    pendingChatFile = file;
+    if (chatMediaFilename) chatMediaFilename.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+    if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'flex';
+  });
+}
+
+if (chatMediaRemoveBtn) {
+  chatMediaRemoveBtn.addEventListener('click', () => {
+    pendingChatFile = null;
+    if (chatFileInput) chatFileInput.value = '';
+    if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'none';
+  });
+}
+
 document.getElementById('chat-send-form')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = document.getElementById('chatInputText');
-  const content = input?.value.trim();
+  const content = input?.value.trim() || '';
   const profile = await window.ensureTaskaProfile();
+  const submitBtn = document.getElementById('chatSendBtn');
 
-  if (!content || !profile || !activeChatPeer || !window.supabaseClient) return;
+  if ((!content && !pendingChatFile) || !profile || !activeChatPeer || !window.supabaseClient) return;
 
-  input.value = '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+  }
+
   try {
+    let mediaUrl = null;
+    if (pendingChatFile) {
+      mediaUrl = await window.uploadTaskaMedia(pendingChatFile);
+      if (!mediaUrl && pendingChatFile.size > 5 * 1024 * 1024) {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send';
+        }
+        return;
+      }
+    }
+
     const { error } = await window.supabaseClient
       .from('Message')
       .insert({
         senderId: profile.id,
         receiverId: activeChatPeer.id,
-        content
+        content: content || null,
+        body: content || null,
+        mediaUrl: mediaUrl || null
       });
 
     if (error) throw error;
+
+    if (input) input.value = '';
+    pendingChatFile = null;
+    if (chatFileInput) chatFileInput.value = '';
+    if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'none';
+
     loadChatMessages();
     loadMessagesData();
   } catch (err) {
     console.error('Send message error:', err);
     if (window.showToast) window.showToast('Failed to send message.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send';
+    }
   }
 });
 

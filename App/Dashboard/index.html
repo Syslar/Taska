@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Taska</title>
+  <title>Dashboard | Taska</title>
   <script>
     window.onerror = function(message, source, lineno, colno, error) {
       const div = document.createElement('div');
@@ -96,6 +96,10 @@
       <a href="#post" class="sidebar-link desktop-only" data-tab="post">
         <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
         Post a Task
+      </a>
+      <a href="my-tasks.html" class="sidebar-link">
+        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        My Posted Tasks
       </a>
       <a href="#messages" class="sidebar-link" data-tab="messages">
         <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
@@ -662,9 +666,19 @@
           </div>
 
           <!-- Chat Input Footer -->
-          <form id="chat-send-form" style="padding:14px; border-top:1px solid var(--line); display:flex; gap:10px; background:var(--paper);">
-            <input class="text-input" type="text" id="chatInputText" placeholder="Type a message..." required style="flex:1;">
-            <button type="submit" class="btn btn-primary" id="chatSendBtn">Send</button>
+          <form id="chat-send-form" style="padding:14px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; background:var(--paper);">
+            <div id="chat-media-preview-wrap" style="display:none; align-items:center; gap:10px; background:var(--surface); padding:8px 12px; border-radius:var(--radius-sm); border:1px solid var(--line);">
+              <span id="chat-media-filename" style="font-size:0.82rem; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px;"></span>
+              <button type="button" id="chat-media-remove-btn" style="background:none; border:none; color:var(--red); font-weight:700; cursor:pointer;">✕ Remove</button>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <label for="chatFileInput" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center; padding:10px; border-radius:var(--radius-sm); border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);" title="Attach image or video (max 5MB)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </label>
+              <input type="file" id="chatFileInput" accept="image/*,video/*" style="display:none;">
+              <input class="text-input" type="text" id="chatInputText" placeholder="Type a message..." style="flex:1;">
+              <button type="submit" class="btn btn-primary" id="chatSendBtn">Send</button>
+            </div>
           </form>
         </div>
       </div>
@@ -852,6 +866,7 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
+<script src="../../js/sidebar-component.js"></script>
 <script src="../../js/auth-guard.js?v=10"></script>
 <script src="../../js/profile.js?v=10"></script>
 <script src="../../js/dashboard.js?v=10"></script>

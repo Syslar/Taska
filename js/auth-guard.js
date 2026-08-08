@@ -57,6 +57,20 @@ function populateSidebar(profile) {
     } else {
       mobileAv.textContent = initials;
     }
+    mobileAv.onclick = () => {
+      const isProfileSubfolder = window.location.pathname.toLowerCase().includes('/profile');
+      const targetUrl = isProfileSubfolder ? `index.html?id=${profile.id}` : `../Profile/index.html?id=${profile.id}`;
+      window.location.href = targetUrl;
+    };
+  }
+
+  const userBtn = document.getElementById('sidebar-user-btn');
+  if (userBtn && profile.id) {
+    userBtn.onclick = () => {
+      const isProfileSubfolder = window.location.pathname.toLowerCase().includes('/profile');
+      const targetUrl = isProfileSubfolder ? `index.html?id=${profile.id}` : `../Profile/index.html?id=${profile.id}`;
+      window.location.href = targetUrl;
+    };
   }
 
   // Also populate Settings Live Profile Card elements

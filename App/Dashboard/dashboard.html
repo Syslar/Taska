@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redirecting… — Taska</title>
+<script>
+  // Forward hash or query params to index.html
+  const targetHash = window.location.hash || '#dashboard';
+  const targetSearch = window.location.search || '';
+  window.location.replace('index.html' + targetSearch + targetHash);
+</script>
+</head>
+<body>
+  <p>Redirecting to Taska Dashboard…</p>
+</body>
+</html>

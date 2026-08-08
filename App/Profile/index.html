@@ -3,25 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>User Profile — Taska</title>
-  <link rel="stylesheet" href="../Dashboard/Styles/styles.css?v=10">
+  <title>Profile | Taska</title>
+  <link rel="stylesheet" href="../../css/styles.css?v=11">
+  <link rel="stylesheet" href="../Dashboard/dashboard.css">
   <style>
-    .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-    
-    body {
-      background: var(--bg);
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      padding: 0;
-    }
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  </style>
+</head>
+<body>
 
-    .profile-container {
-      width: 100%;
-      max-width: 700px;
-      padding: 20px;
-    }
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content" style="padding: 24px; display:flex; justify-content:center;">
+    <div class="profile-container">
 
     .back-btn {
       display: inline-flex;
@@ -170,6 +165,7 @@
       <button type="submit" class="btn btn-primary" id="submit-review-btn">Submit Review</button>
     </form>
   </div>
+  </main>
 </div>
 
 <!-- Supabase JS SDK & Cloudinary -->
@@ -184,6 +180,7 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
+<script src="../../js/sidebar-component.js"></script>
 <script src="../../js/auth-guard.js?v=10"></script>
 <script src="../../js/profile.js?v=10"></script>
 

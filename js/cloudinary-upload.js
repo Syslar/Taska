@@ -13,13 +13,25 @@ const CLOUDINARY_UPLOAD_PRESET = 'taska_unsigned';
 window.uploadTaskaMedia = async function (file) {
   if (!file) return null;
 
-  // 1. Try Cloudinary Unsigned Upload
+  // Enforce strict 5MB maximum file size for all media (pictures & videos)
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+  if (file.size > MAX_SIZE_BYTES) {
+    const errorMsg = 'Maximum size for media is 5MB.';
+    if (window.showToast) {
+      window.showToast(errorMsg);
+    } else {
+      alert(errorMsg);
+    }
+    return null;
+  }
+
+  // 1. Try Cloudinary Unsigned Upload (auto endpoint for images & videos)
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`, {
       method: 'POST',
       body: formData,
     });
@@ -28,7 +40,7 @@ window.uploadTaskaMedia = async function (file) {
       const data = await res.json();
       return data.secure_url;
     }
-  } catch (_) { /* fallback to local object URL or Supabase storage */ }
+  } catch (_) { /* fallback to local object URL */ }
 
   // 2. Fallback: Convert to Base64 data URL for fast local previews
   return new Promise((resolve) => {
