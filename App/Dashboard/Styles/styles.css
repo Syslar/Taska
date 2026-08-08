@@ -1,9 +1,9 @@
-@import "../../../../css/styles.css";
+@import "../../../css/styles.css";
 
 /* ==========================================================================
    APP SHELL (dashboard / browse gigs / wallet / post task)
    ========================================================================== */
-.app-shell {
+.app-shell, .dashboard-layout {
   display: grid;
   grid-template-columns: 264px 1fr;
   min-height: 100vh;
@@ -99,7 +99,7 @@
   z-index: 90;
 }
 
-.app-main {
+.app-main, .main-content {
   padding: 34px 40px 80px;
   max-width: 1240px;
   width: 100%;
@@ -422,7 +422,7 @@
     transition: left 0.3s ease;
     box-shadow: 4px 0 24px rgba(0,0,0,0.3);
   }
-  .sidebar.is-mobile-open {
+  .sidebar.is-mobile-open, .sidebar.is-open {
     left: 0 !important;
   }
 }
