@@ -10,3 +10,6 @@ Backend/
 
 # Local Netlify folder
 .netlify
+
+# Reference folder (do not push to github)
+Reference folder (do not push to github)/
