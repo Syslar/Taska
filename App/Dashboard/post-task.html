@@ -1,13 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Redirecting… — Taska</title>
-<script>
-  window.location.replace('index.html#post');
-</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post a Task — Taska</title>
+  <link rel="stylesheet" href="../../css/styles.css?v=11">
+  <link rel="stylesheet" href="Styles/styles.css?v=11">
+  <style>
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  </style>
 </head>
 <body>
-  <p>Redirecting to Post a Task…</p>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    <div class="app-header">
+      <div>
+        <h1>Post a Task</h1>
+        <p class="sub">Describe your task, set your budget, and connect with verified Taskers across Nigeria.</p>
+      </div>
+    </div>
+
+    <div class="panel" style="max-width:760px; margin:0 auto;">
+      <form id="post-task-form">
+        <div class="field-group" style="margin-bottom:20px;">
+          <label class="field-label" for="task-title">Task Title *</label>
+          <input class="text-input" type="text" id="task-title" required placeholder="e.g. Build a Responsive Landing Page or Fix Leaking Kitchen Sink">
+        </div>
+
+        <div style="display:flex; gap:16px; margin-bottom:20px;">
+          <div class="field-group" style="flex:1;">
+            <label class="field-label" for="task-category">Category *</label>
+            <select class="select-input" id="task-category" required>
+              <option value="">Select a category</option>
+              <option value="TECH">Tech & IT</option>
+              <option value="HANDYMAN">Handyman & Repairs</option>
+              <option value="DELIVERY">Delivery & Logistics</option>
+              <option value="WRITING">Writing & Content</option>
+              <option value="DESIGN">Design & Creative</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div class="field-group" style="flex:1;">
+            <label class="field-label" for="task-budget">Budget (NGN ₦) *</label>
+            <input class="text-input" type="number" id="task-budget" min="500" step="500" required placeholder="e.g. 25000">
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:20px;">
+          <label class="field-label" for="task-location">Location</label>
+          <input class="text-input" type="text" id="task-location" placeholder="e.g. Ikeja, Lagos (or leave blank for Remote)">
+        </div>
+
+        <div class="field-group" style="margin-bottom:20px;">
+          <label class="field-label" for="task-desc">Task Description *</label>
+          <textarea class="text-input" id="task-desc" rows="5" required placeholder="Describe what you need done, timeline expectations, and any specific skills required..." style="resize:vertical; min-height:120px;"></textarea>
+        </div>
+
+        <div class="field-group" style="margin-bottom:28px;">
+          <label class="field-label">Attachment / Reference Media (Optional)</label>
+          <div id="task-media-preview-wrap" style="display:none; align-items:center; gap:10px; background:var(--surface); padding:10px 14px; border-radius:var(--radius-sm); border:1px solid var(--line); margin-bottom:10px;">
+            <span id="task-media-filename" style="font-size:0.85rem; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:320px;"></span>
+            <button type="button" id="task-media-remove-btn" style="background:none; border:none; color:var(--red); font-weight:700; cursor:pointer;">✕ Remove</button>
+          </div>
+          <div>
+            <input type="file" id="task-media-input" accept="image/*,video/*" style="display:none;">
+            <label for="task-media-input" class="btn btn-secondary btn-sm" style="cursor:pointer; border-radius:16px;">📎 Upload Image or Video (Max 5MB)</label>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px; border-top:1px dashed var(--line); padding-top:20px;">
+          <a href="browse-tasks.html" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="post-submit-btn">Post Task Now</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</div>
+
+<!-- Supabase JS SDK & Cloudinary -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/supabase-client.js"></script>
+<script src="../../js/cloudinary-upload.js"></script>
+
+<!-- Clerk JS -->
+<script
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script src="../../js/sidebar-component.js"></script>
+<script src="../../js/auth-guard.js?v=10"></script>
+<script src="../../js/post-task.js?v=10"></script>
+
 </body>
 </html>

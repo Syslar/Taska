@@ -28,6 +28,8 @@
     else if (inChats) activeTab = 'messages';
     else if (inWallet) activeTab = 'wallet';
     else if (inProfile) activeTab = 'profile';
+    else if (path.includes('browse-tasks.html') || path.includes('browse-gigs.html')) activeTab = 'browse';
+    else if (path.includes('post-task.html')) activeTab = 'post';
     else if (path.includes('my-tasks.html')) activeTab = 'my-tasks';
     else if (hash) activeTab = hash;
 
@@ -52,15 +54,15 @@
         </div>
 
         <nav class="sidebar-nav">
-          <a href="${dashRoot}index.html#dashboard" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
+          <a href="${dashRoot}index.html" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></span>
             Dashboard
           </a>
-          <a href="${dashRoot}index.html#browse" class="sidebar-link desktop-only ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
+          <a href="${dashRoot}browse-tasks.html" class="sidebar-link desktop-only ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-            Browse Gigs
+            Browse Tasks
           </a>
-          <a href="${dashRoot}index.html#post" class="sidebar-link desktop-only ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
+          <a href="${dashRoot}post-task.html" class="sidebar-link desktop-only ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
             Post a Task
           </a>
@@ -127,15 +129,15 @@
     }
     tabBar.innerHTML = `
       <div class="tab-bar-inner">
-        <a href="${dashRoot}index.html#dashboard" class="tab-item ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
+        <a href="${dashRoot}index.html" class="tab-item ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
           Dashboard
         </a>
-        <a href="${dashRoot}index.html#browse" class="tab-item ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
+        <a href="${dashRoot}browse-tasks.html" class="tab-item ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
           <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
           Browse
         </a>
-        <a href="${dashRoot}index.html#post" class="tab-item ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
+        <a href="${dashRoot}post-task.html" class="tab-item ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
           <svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
           Post
         </a>

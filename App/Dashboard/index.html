@@ -3,605 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | Taska</title>
-  <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      const div = document.createElement('div');
-      div.style.position = 'fixed';
-      div.style.top = '0';
-      div.style.left = '0';
-      div.style.width = '100%';
-      div.style.background = '#e74c3c';
-      div.style.color = 'white';
-      div.style.padding = '12px';
-      div.style.zIndex = '999999';
-      div.style.fontSize = '13px';
-      div.style.fontFamily = 'monospace';
-      div.style.fontWeight = 'bold';
-      div.innerHTML = 'JS Error: ' + message + ' (' + source.split('/').pop() + ':' + lineno + ')';
-      document.body.appendChild(div);
-    };
-  </script>
-  <link rel="stylesheet" href="Styles/styles.css?v=10">
+  <title>Dashboard — Taska</title>
+  <link rel="stylesheet" href="../../css/styles.css?v=11">
+  <link rel="stylesheet" href="Styles/styles.css?v=11">
   <style>
-    .mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
-    
-    /* Skeleton Shimmers */
-    .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--paper) 50%, var(--surface) 75%); background-size:200% 100%; animation: shimmer 1.4s infinite; border-radius: var(--radius-sm); }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-    .skeleton-card { height:140px; }
-    .skeleton-text { height: 20px; width: 120px; }
-    .skeleton-big { height: 36px; width: 200px; }
-    
-    /* Gigs & Apply */
-    .gig-grid-loading { display:flex; flex-direction:column; gap:12px; }
-    .apply-btn { transition: background 0.2s, transform 0.1s; }
-    .apply-btn:active { transform: scale(0.97); }
-    .applied-badge { display:inline-flex; align-items:center; gap:5px; font-size:0.78rem; font-weight:600; color:var(--green-700); }
-
-    /* Phone Input Prefix */
-    .phone-input-wrap {
-      display: flex;
-      align-items: stretch;
-      border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-      background: var(--paper);
-    }
-    .phone-prefix {
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      background: var(--paper);
-      border-right: 1px solid var(--line);
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--body);
-    }
-    .phone-prefix-input {
-      flex: 1;
-      border: none !important;
-      border-radius: 0 !important;
-      background: transparent !important;
-    }
-
-    /* Tab display control */
-    .tab-panel { display: none !important; }
-    .tab-panel.is-active { display: block !important; }
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   </style>
 </head>
 <body>
 
-<div class="app-shell">
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
 
-  <div class="sidebar-overlay" id="sidebar-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4); z-index:99998; backdrop-filter:blur(2px);"></div>
-  <!-- ============ SIDEBAR (desktop) ============ -->
-  <aside class="sidebar">
-    <div style="display:flex; justify-content:space-between; align-items:center; padding-right:12px;">
-      <a href="../../index.html" class="sidebar-logo"><span class="logo-mark">T</span>Taska</a>
-      <button id="sidebar-close-btn" class="mobile-only" style="background:none; border:none; color:var(--body); cursor:pointer; padding:4px;" aria-label="Close sidebar">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a href="#dashboard" class="sidebar-link is-active desktop-only" data-tab="dashboard">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        Dashboard
-      </a>
-      <a href="#browse" class="sidebar-link desktop-only" data-tab="browse">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-        Browse Gigs
-      </a>
-      <a href="#post" class="sidebar-link desktop-only" data-tab="post">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-        Post a Task
-      </a>
-      <a href="my-tasks.html" class="sidebar-link">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        My Posted Tasks
-      </a>
-      <a href="#messages" class="sidebar-link" data-tab="messages">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        Chats
-      </a>
-      <a href="#wallet" class="sidebar-link desktop-only" data-tab="wallet">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/><path d="M7 15H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-        My Wallet
-      </a>
-
-      <div class="sidebar-divider"></div>
-
-      <a href="#settings" class="sidebar-link" data-tab="profile-nav">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.7"/></svg></span>
-        Settings
-      </a>
-      <a href="#" class="sidebar-link" id="logout-btn" style="color: #e53e3e;">
-        <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-        Log out
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="sidebar-user" id="sidebar-user-btn" style="cursor:pointer; padding:8px 12px; border-radius:var(--radius-sm); transition:background 0.2s;" title="View public profile">
-        <div class="sidebar-user-avatar" id="sidebar-avatar">--</div>
-        <div style="flex:1; min-width:0;">
-          <div class="sidebar-user-name" id="sidebar-name" style="font-weight:600; font-size:0.88rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Loading…</div>
-          <div class="sidebar-user-username mono" id="sidebar-username" style="font-size:0.76rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@user</div>
-        </div>
+  <main class="main-content">
+    <div class="app-header">
+      <div>
+        <h1 id="greeting">Dashboard</h1>
+        <p class="sub">Welcome back! Here's your task overview, quick stats, and recent activity.</p>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="browse-tasks.html" class="btn btn-secondary">🔍 Browse Tasks</a>
+        <a href="post-task.html" class="btn btn-primary">+ Post a New Task</a>
       </div>
     </div>
-  </aside>
 
-  <!-- ============ MOBILE TOP BAR ============ -->
-  <div class="mobile-topbar">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <button class="hamburger-btn" id="mobile-hamburger-btn" aria-label="Toggle navigation" style="background:none; border:none; color:var(--body); cursor:pointer; padding:4px;">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">--</div>
-  </div>
-
-  <!-- ============ MAIN CONTENT AREA ============ -->
-  <main class="app-main">
-
-    <!-- ==================== TAB 1: DASHBOARD ==================== -->
-    <section class="tab-panel is-active" id="tab-dashboard">
-      <div class="app-header">
-        <div>
-          <h1 id="greeting">Good day</h1>
-          <p class="sub">Here's what's happening across your tasks today.</p>
-        </div>
-        <a href="#post" class="btn btn-primary" onclick="switchTab('post')">Post a new task</a>
+    <!-- Stat cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Available balance</div>
+        <div class="stat-value mono" id="stat-balance">₦0</div>
+        <div class="stat-delta" id="stat-escrow">Verified Escrow</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-label">Active tasks</div>
+        <div class="stat-value mono" id="stat-active-tasks">0</div>
+        <div class="stat-delta" id="stat-active-tasks-sub">Open & In Progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Tasks completed</div>
+        <div class="stat-value mono" id="stat-completed-tasks">0</div>
+        <div class="stat-delta" id="stat-completed-sub">All time</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Your rating</div>
+        <div class="stat-value mono" id="stat-rating">5.0<span style="font-size:0.9rem; color:var(--muted);"> / 5</span></div>
+        <div class="stat-delta" id="stat-reviews">Verified Identity</div>
+      </div>
+    </div>
 
-      <!-- Stat cards -->
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-label">Available balance</div>
-          <div class="stat-value mono" id="stat-balance">₦—</div>
-          <div class="stat-delta" id="stat-escrow">—</div>
+    <div class="dash-grid">
+      <!-- Active tasks panel -->
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Open Tasks Nearby</h2>
+          <a href="browse-tasks.html" class="panel-link">View all tasks →</a>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Active tasks</div>
-          <div class="stat-value mono" id="stat-active-tasks">—</div>
-          <div class="stat-delta" id="stat-active-tasks-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Tasks completed</div>
-          <div class="stat-value mono" id="stat-completed-tasks">—</div>
-          <div class="stat-delta" id="stat-completed-sub">All time</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Your rating</div>
-          <div class="stat-value mono" id="stat-rating">—<span style="font-size:0.9rem; color:var(--muted);"> / 5</span></div>
-          <div class="stat-delta" id="stat-reviews">—</div>
+        <div id="active-tasks-list">
+          <div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">Loading open tasks…</div>
         </div>
       </div>
 
-      <div class="dash-grid">
-        <!-- Active tasks panel -->
+      <!-- Quick Action Cards -->
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel" style="background:var(--mint-050); border:1px solid var(--mint-150);">
+          <h3 style="font-size:1.05rem; color:var(--green-900); margin-top:0; margin-bottom:8px;">Need Something Done?</h3>
+          <p style="font-size:0.86rem; color:var(--green-700); line-height:1.5; margin-bottom:14px;">Post a task in seconds and receive bids from verified Taskers across Nigeria.</p>
+          <a href="post-task.html" class="btn btn-primary" style="width:100%;">+ Post a Task Now</a>
+        </div>
+
         <div class="panel">
-          <div class="panel-head">
-            <h2>Active tasks</h2>
-            <a href="#browse" class="panel-link" onclick="switchTab('browse')">View all</a>
-          </div>
-          <div id="active-tasks-list">
-            <div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">Loading tasks…</div>
-          </div>
-        </div>
-
-        <!-- Recent activity ledger -->
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Recent activity</h2>
-            <a href="#wallet" class="panel-link" onclick="switchTab('wallet')">Full ledger</a>
-          </div>
-          <div id="activity-list">
-            <div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">Loading activity…</div>
-          </div>
+          <h3 style="font-size:1.05rem; color:var(--green-900); margin-top:0; margin-bottom:8px;">My Posted Tasks</h3>
+          <p style="font-size:0.86rem; color:var(--muted); line-height:1.5; margin-bottom:14px;">Review applicants, accept taskers, and manage your posted tasks.</p>
+          <a href="my-tasks.html" class="btn btn-secondary" style="width:100%;">Manage My Tasks</a>
         </div>
       </div>
-    </section>
-
-    <!-- ==================== TAB 2: BROWSE GIGS ==================== -->
-    <section class="tab-panel" id="tab-browse">
-      <div class="app-header">
-        <div>
-          <h1>Browse gigs</h1>
-          <p class="sub" id="task-count-label">Loading available tasks…</p>
-        </div>
-      </div>
-
-      <!-- Filter bar -->
-      <div class="filter-bar">
-        <div class="search-input-wrap">
-          <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-          <input type="text" class="search-input" id="gigSearch" placeholder="Search tasks — e.g. plumbing, landing page, data entry">
-        </div>
-        <select class="select-field" id="filterLocation">
-          <option value="all">All locations</option>
-          <option value="remote">Remote</option>
-          <option value="Lagos">Lagos</option>
-          <option value="Abuja">Abuja</option>
-          <option value="Port Harcourt">Port Harcourt</option>
-        </select>
-        <select class="select-field" id="filterSort">
-          <option value="newest">Newest first</option>
-          <option value="budget_high">Highest budget</option>
-          <option value="deadline">Deadline soon</option>
-        </select>
-      </div>
-
-      <!-- Category chips -->
-      <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;" data-chip-group="category">
-        <button class="chip is-active" data-value="all">All categories</button>
-        <button class="chip" data-value="home">Home &amp; Repairs</button>
-        <button class="chip" data-value="errands">Errands &amp; Delivery</button>
-        <button class="chip" data-value="software">Software &amp; Design</button>
-        <button class="chip" data-value="virtual">Virtual Assistance</button>
-      </div>
-
-      <!-- Gig grid -->
-      <div class="gig-grid" id="gig-grid">
-        <div class="gig-grid-loading">
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-          <div class="skeleton skeleton-card"></div>
-        </div>
-      </div>
-
-      <div style="text-align:center; margin-top:24px; display:none;" id="load-more-wrap">
-        <button class="btn btn-secondary" id="load-more-btn">Load more tasks</button>
-      </div>
-    </section>
-
-    <!-- ==================== TAB 3: POST A TASK ==================== -->
-    <section class="tab-panel" id="tab-post">
-      <div class="app-header">
-        <div>
-          <h1>Post a task</h1>
-          <p class="sub">Be specific. The more detail you provide, the better the applications you receive.</p>
-        </div>
-      </div>
-
-      <div class="form-two-col">
-        <!-- Left: Form -->
-        <div>
-          <form id="postTaskForm">
-            <!-- Step 1: Basics -->
-            <div class="panel" style="margin-bottom: 20px;">
-              <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-                <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 01</div>
-                <h2 style="font-size: 1.15rem;">Task basics</h2>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="taskTitle">Task title</label>
-                <input class="text-input" type="text" id="taskTitle" placeholder="e.g. Fix leaking kitchen tap in Lekki" required maxlength="80">
-                <span class="field-hint">Keep it short and specific. This is the first thing Taskers see.</span>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="taskCategory">Category</label>
-                <select class="select-input" id="taskCategory" required>
-                  <option value="" disabled selected>Select a category</option>
-                  <option value="Home &amp; Repairs">Home &amp; Repairs</option>
-                  <option value="Errands &amp; Delivery">Errands &amp; Delivery</option>
-                  <option value="Software &amp; Design">Software &amp; Design</option>
-                  <option value="Virtual Assistance">Virtual Assistance</option>
-                </select>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label" for="taskDesc">Description</label>
-                <textarea class="textarea-input" id="taskDesc" rows="5" placeholder="Describe what needs to be done, requirements, tools or materials..." required></textarea>
-              </div>
-            </div>
-
-            <!-- Step 2: Location & Deadline -->
-            <div class="panel" style="margin-bottom: 20px;">
-              <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-                <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 02</div>
-                <h2 style="font-size: 1.15rem;">Location &amp; timing</h2>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">Task type</label>
-                <div class="toggle-group" id="postTaskTypeToggle" style="margin-bottom: 4px;">
-                  <div class="toggle-option is-active" data-value="PHYSICAL" style="padding: 10px 24px;">Physical — in person</div>
-                  <div class="toggle-option" data-value="REMOTE" style="padding: 10px 24px;">Remote — online</div>
-                </div>
-              </div>
-
-              <div id="locationWrap">
-                <div class="field-group">
-                  <label class="field-label" for="taskLocation">Task location</label>
-                  <input class="text-input" type="text" id="taskLocation" placeholder="e.g. 14 Allen Avenue, Ikeja, Lagos">
-                </div>
-              </div>
-
-              <div class="input-row">
-                <div class="field-group">
-                  <label class="field-label" for="taskDate">Task date</label>
-                  <input class="text-input" type="date" id="taskDate">
-                </div>
-                <div class="field-group">
-                  <label class="field-label" for="taskTime">Preferred time</label>
-                  <select class="select-input" id="taskTime">
-                    <option>Flexible</option>
-                    <option>Morning (7am – 12pm)</option>
-                    <option>Afternoon (12pm – 5pm)</option>
-                    <option>Evening (5pm – 9pm)</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <!-- Step 3: Budget -->
-            <div class="panel" style="margin-bottom: 20px;">
-              <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-                <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 03</div>
-                <h2 style="font-size: 1.15rem;">Budget</h2>
-              </div>
-
-              <div class="field-group">
-                <label class="field-label">How would you like to pay?</label>
-                <div class="toggle-group" id="postBudgetTypeToggle" style="margin-bottom: 8px;">
-                  <div class="toggle-option is-active" data-value="FIXED" style="padding: 10px 24px;">Fixed price</div>
-                  <div class="toggle-option" data-value="OPEN" style="padding: 10px 24px;">Open to bids</div>
-                </div>
-              </div>
-
-              <div id="budgetFixedWrap">
-                <div class="field-group">
-                  <label class="field-label" for="taskBudget">Your budget (₦)</label>
-                  <input class="text-input" type="number" id="taskBudget" placeholder="e.g. 7500" min="500">
-                </div>
-              </div>
-
-              <div id="budgetOpenWrap" style="display:none;">
-                <div class="input-row">
-                  <div class="field-group">
-                    <label class="field-label" for="budgetMin">Minimum (₦)</label>
-                    <input class="text-input" type="number" id="budgetMin" placeholder="e.g. 3000">
-                  </div>
-                  <div class="field-group">
-                    <label class="field-label" for="budgetMax">Maximum (₦)</label>
-                    <input class="text-input" type="number" id="budgetMax" placeholder="e.g. 10000">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="display: flex; gap: 14px;">
-              <button type="submit" class="btn btn-primary" id="submitPostTaskBtn" style="flex:1;">Post task</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Right: sticky summary -->
-        <div>
-          <div class="panel summary-card">
-            <h2 style="font-size: 1.05rem; margin-bottom: 18px;">Task summary</h2>
-
-            <div class="summary-row">
-              <span class="k">Category</span>
-              <span class="v" id="sumCategory">—</span>
-            </div>
-            <div class="summary-row">
-              <span class="k">Type</span>
-              <span class="v" id="sumType">Physical</span>
-            </div>
-            <div class="summary-row">
-              <span class="k">Budget</span>
-              <span class="v mono" id="sumBudget">—</span>
-            </div>
-            <div class="summary-row">
-              <span class="k">Date</span>
-              <span class="v" id="sumDate">—</span>
-            </div>
-
-            <div style="margin-top: 20px; padding: 16px; background: var(--mint-050); border: 1px solid var(--mint-150); border-radius: var(--radius-sm);">
-              <div style="font-size: 0.8rem; font-weight: 600; color: var(--green-700); margin-bottom: 10px;">How payment works</div>
-              <div style="font-size: 0.82rem; color: var(--ink-soft); line-height: 1.6;">
-                Your payment is held in escrow the moment you assign a Tasker. It is not charged before then.
-              </div>
-            </div>
-
-            <div style="margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 16px;">
-              <div class="summary-row" style="padding: 4px 0;">
-                <span class="k" style="font-size: 0.8rem;">Service fee (10%)</span>
-                <span class="v mono" id="sumFee" style="font-size: 0.8rem; color: var(--muted);">—</span>
-              </div>
-              <div class="summary-row" style="padding: 6px 0;">
-                <span class="k" style="font-weight: 700;">Total held in escrow</span>
-                <span class="v mono" id="sumTotal" style="color: var(--green-900);">—</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-
-
+    </div>
   </main>
 </div>
 
-<!-- ============ MOBILE BOTTOM TAB BAR ============ -->
-<nav class="tab-bar">
-  <div class="tab-bar-inner">
-    <a href="#dashboard" class="tab-item is-active" data-tab="dashboard">
-      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg>
-      Dashboard
-    </a>
-    <a href="#browse" class="tab-item" data-tab="browse">
-      <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      Browse
-    </a>
-    <a href="#post" class="tab-item" data-tab="post">
-      <svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
-      Post
-    </a>
-    <a href="#wallet" class="tab-item" data-tab="wallet">
-      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/></svg>
-      Wallet
-    </a>
-  </div>
-</nav>
-
-<!-- ============ MODALS ============ -->
-
-<!-- Task Detail Modal -->
-<div class="modal-overlay" id="task-modal" style="display:none;">
-  <div class="modal">
-    <button class="modal-close" id="modal-close" aria-label="Close">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <span class="gig-category" id="modal-category">Category</span>
-    <h2 style="margin-top:10px; font-size:1.4rem;" id="modal-title">Task title</h2>
-    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-      <span class="badge"><span class="badge-dot"></span>Posted by <span id="modal-poster" style="margin-left:3px;">—</span></span>
-      <span class="badge" id="modal-verified-badge" style="display:none;"><span class="badge-dot" style="background:var(--green-700);"></span>Verified poster</span>
-    </div>
-    <p style="margin-top:20px; color:var(--ink-soft); line-height:1.65;" id="modal-desc">—</p>
-    <div style="margin-top:24px; display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-      <div class="card" style="padding:16px;">
-        <div style="font-size:0.76rem; color:var(--muted);">Budget</div>
-        <div class="mono" style="font-weight:600; margin-top:4px;" id="modal-budget">—</div>
-      </div>
-      <div class="card" style="padding:16px;">
-        <div style="font-size:0.76rem; color:var(--muted);">Location</div>
-        <div style="font-weight:600; margin-top:4px;" id="modal-location">—</div>
-      </div>
-    </div>
-    <div style="display:flex; gap:12px; margin-top:28px;">
-      <button class="btn btn-primary btn-block apply-btn" id="modal-apply-btn">Apply for this task</button>
-      <button class="btn btn-secondary" id="modal-message-btn" style="display:inline-flex; align-items:center; gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg> Message Poster</button>
-      <button class="btn btn-secondary" id="modal-close-2">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- Fund Wallet Modal -->
-<div class="modal-overlay" id="fundModal" style="display:none;">
-  <div class="modal">
-    <button class="modal-close" id="closeFundModalBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <h2 style="font-size:1.3rem; margin-bottom:6px;">Fund your wallet</h2>
-    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:24px;">Add money to your Taska wallet to post tasks and hold payments in escrow.</p>
-    <form id="fundWalletForm">
-      <div class="field-group">
-        <label class="field-label">Amount (₦)</label>
-        <input class="text-input" type="number" id="fundAmount" placeholder="e.g. 10000" min="500" required>
-      </div>
-      <div class="field-group">
-        <label class="field-label">Payment method</label>
-        <select class="select-input" required>
-          <option value="paystack">Paystack (Card / Bank Transfer)</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary btn-block">Proceed to Payment (Demo)</button>
-    </form>
-  </div>
-</div>
-
-<!-- Withdraw Modal -->
-<div class="modal-overlay" id="withdrawModal" style="display:none;">
-  <div class="modal">
-    <button class="modal-close" id="closeWithdrawModalBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <h2 style="font-size:1.3rem; margin-bottom:6px;">Withdraw funds</h2>
-    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:24px;">Withdrawals are processed to your registered bank account.</p>
-    <div style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:22px;">
-      <div style="font-size:0.78rem; color:var(--muted);">Available to withdraw</div>
-      <div class="mono" style="font-size:1.4rem; font-weight:700; color:var(--green-900); margin-top:4px;" id="modal-withdraw-balance">₦0</div>
-    </div>
-    <form id="withdrawForm">
-      <div class="field-group">
-        <label class="field-label">Amount (₦)</label>
-        <input class="text-input" type="number" id="withdrawAmount" placeholder="e.g. 5000" min="1000" required>
-        <span class="field-hint">Minimum withdrawal is ₦1,000.</span>
-      </div>
-      <button type="submit" class="btn btn-primary btn-block">Submit Withdrawal (Demo)</button>
-    </form>
-  </div>
-</div>
-
-<!-- Public Profile Preview & Reviews Modal -->
-<div class="modal-overlay" id="public-profile-modal" style="display:none;">
-  <div class="modal" style="max-width:550px; max-height:90vh; overflow-y:auto;">
-    <button class="modal-close" id="public-profile-close" aria-label="Close">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6L18 18M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    
-    <div style="text-align:center; padding:10px 0 20px 0; border-bottom:1px solid var(--line);">
-      <div class="sidebar-user-avatar" id="pub-modal-avatar" style="width:80px; height:80px; font-size:1.8rem; margin:0 auto 12px auto; border:3px solid var(--green-700);">--</div>
-      <h2 id="pub-modal-name" style="font-size:1.35rem; font-weight:700;">—</h2>
-      <div class="mono" id="pub-modal-username" style="font-size:0.88rem; color:var(--muted); margin-top:2px;">@username</div>
-      <div style="margin-top:10px; display:inline-flex; gap:8px; align-items:center;">
-        <span class="badge" id="pub-modal-role">Poster & Tasker</span>
-        <span id="pub-modal-verified" style="font-size:0.8rem; font-weight:600; color:var(--green-700);">✓ Verified</span>
-      </div>
-    </div>
-
-    <div style="padding:16px 0;">
-      <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.5px; color:var(--muted); font-weight:700; margin-bottom:6px;">Bio</div>
-      <p style="font-size:0.9rem; color:var(--body); line-height:1.6;" id="pub-modal-bio">No bio provided yet.</p>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:18px;">
-        <div class="card" style="padding:14px; text-align:center;">
-          <div style="font-size:0.76rem; color:var(--muted);">Location</div>
-          <div style="font-size:0.9rem; font-weight:600; margin-top:2px;" id="pub-modal-location">Lagos, Nigeria</div>
-        </div>
-        <div class="card" style="padding:14px; text-align:center;">
-          <div style="font-size:0.76rem; color:var(--muted);">Average Rating</div>
-          <div style="font-size:0.9rem; font-weight:600; margin-top:2px;" id="pub-modal-rating">★ 5.0 (0 reviews)</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Reviews Section -->
-    <div style="border-top:1px solid var(--line); padding-top:16px; margin-top:10px;">
-      <h3 style="font-size:1.05rem; margin-bottom:12px;">User Reviews</h3>
-      <div id="pub-modal-reviews-list" style="display:flex; flex-direction:column; gap:10px; max-height:180px; overflow-y:auto; margin-bottom:16px;">
-        <div style="color:var(--muted); font-size:0.85rem; text-align:center; padding:10px;">No reviews yet for this user.</div>
-      </div>
-
-      <!-- Leave a Review Form -->
-      <form id="leave-review-form" style="background:var(--surface); padding:14px; border-radius:var(--radius-sm); border:1px solid var(--line);">
-        <div style="font-weight:600; font-size:0.88rem; margin-bottom:8px;">Leave a Review</div>
-        <div class="field-group" style="margin-bottom:10px;">
-          <label class="field-label">Rating (1 to 5 Stars)</label>
-          <select class="select-input" id="reviewRatingSelect" required>
-            <option value="5">★★★★★ 5 Stars - Excellent</option>
-            <option value="4">★★★★☆ 4 Stars - Very Good</option>
-            <option value="3">★★★☆☆ 3 Stars - Average</option>
-            <option value="2">★★☆☆☆ 2 Stars - Poor</option>
-            <option value="1">★☆☆☆☆ 1 Star - Terrible</option>
-          </select>
-        </div>
-        <div class="field-group" style="margin-bottom:10px;">
-          <textarea class="text-input" id="reviewCommentText" rows="2" placeholder="Write an honest review about working with this user..." required style="resize:vertical;"></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm btn-block" id="submitReviewBtn">Submit Review</button>
-      </form>
-    </div>
-
-    <div style="margin-top:14px; text-align:center;" id="pub-modal-edit-container">
-      <button class="btn btn-secondary btn-block" id="pub-modal-edit-btn">Edit My Profile</button>
-    </div>
-  </div>
-</div>
-
-<!-- Supabase JS SDK & Cloudinary -->
+<!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../../js/supabase-client.js"></script>
-<script src="../../js/cloudinary-upload.js"></script>
-
-<!-- Scripts -->
-<script src="../../js/main.js"></script>
 
 <!-- Clerk JS -->
 <script
@@ -612,7 +94,6 @@
 </script>
 <script src="../../js/sidebar-component.js"></script>
 <script src="../../js/auth-guard.js?v=10"></script>
-<script src="../../js/profile.js?v=10"></script>
 <script src="../../js/dashboard.js?v=10"></script>
 
 </body>
