@@ -78,7 +78,24 @@ function getStatusClass(status) {
 // ─── SPA Tab Switching ────────────────────────────────────────────────────────
 
 window.switchTab = function switchTab(tabName) {
-  const validTabs = ['dashboard', 'browse', 'post', 'wallet', 'profile', 'settings', 'messages'];
+  if (tabName === 'wallet') {
+    window.location.href = '../Wallet/index.html';
+    return;
+  }
+  if (tabName === 'settings') {
+    window.location.href = '../Settings/index.html';
+    return;
+  }
+  if (tabName === 'messages') {
+    window.location.href = '../Chats/index.html';
+    return;
+  }
+  if (tabName === 'profile') {
+    window.location.href = '../Profile/index.html';
+    return;
+  }
+
+  const validTabs = ['dashboard', 'browse', 'post'];
   if (!validTabs.includes(tabName)) tabName = 'dashboard';
 
   currentTab = tabName;

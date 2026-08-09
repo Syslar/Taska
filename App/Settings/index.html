@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings | Taska</title>
+  <link rel="stylesheet" href="../../css/styles.css?v=11">
+  <link rel="stylesheet" href="../Dashboard/Styles/styles.css?v=11">
+  <style>
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    <div class="app-header">
+      <div>
+        <h1>Settings</h1>
+        <p class="sub">Manage your profile card, account preferences, and identity verification.</p>
+      </div>
+    </div>
+
+    <!-- Settings Internal Subtabs -->
+    <div class="settings-subtabs" style="display:flex; gap:12px; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+      <button class="btn btn-sm btn-secondary is-active" data-settings-subtab="profile" style="border-radius:20px;">Profile</button>
+      <button class="btn btn-sm btn-secondary" data-settings-subtab="account" style="border-radius:20px;">Account & Security</button>
+    </div>
+
+    <!-- SUBTAB 1: PROFILE & IDENTITY -->
+    <div class="settings-subpanel" id="settings-subpanel-profile">
+      
+      <!-- Identity & KYC Verification Banner -->
+      <div id="settings-kyc-section" style="margin-bottom: 24px;"></div>
+
+      <div class="dash-grid">
+        <!-- Live Profile Card Preview -->
+        <div class="panel" style="display:flex; flex-direction:column; justify-content:space-between;">
+          <div>
+            <div style="display:flex; align-items:center; gap:18px; margin-bottom:20px;">
+              <div class="sidebar-user-avatar" id="profile-big-avatar" style="width:72px; height:72px; font-size:1.6rem; border:2px solid var(--green-700);">--</div>
+              <div>
+                <h2 id="profile-full-name" style="font-size:1.25rem; font-weight:700;">User Profile</h2>
+                <div class="mono" id="profile-username-val" style="font-size:0.85rem; color:var(--muted); margin-top:2px;">@username</div>
+                <div style="margin-top:6px; display:flex; gap:8px; align-items:center;">
+                  <span class="badge" id="profile-role-badge">Poster / Tasker</span>
+                  <span id="profile-verified-val" style="font-size:0.78rem; font-weight:600; color:var(--green-700);">✓ Verified</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px dashed var(--line); padding-top:16px; margin-top:16px;">
+              <div class="summary-row" style="padding:10px 0; display:flex; justify-space-between;">
+                <span class="k" style="color:var(--muted); font-size:0.88rem;">Email</span>
+                <span class="v" id="profile-email-val" style="font-weight:600; font-size:0.88rem;">—</span>
+              </div>
+              <div class="summary-row" style="padding:10px 0; display:flex; justify-space-between;">
+                <span class="k" style="color:var(--muted); font-size:0.88rem;">Phone</span>
+                <span class="v" id="profile-phone-val" style="font-weight:600; font-size:0.88rem;">—</span>
+              </div>
+              <div class="summary-row" style="padding:10px 0; display:flex; justify-space-between;">
+                <span class="k" style="color:var(--muted); font-size:0.88rem;">Location</span>
+                <span class="v" id="profile-location-val" style="font-weight:600; font-size:0.88rem;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px; padding:14px; background:var(--surface); border-radius:var(--radius-sm); font-size:0.84rem; color:var(--ink-soft);">
+            💡 Your public profile card is visible to other Taskers and Posters when you create or apply for tasks.
+          </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <div class="panel">
+          <h2 style="font-size:1.15rem; margin-bottom:18px;">Edit Profile Details</h2>
+          <form id="settingsProfileForm">
+            
+            <div class="field-group" style="margin-bottom: 24px;">
+              <label class="field-label">Profile Picture</label>
+              <div style="display:flex; align-items:center; gap:16px;">
+                <div id="settings-avatar-preview" style="width:64px; height:64px; border-radius:50%; background:var(--surface); border:2px solid var(--line); display:flex; align-items:center; justify-content:center; overflow:hidden; font-weight:bold; font-size:1.5rem; color:var(--muted);">U</div>
+                <div>
+                  <input type="file" id="settingsAvatarUpload" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                  <label for="settingsAvatarUpload" class="btn btn-secondary btn-sm" style="cursor:pointer; border-radius:16px;">Change Avatar</label>
+                  <div style="font-size:0.75rem; color:var(--muted); margin-top:6px;">Max 5MB. JPEG, PNG, or WEBP.</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:16px;">
+              <div class="field-group" style="flex:1;">
+                <label class="field-label" for="settingsFname">First name</label>
+                <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+              </div>
+              <div class="field-group" style="flex:1;">
+                <label class="field-label" for="settingsLname">Last name</label>
+                <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+              </div>
+            </div>
+            
+            <div class="field-group">
+              <label class="field-label" for="settingsPhone">Phone number</label>
+              <div class="phone-input-wrap">
+                <span class="phone-prefix">+234</span>
+                <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="settingsLocation">Location</label>
+              <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
+            </div>
+
+            <div class="field-group">
+              <label class="field-label" for="settingsBio">Bio</label>
+              <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell us about yourself..." style="resize:vertical; min-height:80px;"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="settingsSaveBtn">Save Changes</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SUBTAB 2: ACCOUNT & SECURITY -->
+    <div class="settings-subpanel" id="settings-subpanel-account" style="display:none;">
+      <div class="dash-grid">
+        
+        <div class="panel">
+          <h2 style="font-size:1.15rem; margin-bottom:6px;">Account Sign Out</h2>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:16px;">Safely sign out of your Taska account on this device.</p>
+          <button type="button" class="btn btn-secondary" id="settings-logout-btn">Log Out</button>
+        </div>
+
+        <div class="panel" style="border:1px solid #fda4af; background:#fff1f2;">
+          <h2 style="font-size:1.15rem; color:#be123c; margin-bottom:6px;">Danger Zone</h2>
+          <p style="font-size:0.85rem; color:#4c0519; margin-bottom:20px;">Permanently delete your account and all associated task history, wallet balances, and active bids. This action is irreversible.</p>
+          <button type="button" class="btn" style="background:#e11d48; color:#fff;" id="settingsDeleteBtn">Delete Account</button>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Supabase JS SDK & Cloudinary & Dojah Widget -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/supabase-client.js"></script>
+<script src="../../js/cloudinary-upload.js"></script>
+<script src="https://widget.dojah.io/widget.js"></script>
+<script src="../../js/dojah-kyc.js"></script>
+
+<!-- Clerk JS -->
+<script
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script src="../../js/sidebar-component.js"></script>
+<script src="../../js/auth-guard.js?v=10"></script>
+<script src="../../js/settings.js?v=10"></script>
+
+</body>
+</html>

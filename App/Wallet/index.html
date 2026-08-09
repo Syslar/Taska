@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Wallet | Taska</title>
+  <link rel="stylesheet" href="../../css/styles.css?v=11">
+  <link rel="stylesheet" href="../Dashboard/Styles/styles.css?v=11">
+  <style>
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    <div class="app-header">
+      <div>
+        <h1>My Wallet</h1>
+        <p class="sub">Manage earnings, withdrawals, escrow balances, and transaction history.</p>
+      </div>
+    </div>
+
+    <!-- Wallet Hero Banner -->
+    <div class="wallet-hero">
+      <div class="wallet-hero-top">
+        <div>
+          <div class="wallet-hero-label">Available Balance</div>
+          <div class="wallet-hero-balance mono" id="wallet-hero-balance">₦0</div>
+        </div>
+        <div class="wallet-hero-actions">
+          <button class="btn btn-primary" id="wallet-deposit-btn">+ Add Funds</button>
+          <button class="btn btn-secondary" id="wallet-withdraw-btn">Withdraw</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stat Strip -->
+    <div class="stat-grid" style="margin-bottom: 28px;">
+      <div class="stat-card">
+        <div class="stat-label">Total earned</div>
+        <div class="stat-value mono" id="stat-earned">₦0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">In escrow</div>
+        <div class="stat-value mono" id="stat-wallet-escrow">₦0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total withdrawn</div>
+        <div class="stat-value mono" id="stat-withdrawn">₦0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This month</div>
+        <div class="stat-value mono" id="stat-month">₦0</div>
+      </div>
+    </div>
+
+    <!-- Transaction Ledger -->
+    <div class="panel">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+        <h2 style="font-size: 1.1rem;">Transaction history</h2>
+      </div>
+
+      <div class="wallet-tabs" id="wallet-tabs-bar">
+        <button class="wallet-tab is-active" data-wallet-filter="all">All</button>
+        <button class="wallet-tab" data-wallet-filter="earnings">Earnings</button>
+        <button class="wallet-tab" data-wallet-filter="payments">Payments</button>
+        <button class="wallet-tab" data-wallet-filter="withdrawals">Withdrawals</button>
+      </div>
+
+      <div id="tx-container" style="margin-top: 12px;">
+        <div style="padding:40px; text-align:center; color:var(--muted);">Loading transactions…</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Deposit Modal -->
+<div class="modal-backdrop" id="wallet-deposit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:420px; width:100%; padding:24px; border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+      <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);">Add Funds to Wallet</h3>
+      <button type="button" id="wallet-deposit-close-btn" style="background:none; border:none; font-size:1.2rem; cursor:pointer; color:var(--muted);">✕</button>
+    </div>
+    <form id="wallet-deposit-form">
+      <div class="field-group" style="margin-bottom:18px;">
+        <label class="field-label" for="deposit-amount">Amount (NGN)</label>
+        <input class="text-input" type="number" id="deposit-amount" min="500" step="100" placeholder="e.g. 5000" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Proceed to Paystack Deposit</button>
+    </form>
+  </div>
+</div>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/supabase-client.js"></script>
+
+<!-- Clerk JS -->
+<script
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script src="../../js/sidebar-component.js"></script>
+<script src="../../js/auth-guard.js?v=10"></script>
+<script src="../../js/wallet.js?v=10"></script>
+
+</body>
+</html>

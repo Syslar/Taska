@@ -176,9 +176,7 @@ async function acceptTasker(taskId, applicationId, taskerId, taskerName) {
 }
 
 function messageTasker(id, firstName, lastName, username) {
-  const peer = { id, firstName, lastName, username };
-  localStorage.setItem('taska_open_chat_peer', JSON.stringify(peer));
-  window.location.href = 'index.html#messages';
+  window.location.href = `../Chats/index.html?user=${id}`;
 }
 
 window.acceptTasker = acceptTasker;
