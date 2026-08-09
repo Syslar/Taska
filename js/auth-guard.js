@@ -3,8 +3,19 @@
    Include this AFTER Clerk JS and supabase-client.js on every protected page.
    ========================================================================== */
 
-window.__taskaToken = null;
-window.__taskaProfile = null;
+// Try loading cached profile immediately from localStorage to eliminate UI delay
+(function initCachedProfile() {
+  try {
+    const cached = localStorage.getItem('taska_cached_profile');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.id) {
+        window.__taskaProfile = parsed;
+        populateSidebar(parsed);
+      }
+    }
+  } catch (_) {}
+})();
 
 window.getTaskaToken = async function () {
   if (window.__taskaToken) return window.__taskaToken;
@@ -22,8 +33,8 @@ window.getTaskaProfile = function () {
 window.ensureTaskaProfile = async function () {
   if (window.__taskaProfile) return window.__taskaProfile;
   let attempts = 0;
-  while (!window.__taskaProfile && attempts < 50) {
-    await new Promise(r => setTimeout(r, 100));
+  while (!window.__taskaProfile && attempts < 40) {
+    await new Promise(r => setTimeout(r, 50));
     attempts++;
   }
   return window.__taskaProfile;
@@ -117,6 +128,12 @@ async function syncSupabaseProfile(clerkUser) {
       const wallet = existing.Wallet && existing.Wallet.length > 0 ? existing.Wallet[0] : null;
       const profile = { ...existing, wallet };
       delete profile.Wallet;
+
+      // Save to localStorage for instant non-blocking page transitions
+      try {
+        localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+      } catch (_) {}
+
       return profile;
     }
 
@@ -153,7 +170,13 @@ async function syncSupabaseProfile(clerkUser) {
       .select()
       .single();
 
-    return { ...profile, wallet: wallet || null };
+    const fullProfile = { ...profile, wallet: wallet || null };
+
+    try {
+      localStorage.setItem('taska_cached_profile', JSON.stringify(fullProfile));
+    } catch (_) {}
+
+    return fullProfile;
 
   } catch (err) {
     console.error('Supabase profile sync error:', err);
@@ -162,10 +185,23 @@ async function syncSupabaseProfile(clerkUser) {
 }
 
 async function runAuthGuard() {
+  // Ensure Supabase SDK client is ready immediately
+  if (window.supabase && window.supabase.createClient && !window.supabaseClient) {
+    window.supabaseClient = window.supabase.createClient(
+      'https://nhittvkskzwpeinscxir.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oaXR0dmtza3p3cGVpbnNjeGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNzY2MzQsImV4cCI6MjA5ODk1MjYzNH0.dII7qIobUbjdAAijn1mYQuu543djIL2sSROY5egQaMc'
+    );
+  }
+
+  // Fast path: If cached profile exists, populate UI immediately without blocking
+  if (window.__taskaProfile) {
+    populateSidebar(window.__taskaProfile);
+  }
+
   // 1. Wait for window.Clerk script to be defined
   let attempts = 0;
-  while (!window.Clerk && attempts < 50) {
-    await new Promise(r => setTimeout(r, 100));
+  while (!window.Clerk && attempts < 30) {
+    await new Promise(r => setTimeout(r, 50));
     attempts++;
   }
 
@@ -185,33 +221,29 @@ async function runAuthGuard() {
 
   // 3. Check active session
   if (!window.Clerk.session || !window.Clerk.user) {
+    try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
+    window.__taskaProfile = null;
     const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
     const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
     window.location.replace(loginUrl);
     return;
   }
 
-  // 4. Ensure Supabase SDK client is ready
-  if (window.supabase && window.supabase.createClient && !window.supabaseClient) {
-    window.supabaseClient = window.supabase.createClient(
-      'https://nhittvkskzwpeinscxir.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oaXR0dmtza3p3cGVpbnNjeGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNzY2MzQsImV4cCI6MjA5ODk1MjYzNH0.dII7qIobUbjdAAijn1mYQuu543djIL2sSROY5egQaMc'
-    );
-  }
-
-  // 5. Load/Sync Supabase profile directly
+  // 4. Load/Sync Supabase profile in background
   const profile = await syncSupabaseProfile(window.Clerk.user);
   if (profile) {
     window.__taskaProfile = profile;
     populateSidebar(profile);
   }
 
-  // 6. Bind logout button
+  // 5. Bind logout button
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.onclick = async (e) => {
       e.preventDefault();
       try {
+        try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
+        window.__taskaProfile = null;
         await window.Clerk.signOut();
         const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
         const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
@@ -222,7 +254,7 @@ async function runAuthGuard() {
     };
   }
 
-  // 7. Signal that auth guard is ready
+  // 6. Signal that auth guard is ready
   window.__taskaReady = true;
   window.dispatchEvent(new Event('taska:ready'));
 }
