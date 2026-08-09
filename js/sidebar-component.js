@@ -57,16 +57,6 @@
           Taska
         </div>
 
-        <!-- Role Mode Switcher Widget -->
-        <div style="margin: 0 10px 18px 10px; background: rgba(0,0,0,0.22); padding: 4px; border-radius: var(--radius-pill); display: flex; align-items: center; border: 1px solid rgba(255,255,255,0.1);">
-          <button type="button" id="role-btn-poster" style="flex:1; padding: 7px 10px; border-radius: var(--radius-pill); border: none; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${!isTaskerMode ? 'background:#146C34; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.2);' : 'background:transparent; color:#A9CBB3;'}">
-            📢 Poster
-          </button>
-          <button type="button" id="role-btn-tasker" style="flex:1; padding: 7px 10px; border-radius: var(--radius-pill); border: none; font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; ${isTaskerMode ? 'background:#146C34; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.2);' : 'background:transparent; color:#A9CBB3;'}">
-            🛠️ Tasker
-          </button>
-        </div>
-
         <nav class="sidebar-nav">
           <a href="${dashRoot}index.html" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="3" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="13" y="13" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.7"/></svg></span>

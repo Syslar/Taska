@@ -31,6 +31,26 @@
     </div>
 
     <div class="dash-grid">
+      <!-- Active Profile System Switcher Panel -->
+      <div class="panel" style="grid-column: 1 / -1; margin-bottom: 12px; background: var(--surface); border: 1px solid var(--line);">
+        <h2 style="font-size:1.15rem; margin-bottom:6px; color:var(--green-900);">Account Profile Mode</h2>
+        <p style="font-size:0.86rem; color:var(--muted); margin-bottom:20px; max-width:560px;">
+          Taska operates as two separate systems: <strong>Task Poster</strong> (post tasks & hire professionals) and <strong>Tasker</strong> (browse & apply for tasks to earn money). Switch your active profile mode below.
+        </p>
+
+        <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+          <div style="display:inline-flex; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-pill); padding:4px;" id="settings-role-toggle-group">
+            <button type="button" id="settings-btn-poster" style="padding:10px 22px; border-radius:var(--radius-pill); border:none; font-weight:600; font-size:0.88rem; cursor:pointer;">
+              📢 Task Poster Mode
+            </button>
+            <button type="button" id="settings-btn-tasker" style="padding:10px 22px; border-radius:var(--radius-pill); border:none; font-weight:600; font-size:0.88rem; cursor:pointer;">
+              🛠️ Tasker Mode
+            </button>
+          </div>
+          <span id="settings-active-mode-label" class="mono" style="font-size:0.82rem; color:var(--green-700); font-weight:600;">Active Mode: Loading…</span>
+        </div>
+      </div>
+
       <div class="panel">
         <h2 style="font-size:1.15rem; margin-bottom:6px; color:var(--green-900);">Account Sign Out</h2>
         <p style="font-size:0.86rem; color:var(--muted); margin-bottom:18px;">Safely sign out of your Taska account on this device.</p>
@@ -58,12 +78,47 @@
 <script src="../../js/sidebar-component.js"></script>
 <script src="../../js/auth-guard.js?v=10"></script>
 <script>
+  async function initAccountSettings() {
+    const profile = await window.ensureTaskaProfile();
+    const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
+    const isTasker = currentRole === 'TASKER';
+
+    const posterBtn = document.getElementById('settings-btn-poster');
+    const taskerBtn = document.getElementById('settings-btn-tasker');
+    const labelEl = document.getElementById('settings-active-mode-label');
+
+    if (labelEl) labelEl.textContent = `Active Mode: ${isTasker ? 'Tasker (Earn Money)' : 'Task Poster (Hire People)'}`;
+
+    if (posterBtn && taskerBtn) {
+      if (isTasker) {
+        taskerBtn.style.background = '#146C34';
+        taskerBtn.style.color = '#fff';
+        posterBtn.style.background = 'transparent';
+        posterBtn.style.color = 'var(--ink-soft)';
+      } else {
+        posterBtn.style.background = '#146C34';
+        posterBtn.style.color = '#fff';
+        taskerBtn.style.background = 'transparent';
+        taskerBtn.style.color = 'var(--ink-soft)';
+      }
+
+      posterBtn.onclick = () => {
+        if (window.switchTaskaRole) window.switchTaskaRole('POSTER');
+      };
+      taskerBtn.onclick = () => {
+        if (window.switchTaskaRole) window.switchTaskaRole('TASKER');
+      };
+    }
+  }
+
   document.getElementById('settings-logout-btn')?.addEventListener('click', async () => {
     if (window.Clerk && window.Clerk.signOut) {
       await window.Clerk.signOut();
     }
     window.location.href = '../../index.html';
   });
+
+  document.addEventListener('DOMContentLoaded', initAccountSettings);
 </script>
 
 </body>
