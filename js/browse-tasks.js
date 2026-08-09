@@ -154,11 +154,19 @@ window.openTaskModal = async function (taskId) {
     };
   }
 
-  // Check if current user already applied
+  // Check active role & application status
   const profile = await window.ensureTaskaProfile();
+  const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
   const applyBtn = document.getElementById('modal-apply-btn');
+
   if (applyBtn) {
-    if (profile && window.supabaseClient) {
+    if (currentRole === 'POSTER') {
+      applyBtn.disabled = false;
+      applyBtn.textContent = 'Switch to Tasker Mode to Apply';
+      applyBtn.onclick = () => {
+        if (window.showToast) window.showToast('Please switch to Tasker mode in the sidebar to apply for tasks.');
+      };
+    } else if (profile && window.supabaseClient) {
       const { data: existing } = await window.supabaseClient
         .from('Application')
         .select('id')
@@ -182,6 +190,12 @@ async function submitApplication(taskId) {
   const profile = await window.ensureTaskaProfile();
   if (!profile) {
     if (window.showToast) window.showToast('Please log in to apply for tasks.');
+    return;
+  }
+
+  const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
+  if (currentRole === 'POSTER') {
+    if (window.showToast) window.showToast('Task Posters cannot apply for tasks. Switch to Tasker mode to apply.');
     return;
   }
 

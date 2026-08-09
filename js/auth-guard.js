@@ -26,8 +26,45 @@ window.getTaskaToken = async function () {
   return window.__taskaToken;
 };
 
-window.getTaskaProfile = function () {
-  return window.__taskaProfile;
+window.getTaskaRole = function () {
+  return (window.__taskaProfile && window.__taskaProfile.activeRole) || (window.__taskaProfile && window.__taskaProfile.role) || 'POSTER';
+};
+
+window.switchTaskaRole = async function (newRole) {
+  const profile = await window.ensureTaskaProfile();
+  if (!profile) return;
+
+  const targetRole = newRole.toUpperCase() === 'TASKER' ? 'TASKER' : 'POSTER';
+  profile.activeRole = targetRole;
+  window.__taskaProfile = profile;
+
+  try {
+    localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+  } catch (_) {}
+
+  if (window.supabaseClient) {
+    try {
+      await window.supabaseClient
+        .from('Profile')
+        .update({ activeRole: targetRole })
+        .eq('id', profile.id);
+    } catch (err) {
+      console.error('Supabase activeRole update notice:', err);
+    }
+  }
+
+  if (window.initSidebar) window.initSidebar();
+  if (window.showToast) window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker (Earn Money)' : 'Task Poster (Hire People)'} ✓`);
+
+  // Redirect if current page is restricted for the new role
+  const path = window.location.pathname.toLowerCase();
+  if (targetRole === 'TASKER' && path.includes('post-task.html')) {
+    window.location.href = 'browse-tasks.html';
+  } else if (targetRole === 'POSTER' && path.includes('browse-tasks.html')) {
+    window.location.href = 'post-task.html';
+  } else {
+    window.location.reload();
+  }
 };
 
 window.ensureTaskaProfile = async function () {

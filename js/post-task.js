@@ -3,7 +3,14 @@
  * Handles post-task form submission, live summary updates, file attachments, and database insert.
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
+  if (currentRole === 'TASKER') {
+    if (window.showToast) window.showToast('Taskers cannot post tasks. Switch to Poster mode to post.');
+    window.location.href = 'browse-tasks.html';
+    return;
+  }
+
   const form = document.getElementById('postTaskForm');
   const mediaInput = document.getElementById('task-media-input');
   const dropzone = document.getElementById('task-media-dropzone');
