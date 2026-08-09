@@ -194,23 +194,32 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'Remote / Online'
         : (locationInput || 'In-person / Physical');
 
-      const fullDesc = taskDate
+      let fullDesc = taskDate
         ? `${description}\n\n[Deadline: ${taskDate} (${taskTime || 'Flexible'})]`
         : description;
 
+      if (imageUrl) {
+        fullDesc += `\n\n[Attachment: ${imageUrl}]`;
+      }
+
       try {
-        const { error } = await window.supabaseClient
+        const { data: insertedTask, error } = await window.supabaseClient
           .from('Task')
           .insert({
             posterId: profile.id,
             title,
             category,
-            budget,
-            location: locationString,
             description: fullDesc,
-            imageUrl: imageUrl || null,
+            taskType: activeTaskType.toUpperCase() === 'REMOTE' ? 'REMOTE' : 'PHYSICAL',
+            location: locationString,
+            deadline: taskDate ? new Date(taskDate).toISOString() : null,
+            preferredTime: taskTime || 'Flexible',
+            budgetType: activeBudgetType.toUpperCase() === 'OPEN' ? 'OPEN' : 'FIXED',
+            budget: budget ? parseFloat(budget) : null,
             status: 'OPEN'
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
 
