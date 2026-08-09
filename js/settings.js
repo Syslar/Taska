@@ -82,7 +82,7 @@ window.renderSettingsPage = async function () {
           <div style="width:48px; height:48px; border-radius:50%; background:var(--mint-150); color:var(--green-700); display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:bold; flex-shrink:0;">✓</div>
           <div>
             <div style="font-weight:700; font-size:1.02rem;">Identity Verified</div>
-            <div style="font-size:0.85rem; color:var(--green-700); margin-top:2px;">Your government identity (NIN/BVN) has been verified with Dojah. You enjoy high trust and verified badges across Taska.</div>
+            <div style="font-size:0.85rem; color:var(--green-700); margin-top:2px;">Your government identity (NIN / Voter's Card / Driver's License / National ID Card) has been verified with Dojah. You enjoy high trust and verified badges across Taska.</div>
             ${profile.kycRef ? `<div style="font-size:0.75rem; color:var(--muted); margin-top:4px;" class="mono">Ref: ${profile.kycRef}</div>` : ''}
           </div>
         </div>
@@ -92,7 +92,7 @@ window.renderSettingsPage = async function () {
         <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md); padding:22px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
           <div>
             <div style="font-weight:700; font-size:1rem; color:var(--green-900);">Verify Your Identity</div>
-            <div style="font-size:0.86rem; color:var(--muted); margin-top:4px; max-width:480px;">Complete quick NIN/BVN identity verification to get the verified badge and unlock higher task limits.</div>
+            <div style="font-size:0.86rem; color:var(--muted); margin-top:4px; max-width:480px;">Complete quick identity verification using NIN, Voter's Card, Driver's License, or National ID Card.</div>
           </div>
           <button type="button" class="btn btn-primary" id="launchKycBtn">Verify Identity Now</button>
         </div>
