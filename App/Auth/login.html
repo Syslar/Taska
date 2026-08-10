@@ -151,7 +151,7 @@
         submitBtn.textContent = 'Logging in…';
         
         try {
-          // Step 1: Create sign-in attempt
+          // Step 1: Create sign-in attempt with identifier & password
           activeSignInAttempt = await window.Clerk.client.signIn.create({
             identifier,
             password,
@@ -166,10 +166,19 @@
             return;
           }
 
-          // Step 3: Handle first factor (email code or password)
+          // Step 3: If needs first factor (e.g. password attempt needed or email code option)
           if (activeSignInAttempt.status === 'needs_first_factor') {
+            const passwordFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'password');
+            if (passwordFactor) {
+              const res = await activeSignInAttempt.attemptFirstFactor({ strategy: 'password', password });
+              if (res.status === 'complete') {
+                await window.Clerk.setActive({ session: res.createdSessionId });
+                window.location.replace('../Dashboard/index.html');
+                return;
+              }
+            }
+
             const emailFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'email_code');
-            
             if (emailFactor) {
               await activeSignInAttempt.prepareFirstFactor({
                 strategy: 'email_code',
@@ -179,16 +188,6 @@
               otpPanel.style.display = 'block';
               if (window.showToast) window.showToast('Verification code sent to your email ✓');
               return;
-            }
-
-            const passwordFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'password');
-            if (passwordFactor) {
-              const res = await activeSignInAttempt.attemptFirstFactor({ strategy: 'password', password });
-              if (res.status === 'complete') {
-                await window.Clerk.setActive({ session: res.createdSessionId });
-                window.location.replace('../Dashboard/index.html');
-                return;
-              }
             }
           }
 
