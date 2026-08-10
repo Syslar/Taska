@@ -78,6 +78,25 @@
           <button type="submit" class="btn btn-primary btn-block">Log in</button>
         </form>
 
+        <!-- VERIFY OTP STEP FOR NEW / UNTRUSTED DEVICES -->
+        <div id="otp-verify-panel" style="display:none;">
+          <div style="background:#EBF5ED; border:1px solid #C4E2CB; padding:16px; border-radius:12px; margin-bottom:20px;">
+            <h3 style="font-size:1rem; color:var(--green-900); margin-bottom:4px;">🔒 Device Verification Required</h3>
+            <p style="font-size:0.84rem; color:var(--ink-soft); margin:0;">
+              We sent a 6-digit verification code to your email to verify this new device.
+            </p>
+          </div>
+
+          <form id="otp-verify-form">
+            <div class="field-group">
+              <label class="field-label" for="loginOtpCode">6-Digit Email Verification Code</label>
+              <input class="text-input mono" type="text" id="loginOtpCode" maxlength="6" placeholder="123456" style="letter-spacing:6px; font-size:1.2rem; text-align:center;" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" id="otpSubmitBtn">Verify & Log in</button>
+            <button type="button" class="btn btn-secondary btn-block" id="otpResendBtn" style="margin-top:10px;">Resend Code</button>
+          </form>
+        </div>
+
         <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
           Don't have an account? <a href="signup.html" style="color:var(--green-700); font-weight:600;">Sign up</a>
         </p>
@@ -98,25 +117,31 @@
   type="text/javascript">
 </script>
 <script>
+  let activeSignInAttempt = null;
+
   window.addEventListener('load', async function () {
     try {
       await window.Clerk.load();
       
       if (window.Clerk.session) {
-        // Already logged in — go to dashboard
         window.location.replace('../Dashboard/index.html');
         return;
       }
 
-      // Render CAPTCHA widget if required by Clerk Bot Protection
+      // Render CAPTCHA if needed
       try {
         const captchaContainer = document.getElementById('clerk-captcha');
         if (captchaContainer && window.Clerk.renderCaptcha) {
           window.Clerk.renderCaptcha(captchaContainer);
         }
-      } catch (_) { /* ignore optional captcha notice */ }
+      } catch (_) {}
 
-      document.getElementById('login-form').addEventListener('submit', async (e) => {
+      const loginForm = document.getElementById('login-form');
+      const otpPanel = document.getElementById('otp-verify-panel');
+      const otpForm = document.getElementById('otp-verify-form');
+      const resendBtn = document.getElementById('otpResendBtn');
+
+      loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const identifier = document.getElementById('loginEmail').value.trim();
         const password = document.getElementById('loginPassword').value;
@@ -127,57 +152,54 @@
         
         try {
           // Step 1: Create sign-in attempt
-          let signInAttempt = await window.Clerk.client.signIn.create({
+          activeSignInAttempt = await window.Clerk.client.signIn.create({
             identifier,
             password,
           });
 
           // Step 2: Completed sign in
-          if (signInAttempt.status === 'complete') {
+          if (activeSignInAttempt.status === 'complete') {
             try {
-              await window.Clerk.setActive({ session: signInAttempt.createdSessionId });
-            } catch (err) {
-              console.warn('Clerk setActive notice:', err);
-            }
+              await window.Clerk.setActive({ session: activeSignInAttempt.createdSessionId });
+            } catch (_) {}
             window.location.replace('../Dashboard/index.html');
             return;
           }
 
-          // Step 3: Handle first factor or client trust
-          if (signInAttempt.status === 'needs_first_factor') {
-            const firstFactorResult = await signInAttempt.attemptFirstFactor({
-              strategy: 'password',
-              password,
-            });
-
-            if (firstFactorResult.status === 'complete' && firstFactorResult.createdSessionId) {
-              await window.Clerk.setActive({ session: firstFactorResult.createdSessionId });
-              window.location.replace('../Dashboard/index.html');
+          // Step 3: Handle first factor (email code or password)
+          if (activeSignInAttempt.status === 'needs_first_factor') {
+            const emailFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'email_code');
+            
+            if (emailFactor) {
+              await activeSignInAttempt.prepareFirstFactor({
+                strategy: 'email_code',
+                emailAddressId: emailFactor.emailAddressId
+              });
+              loginForm.style.display = 'none';
+              otpPanel.style.display = 'block';
+              if (window.showToast) window.showToast('Verification code sent to your email ✓');
               return;
             }
-          }
 
-          // Step 4: Handle second factor / new device trust verification
-          if (signInAttempt.status === 'needs_second_factor') {
-            try {
-              // Prepare email code verification for new device
-              await signInAttempt.prepareSecondFactor({ strategy: 'email_code' });
-            } catch (_) {}
-
-            const code = prompt('A verification code was sent to your email to verify this device. Please enter the 6-digit code:');
-            if (code) {
-              const secondFactorResult = await signInAttempt.attemptSecondFactor({
-                strategy: 'email_code',
-                code: code.trim(),
-              });
-
-              if (secondFactorResult.status === 'complete' && secondFactorResult.createdSessionId) {
-                await window.Clerk.setActive({ session: secondFactorResult.createdSessionId });
+            const passwordFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'password');
+            if (passwordFactor) {
+              const res = await activeSignInAttempt.attemptFirstFactor({ strategy: 'password', password });
+              if (res.status === 'complete') {
+                await window.Clerk.setActive({ session: res.createdSessionId });
                 window.location.replace('../Dashboard/index.html');
                 return;
               }
             }
-            if (window.showToast) window.showToast('Device verification required. Please enter the code sent to your email.');
+          }
+
+          // Step 4: Handle second factor / untrusted device OTP
+          if (activeSignInAttempt.status === 'needs_second_factor') {
+            try {
+              await activeSignInAttempt.prepareSecondFactor({ strategy: 'email_code' });
+            } catch (_) {}
+            loginForm.style.display = 'none';
+            otpPanel.style.display = 'block';
+            if (window.showToast) window.showToast('Verification code sent to your email to verify this new device ✓');
             return;
           }
 
@@ -187,12 +209,25 @@
           console.error('Login error details:', err);
           let errorMsg = 'Incorrect email, username, or password.';
           
-          if (!navigator.onLine || err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch') || err.message?.toLowerCase().includes('failed to fetch')) {
-            errorMsg = 'Unable to connect. Please connect to a stable network and try again.';
+          if (!navigator.onLine || err.message?.toLowerCase().includes('network') || err.message?.toLowerCase().includes('fetch')) {
+            errorMsg = 'Unable to connect. Please check your network and try again.';
           } else if (err && err.errors && err.errors.length > 0) {
             const code = err.errors[0].code;
             if (code === 'form_identifier_not_found' || code === 'form_password_incorrect') {
               errorMsg = 'Incorrect email, username, or password.';
+            } else if (code === 'device_untrusted' || code === 'mfa_required' || err.errors[0].message?.toLowerCase().includes('untrusted')) {
+              // Trigger OTP flow for untrusted device
+              try {
+                const emailFactor = activeSignInAttempt?.supportedFirstFactors?.find(f => f.strategy === 'email_code');
+                if (emailFactor && activeSignInAttempt) {
+                  await activeSignInAttempt.prepareFirstFactor({ strategy: 'email_code', emailAddressId: emailFactor.emailAddressId });
+                  loginForm.style.display = 'none';
+                  otpPanel.style.display = 'block';
+                  if (window.showToast) window.showToast('Verification code sent to your email to verify this device ✓');
+                  return;
+                }
+              } catch (_) {}
+              errorMsg = err.errors[0].longMessage || err.errors[0].message;
             } else {
               errorMsg = err.errors[0].longMessage || err.errors[0].message || errorMsg;
             }
@@ -204,6 +239,74 @@
           submitBtn.textContent = 'Log in';
         }
       });
+
+      // Handle OTP Verification submission
+      otpForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const codeInput = document.getElementById('loginOtpCode');
+        const code = codeInput.value.trim();
+        const otpBtn = document.getElementById('otpSubmitBtn');
+
+        if (!code || code.length < 6 || !activeSignInAttempt) {
+          if (window.showToast) window.showToast('Please enter a valid 6-digit verification code.');
+          return;
+        }
+
+        otpBtn.disabled = true;
+        otpBtn.textContent = 'Verifying…';
+
+        try {
+          let result;
+          if (activeSignInAttempt.status === 'needs_second_factor') {
+            result = await activeSignInAttempt.attemptSecondFactor({ strategy: 'email_code', code });
+          } else {
+            result = await activeSignInAttempt.attemptFirstFactor({ strategy: 'email_code', code });
+          }
+
+          if (result.status === 'complete' && result.createdSessionId) {
+            await window.Clerk.setActive({ session: result.createdSessionId });
+            if (window.showToast) window.showToast('Device verified! Logging in… ✓');
+            window.location.replace('../Dashboard/index.html');
+            return;
+          } else {
+            if (window.showToast) window.showToast('Verification incomplete. Please check your code.');
+          }
+        } catch (err) {
+          console.error('OTP verification error:', err);
+          const msg = (err.errors && err.errors[0]?.message) ? err.errors[0].message : 'Invalid code. Please check your email and try again.';
+          if (window.showToast) window.showToast(msg);
+        } finally {
+          otpBtn.disabled = false;
+          otpBtn.textContent = 'Verify & Log in';
+        }
+      });
+
+      // Handle Resend OTP Code
+      resendBtn?.addEventListener('click', async () => {
+        if (!activeSignInAttempt) return;
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Sending…';
+
+        try {
+          if (activeSignInAttempt.status === 'needs_second_factor') {
+            await activeSignInAttempt.prepareSecondFactor({ strategy: 'email_code' });
+          } else {
+            const emailFactor = activeSignInAttempt.supportedFirstFactors?.find(f => f.strategy === 'email_code');
+            if (emailFactor) {
+              await activeSignInAttempt.prepareFirstFactor({ strategy: 'email_code', emailAddressId: emailFactor.emailAddressId });
+            }
+          }
+          if (window.showToast) window.showToast('A new 6-digit verification code has been sent to your email ✓');
+        } catch (err) {
+          if (window.showToast) window.showToast('Could not resend code. Please try again.');
+        } finally {
+          setTimeout(() => {
+            resendBtn.disabled = false;
+            resendBtn.textContent = 'Resend Code';
+          }, 5000);
+        }
+      });
+
     } catch (err) {
       console.error('Clerk loading notice:', err);
       if (window.showToast) window.showToast('Unable to connect. Please connect to a stable network, refresh the page, and try again.');
