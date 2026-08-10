@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browse Tasks | Taska</title>
+  <link rel="stylesheet" href="../../../css/styles.css?v=13">
+  <link rel="stylesheet" href="../../../css/tasker/tasker-browse-tasks.css?v=13">
+  <style>
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    .filter-chip {
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--line);
+      background: var(--surface);
+      font-size: 0.84rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--ink-soft);
+      transition: all 0.15s ease;
+    }
+    .filter-chip.is-active, .filter-chip:hover {
+      background: var(--mint-100);
+      color: var(--green-900);
+      border-color: var(--mint-150);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    <div class="app-header">
+      <div>
+        <h1>Browse Tasks</h1>
+        <p class="sub">Discover open tasks in Nigeria, filter by category or budget, and apply instantly.</p>
+      </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar">
+      <div class="search-input-wrap">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input class="search-input" type="text" id="search-input" placeholder="Search tasks by title, location, or keywords…">
+      </div>
+      <select class="select-field" id="sort-select">
+        <option value="NEWEST">Sort: Newest First</option>
+        <option value="HIGH">Sort: Highest Budget</option>
+        <option value="LOW">Sort: Lowest Budget</option>
+      </select>
+    </div>
+
+    <!-- Category Chips -->
+    <div style="display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap;">
+      <button class="filter-chip is-active" data-category="ALL">All Categories</button>
+      <button class="filter-chip" data-category="TECH">Tech & IT</button>
+      <button class="filter-chip" data-category="HANDYMAN">Handyman & Repairs</button>
+      <button class="filter-chip" data-category="DELIVERY">Delivery & Logistics</button>
+      <button class="filter-chip" data-category="WRITING">Writing & Content</button>
+      <button class="filter-chip" data-category="DESIGN">Design & Creative</button>
+      <button class="filter-chip" data-category="OTHER">Other Tasks</button>
+    </div>
+
+    <!-- Tasks Grid -->
+    <div class="gig-grid" id="gig-grid-container">
+      <div style="padding:40px; text-align:center; color:var(--muted); grid-column:1/-1;">Loading tasks…</div>
+    </div>
+  </main>
+</div>
+
+<!-- Task Details Modal -->
+<div class="modal-backdrop" id="task-detail-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center; padding:20px;">
+  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:540px; width:100%; padding:28px; border:1px solid var(--line); box-shadow:0 10px 30px rgba(0,0,0,0.2); position:relative;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:16px;">
+      <div>
+        <span class="gig-category" id="modal-task-category">General</span>
+        <h2 style="font-size:1.3rem; color:var(--green-900); margin:4px 0 0 0;" id="modal-task-title">Task Title</h2>
+      </div>
+      <button type="button" id="task-modal-close" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:var(--muted);">✕</button>
+    </div>
+
+    <div style="display:flex; gap:16px; margin:14px 0; border-y:1px dashed var(--line); padding:12px 0;">
+      <div>
+        <div style="font-size:0.75rem; color:var(--muted);">Budget</div>
+        <div class="mono" style="font-size:1.15rem; font-weight:700; color:var(--green-900);" id="modal-task-budget">₦0</div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem; color:var(--muted);">Location</div>
+        <div style="font-size:0.92rem; font-weight:600; color:var(--ink-soft);" id="modal-task-location">Remote / Anywhere</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <div style="font-size:0.8rem; font-weight:700; color:var(--muted); margin-bottom:6px;">Task Description</div>
+      <p style="font-size:0.92rem; color:var(--ink-soft); line-height:1.6;" id="modal-task-desc">—</p>
+    </div>
+
+    <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.85rem; color:var(--muted);">Posted by:</span>
+      <a id="modal-poster-link" href="#" style="font-weight:600; color:var(--green-900); text-decoration:none;">Poster</a>
+    </div>
+
+    <div style="display:flex; gap:12px;">
+      <button type="button" class="btn btn-primary" id="modal-apply-btn" style="flex:1;">Apply for this task</button>
+      <button type="button" class="btn btn-secondary" id="modal-message-poster-btn">Message Poster</button>
+    </div>
+  </div>
+</div>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../../js/supabase-client.js"></script>
+
+<!-- Clerk JS -->
+<script
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script src="../../../js/sidebar-component.js"></script>
+<script src="../../../js/auth-guard.js?v=13"></script>
+<script src="../../../js/tasker/tasker-browse-tasks.js?v=13"></script>
+
+</body>
+</html>

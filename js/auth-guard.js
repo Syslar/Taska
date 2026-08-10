@@ -53,17 +53,14 @@ window.switchTaskaRole = async function (newRole) {
     }
   }
 
-  if (window.initSidebar) window.initSidebar();
-  if (window.showToast) window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker (Earn Money)' : 'Task Poster (Hire People)'} ✓`);
+  if (window.showToast) window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker Mode' : 'Poster Mode'} ✓`);
 
-  // Redirect if current page is restricted for the new role
-  const path = window.location.pathname.toLowerCase();
-  if (targetRole === 'TASKER' && path.includes('post-task.html')) {
-    window.location.href = 'browse-tasks.html';
-  } else if (targetRole === 'POSTER' && path.includes('browse-tasks.html')) {
-    window.location.href = 'post-task.html';
+  // Redirect to respective system dashboard
+  const isSubfolder = window.location.pathname.toLowerCase().includes('/app/');
+  if (targetRole === 'TASKER') {
+    window.location.href = isSubfolder ? '../Tasker/Dashboard/index.html' : 'App/Tasker/Dashboard/index.html';
   } else {
-    window.location.reload();
+    window.location.href = isSubfolder ? '../Poster/Dashboard/index.html' : 'App/Poster/Dashboard/index.html';
   }
 };
 
