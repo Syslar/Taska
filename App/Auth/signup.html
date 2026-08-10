@@ -492,12 +492,43 @@
 
         const firstName    = document.getElementById('fname').value;
         const lastName     = document.getElementById('lname').value;
-        const emailAddress = document.getElementById('suEmail').value;
+        const emailAddress = document.getElementById('suEmail').value.trim();
         const password     = document.getElementById('suPassword').value;
         
         const rawPhone   = document.getElementById('suPhone').value.trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-        const fullPhone  = '+234' + digitsOnly;
+        const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
+
+        // Enforce strict phone & email uniqueness check against Supabase
+        if (window.supabaseClient) {
+          if (fullPhone) {
+            const { data: phoneMatch } = await window.supabaseClient
+              .from('Profile')
+              .select('id')
+              .eq('phone', fullPhone)
+              .maybeSingle();
+
+            if (phoneMatch) {
+              if (window.showToast) window.showToast('This phone number is already registered to an existing Taska account.');
+              setLoading(signupBtn, false);
+              return;
+            }
+          }
+
+          if (emailAddress) {
+            const { data: emailMatch } = await window.supabaseClient
+              .from('Profile')
+              .select('id')
+              .eq('email', emailAddress)
+              .maybeSingle();
+
+            if (emailMatch) {
+              if (window.showToast) window.showToast('This email address is already registered. Please log in instead.');
+              setLoading(signupBtn, false);
+              return;
+            }
+          }
+        }
 
         setLoading(signupBtn, true);
 

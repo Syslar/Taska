@@ -181,7 +181,27 @@ async function syncSupabaseProfile(clerkUser) {
     const phone = clerkUser.primaryPhoneNumber?.phoneNumber || null;
     const username = clerkUser.username || `user_${Date.now()}`;
 
-    // Check if profile exists by email to prevent duplicate insert conflict
+    // Check if profile exists by phone to prevent 409 unique constraint error
+    if (phone) {
+      const { data: existingByPhone } = await window.supabaseClient
+        .from('Profile')
+        .select('*, Wallet(*)')
+        .eq('phone', phone)
+        .maybeSingle();
+
+      if (existingByPhone) {
+        if (!existingByPhone.userId || existingByPhone.userId !== clerkUser.id) {
+          await window.supabaseClient.from('Profile').update({ userId: clerkUser.id }).eq('id', existingByPhone.id);
+        }
+        const wallet = existingByPhone.Wallet && existingByPhone.Wallet.length > 0 ? existingByPhone.Wallet[0] : null;
+        const profile = { ...existingByPhone, userId: clerkUser.id, wallet };
+        delete profile.Wallet;
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+        return profile;
+      }
+    }
+
+    // Check if profile exists by email
     if (email) {
       const { data: existingByEmail } = await window.supabaseClient
         .from('Profile')
@@ -190,8 +210,9 @@ async function syncSupabaseProfile(clerkUser) {
         .maybeSingle();
 
       if (existingByEmail) {
-        // Link userId to existing profile
-        await window.supabaseClient.from('Profile').update({ userId: clerkUser.id }).eq('id', existingByEmail.id);
+        if (!existingByEmail.userId || existingByEmail.userId !== clerkUser.id) {
+          await window.supabaseClient.from('Profile').update({ userId: clerkUser.id }).eq('id', existingByEmail.id);
+        }
         const wallet = existingByEmail.Wallet && existingByEmail.Wallet.length > 0 ? existingByEmail.Wallet[0] : null;
         const profile = { ...existingByEmail, userId: clerkUser.id, wallet };
         delete profile.Wallet;
@@ -200,7 +221,7 @@ async function syncSupabaseProfile(clerkUser) {
       }
     }
 
-    // Insert new profile; omit phone if null or empty to prevent unique key constraint error
+    // Insert new profile
     const insertPayload = {
       userId: clerkUser.id,
       firstName,
@@ -217,15 +238,7 @@ async function syncSupabaseProfile(clerkUser) {
       .select()
       .single();
 
-    if (profileErr && profileErr.code === '23505') {
-      // If phone conflicts, retry without phone field
-      delete insertPayload.phone;
-      const retry = await window.supabaseClient.from('Profile').insert(insertPayload).select().single();
-      profile = retry.data;
-      profileErr = retry.error;
-    }
-
-    if (profileErr || !profile) {
+    if (profileErr) {
       console.error('Failed to create profile in Supabase:', profileErr);
       return null;
     }
