@@ -174,26 +174,56 @@ async function syncSupabaseProfile(clerkUser) {
       return profile;
     }
 
-    // 2. Profile doesn't exist — create Profile + Wallet directly in Supabase
+    // 2. Profile doesn't exist by userId — create Profile + Wallet directly in Supabase
     const firstName = clerkUser.firstName || 'User';
     const lastName = clerkUser.lastName || '';
     const email = clerkUser.primaryEmailAddress?.emailAddress || '';
-    const phone = clerkUser.primaryPhoneNumber?.phoneNumber || '';
+    const phone = clerkUser.primaryPhoneNumber?.phoneNumber || null;
     const username = clerkUser.username || `user_${Date.now()}`;
 
-    const { data: profile, error: profileErr } = await window.supabaseClient
+    // Check if profile exists by email to prevent duplicate insert conflict
+    if (email) {
+      const { data: existingByEmail } = await window.supabaseClient
+        .from('Profile')
+        .select('*, Wallet(*)')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingByEmail) {
+        // Link userId to existing profile
+        await window.supabaseClient.from('Profile').update({ userId: clerkUser.id }).eq('id', existingByEmail.id);
+        const wallet = existingByEmail.Wallet && existingByEmail.Wallet.length > 0 ? existingByEmail.Wallet[0] : null;
+        const profile = { ...existingByEmail, userId: clerkUser.id, wallet };
+        delete profile.Wallet;
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+        return profile;
+      }
+    }
+
+    // Insert new profile; omit phone if null or empty to prevent unique key constraint error
+    const insertPayload = {
+      userId: clerkUser.id,
+      firstName,
+      lastName,
+      email,
+      username,
+      role: 'POSTER'
+    };
+    if (phone) insertPayload.phone = phone;
+
+    let { data: profile, error: profileErr } = await window.supabaseClient
       .from('Profile')
-      .insert({
-        userId: clerkUser.id,
-        firstName,
-        lastName,
-        email,
-        phone,
-        username,
-        role: 'POSTER'
-      })
+      .insert(insertPayload)
       .select()
       .single();
+
+    if (profileErr && profileErr.code === '23505') {
+      // If phone conflicts, retry without phone field
+      delete insertPayload.phone;
+      const retry = await window.supabaseClient.from('Profile').insert(insertPayload).select().single();
+      profile = retry.data;
+      profileErr = retry.error;
+    }
 
     if (profileErr || !profile) {
       console.error('Failed to create profile in Supabase:', profileErr);
