@@ -26,6 +26,10 @@ window.getTaskaToken = async function () {
   return window.__taskaToken;
 };
 
+window.getTaskaProfile = function () {
+  return window.__taskaProfile || null;
+};
+
 window.getTaskaRole = function () {
   return (window.__taskaProfile && window.__taskaProfile.activeRole) || (window.__taskaProfile && window.__taskaProfile.role) || 'POSTER';
 };
@@ -53,14 +57,17 @@ window.switchTaskaRole = async function (newRole) {
     }
   }
 
-  if (window.showToast) window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker Mode' : 'Poster Mode'} ✓`);
+  if (window.showToast) {
+    window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker Mode' : 'Poster Mode'}`);
+  }
 
   // Redirect to respective system dashboard
-  const isSubfolder = window.location.pathname.toLowerCase().includes('/app/');
+  const path = window.location.pathname;
+  const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
   if (targetRole === 'TASKER') {
-    window.location.href = isSubfolder ? '../Tasker/Dashboard/index.html' : 'App/Tasker/Dashboard/index.html';
+    window.location.href = inSubSub ? '../../Tasker/Dashboard/index.html' : '../Tasker/Dashboard/index.html';
   } else {
-    window.location.href = isSubfolder ? '../Poster/Dashboard/index.html' : 'App/Poster/Dashboard/index.html';
+    window.location.href = inSubSub ? '../../Poster/Dashboard/index.html' : '../Poster/Dashboard/index.html';
   }
 };
 
@@ -81,6 +88,7 @@ function populateSidebar(profile) {
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
   const username = `@${profile.username || 'user'}`;
   const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
+  const isTaskerMode = (profile.activeRole || profile.role) === 'TASKER';
 
   const avatarEl     = document.getElementById('sidebar-avatar');
   const nameEl       = document.getElementById('sidebar-name');
@@ -94,8 +102,24 @@ function populateSidebar(profile) {
       avatarEl.textContent = initials;
     }
   }
-  if (nameEl)      nameEl.textContent     = fullName;
-  if (usernameEl)  usernameEl.textContent = username;
+  if (nameEl) nameEl.textContent = fullName;
+  if (usernameEl) {
+    const roleIcon = isTaskerMode ? (window.TaskaIcons?.tasker || '') : (window.TaskaIcons?.poster || '');
+    usernameEl.innerHTML = `${roleIcon} ${isTaskerMode ? 'Tasker Mode' : 'Poster Mode'}`;
+  }
+  
+  const getProfileTarget = () => {
+    const path = window.location.pathname;
+    const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
+    const isProfileSubfolder = path.toLowerCase().includes('/profile');
+    if (isProfileSubfolder) return `index.html?id=${profile.id}`;
+    if (isTaskerMode) {
+      return inSubSub ? `../../Tasker/Profile/index.html?id=${profile.id}` : `../Tasker/Profile/index.html?id=${profile.id}`;
+    } else {
+      return inSubSub ? `../../Poster/Profile/index.html?id=${profile.id}` : `../Poster/Profile/index.html?id=${profile.id}`;
+    }
+  };
+
   if (mobileAv) {
     if (profile.avatarUrl) {
       mobileAv.innerHTML = `<img src="${profile.avatarUrl}" alt="${fullName}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
@@ -103,19 +127,13 @@ function populateSidebar(profile) {
       mobileAv.textContent = initials;
     }
     mobileAv.onclick = () => {
-      const isProfileSubfolder = window.location.pathname.toLowerCase().includes('/profile');
-      const targetUrl = isProfileSubfolder ? `index.html?id=${profile.id}` : `../Profile/index.html?id=${profile.id}`;
-      window.location.href = targetUrl;
+      window.location.href = getProfileTarget();
     };
   }
 
   const userBtn = document.getElementById('sidebar-user-btn');
   if (userBtn && profile.id) {
-    userBtn.onclick = () => {
-      const isProfileSubfolder = window.location.pathname.toLowerCase().includes('/profile');
-      const targetUrl = isProfileSubfolder ? `index.html?id=${profile.id}` : `../Profile/index.html?id=${profile.id}`;
-      window.location.href = targetUrl;
-    };
+    // Dropdown toggle is handled in sidebar-component.js
   }
 
   // Also populate Settings Live Profile Card elements
@@ -142,8 +160,15 @@ function populateSidebar(profile) {
   if (profEmail)     profEmail.textContent     = profile.email || '—';
   if (profPhone)     profPhone.textContent     = profile.phone || '—';
   if (profLocation)  profLocation.textContent  = profile.location || 'Lagos, Nigeria';
-  if (profRating)    profRating.textContent    = `★ ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
-  if (profVerified)  profVerified.textContent  = profile.isVerified ? '✓ Verified' : 'Standard Member';
+  if (profRating) {
+    const starIcon = window.TaskaIcons?.star || '';
+    profRating.innerHTML = `${starIcon} ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
+  }
+  if (profVerified) {
+    const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
+    const checkIcon = window.TaskaIcons?.verified || '';
+    profVerified.innerHTML = isVer ? `<span style="color:var(--green-700);">${checkIcon} Verified</span>` : 'Standard Member';
+  }
 }
 
 // Fetch or JIT auto-provision user profile directly from Supabase
@@ -163,7 +188,6 @@ async function syncSupabaseProfile(clerkUser) {
       const profile = { ...existing, wallet };
       delete profile.Wallet;
 
-      // Save to localStorage for instant non-blocking page transitions
       try {
         localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
       } catch (_) {}
@@ -178,7 +202,6 @@ async function syncSupabaseProfile(clerkUser) {
     const phone = clerkUser.primaryPhoneNumber?.phoneNumber || null;
     const username = clerkUser.username || `user_${Date.now()}`;
 
-    // Check if profile exists by phone to prevent 409 unique constraint error
     if (phone) {
       const { data: existingByPhone } = await window.supabaseClient
         .from('Profile')
@@ -198,7 +221,6 @@ async function syncSupabaseProfile(clerkUser) {
       }
     }
 
-    // Check if profile exists by email
     if (email) {
       const { data: existingByEmail } = await window.supabaseClient
         .from('Profile')
@@ -262,7 +284,6 @@ async function syncSupabaseProfile(clerkUser) {
 }
 
 async function runAuthGuard() {
-  // Ensure Supabase SDK client is ready immediately
   if (window.supabase && window.supabase.createClient && !window.supabaseClient) {
     window.supabaseClient = window.supabase.createClient(
       'https://nhittvkskzwpeinscxir.supabase.co',
@@ -300,8 +321,9 @@ async function runAuthGuard() {
   if (!window.Clerk.session || !window.Clerk.user) {
     try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
     window.__taskaProfile = null;
-    const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
-    const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+    const path = window.location.pathname;
+    const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
+    const loginUrl = inSubSub ? '../../Auth/login.html' : '../Auth/login.html';
     window.location.replace(loginUrl);
     return;
   }
@@ -322,8 +344,9 @@ async function runAuthGuard() {
         try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
         window.__taskaProfile = null;
         await window.Clerk.signOut();
-        const isAppSubfolder = window.location.pathname.toLowerCase().includes('/app/');
-        const loginUrl = isAppSubfolder ? '../Auth/login.html' : 'App/Auth/login.html';
+        const path = window.location.pathname;
+        const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
+        const loginUrl = inSubSub ? '../../Auth/login.html' : '../Auth/login.html';
         window.location.replace(loginUrl);
       } catch (err) {
         console.error('Logout error:', err);

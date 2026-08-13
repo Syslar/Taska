@@ -1,11 +1,12 @@
 /* ==========================================================================
-   my-tasks.js — Dedicated Controller for My Posted Tasks Page
+   tasker-my-applications.js — Dedicated Controller for Tasker My Applications
+   Fetches submitted bids, offers, shortlisted statuses, and active contracts.
    ========================================================================== */
 
-let myTasksData = [];
+let myApplicationsData = [];
 let currentFilter = 'ALL';
 
-async function initMyTasksPage() {
+async function initMyApplicationsPage() {
   const profile = await window.ensureTaskaProfile();
   if (!profile || !window.supabaseClient) {
     console.warn('Profile or Supabase client not ready yet.');
@@ -18,171 +19,140 @@ async function initMyTasksPage() {
       document.querySelectorAll('.chip[data-filter]').forEach(c => c.classList.remove('is-active'));
       chip.classList.add('is-active');
       currentFilter = chip.dataset.filter;
-      renderMyTasksList();
+      renderApplicationsList();
     });
   });
 
-  await fetchMyTasks();
+  await fetchMyApplications();
 }
 
-async function fetchMyTasks() {
-  const profile = window.getTaskaProfile();
+async function fetchMyApplications() {
+  const profile = await window.ensureTaskaProfile();
   const container = document.getElementById('my-tasks-list');
   if (!profile || !window.supabaseClient || !container) return;
 
   try {
-    const { data: tasks, error } = await window.supabaseClient
-      .from('Task')
-      .select('*, applications:Application(*, tasker:taskerId(id, firstName, lastName, username, avatarUrl, averageRating, totalReviews, isVerified, location))')
-      .eq('posterId', profile.id)
+    const { data: applications, error } = await window.supabaseClient
+      .from('Application')
+      .select('*, task:taskId(*, poster:posterId(id, firstName, lastName, username, avatarUrl, isVerified, averageRating))')
+      .eq('taskerId', profile.id)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
-    myTasksData = tasks || [];
-    renderMyTasksList();
+    myApplicationsData = applications || [];
+    renderApplicationsList();
   } catch (err) {
-    console.error('fetchMyTasks error:', err);
+    console.error('fetchMyApplications error:', err);
     if (container) {
-      container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--red);">Failed to load your posted tasks. Please refresh the page.</div>`;
+      container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--red);">Failed to load your submitted applications. Please refresh the page.</div>`;
     }
   }
 }
 
-function renderMyTasksList() {
+function renderApplicationsList() {
   const container = document.getElementById('my-tasks-list');
   if (!container) return;
 
-  let filtered = myTasksData;
+  let filtered = myApplicationsData;
   if (currentFilter === 'OPEN') {
-    filtered = myTasksData.filter(t => t.status === 'OPEN');
+    filtered = myApplicationsData.filter(a => !a.isSelected && a.task?.status === 'OPEN');
   } else if (currentFilter === 'ASSIGNED') {
-    filtered = myTasksData.filter(t => t.status === 'ASSIGNED' || t.status === 'IN_PROGRESS' || t.status === 'PROOF_SUBMITTED');
+    filtered = myApplicationsData.filter(a => (a.isSelected || a.task?.assignedTo === a.taskerId) && a.task?.status !== 'COMPLETED' && a.task?.status !== 'CLOSED');
   } else if (currentFilter === 'COMPLETED') {
-    filtered = myTasksData.filter(t => t.status === 'COMPLETED');
+    filtered = myApplicationsData.filter(a => a.task?.status === 'COMPLETED' || a.task?.status === 'CLOSED');
   }
+
+  const clipboardIcon = window.TaskaIcons?.clipboard || '';
+  const checkIcon = window.TaskaIcons?.verified || '';
+  const starIcon = window.TaskaIcons?.star || '';
 
   if (filtered.length === 0) {
     container.innerHTML = `
       <div style="padding:48px 24px; text-align:center; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);">
-        <div style="font-size:2rem; margin-bottom:8px;">📋</div>
-        <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No tasks found</h3>
-        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't posted any tasks matching this filter.</p>
-        <a href="index.html#post" class="btn btn-primary">+ Post a Task Now</a>
+        <div style="color:var(--muted);">${clipboardIcon}</div>
+        <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No applications found</h3>
+        <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't submitted any bids matching this filter.</p>
+        <a href="../BrowseTasks/index.html" class="btn btn-primary">Browse Open Tasks</a>
       </div>`;
     return;
   }
 
-  container.innerHTML = filtered.map(t => {
-    const apps = t.applications || [];
-    const appCount = apps.length;
-    const statusClass = t.status === 'OPEN' ? 'status-open' : (t.status === 'COMPLETED' ? 'status-closed' : 'status-pending');
-    const budgetStr = t.budget ? `₦${t.budget.toLocaleString()}` : (t.budgetMin && t.budgetMax ? `₦${t.budgetMin.toLocaleString()} – ₦${t.budgetMax.toLocaleString()}` : 'Open Bid');
-    const createdDate = new Date(t.createdAt).toLocaleDateString();
+  container.innerHTML = filtered.map(app => {
+    const task = app.task || {};
+    const poster = task.poster || {};
+    const isSelected = app.isSelected || task.assignedTo === app.taskerId;
+    const isCompleted = task.status === 'COMPLETED' || task.status === 'CLOSED';
 
-    const applicantsHTML = apps.length === 0 ? `
-      <div style="padding:16px; text-align:center; color:var(--muted); font-size:0.85rem; background:var(--paper); border-radius:var(--radius-sm); margin-top:14px;">
-        No Taskers have applied for this task yet.
-      </div>
-    ` : apps.map(app => {
-      const tasker = app.tasker || {};
-      const tName = `${tasker.firstName || ''} ${tasker.lastName || ''}`.trim() || 'Tasker';
-      const tUsername = `@${tasker.username || 'user'}`;
-      const tInit = `${(tasker.firstName || '')[0] || ''}${(tasker.lastName || '')[0] || ''}`.toUpperCase() || 'T';
-      const tRating = tasker.averageRating != null ? tasker.averageRating.toFixed(1) : '5.0';
-      const isSelected = app.isSelected || t.assignedTo === tasker.id;
-      const avHTML = tasker.avatarUrl ? `<img src="${tasker.avatarUrl}" alt="${tName}">` : tInit;
+    let statusClass = 'status-pending';
+    let statusLabel = 'Application Pending';
 
-      return `
-        <div class="applicant-card">
-          <div class="applicant-info" onclick="window.location.href='../Profile/index.html?id=${tasker.id}'">
-            <div class="applicant-avatar">${avHTML}</div>
-            <div>
-              <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
-                ${tName} ${tasker.isVerified ? '<span style="color:#229150; font-size:0.8rem;" title="Verified Identity">✓ Verified</span>' : ''}
-              </div>
-              <div class="mono" style="font-size:0.78rem; color:var(--muted);">${tUsername} · ★ ${tRating}</div>
-              ${app.message ? `<div style="font-size:0.84rem; color:var(--ink-soft); margin-top:4px;">"${app.message}"</div>` : ''}
-            </div>
-          </div>
-          <div class="applicant-actions">
-            ${isSelected ? `
-              <span class="badge-hired">Selected Tasker ✓</span>
-            ` : (t.status === 'OPEN' ? `
-              <button class="btn btn-primary btn-sm" onclick="acceptTasker('${t.id}', '${app.id}', '${tasker.id}', '${tName}')">Accept / Hire</button>
-            ` : '')}
-            <button class="btn btn-secondary btn-sm" onclick="messageTasker('${tasker.id}', '${tasker.firstName || ''}', '${tasker.lastName || ''}', '${tasker.username || ''}')">Message</button>
-            <a href="../Profile/index.html?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
-          </div>
-        </div>
-      `;
-    }).join('');
+    if (isCompleted) {
+      statusClass = 'status-done';
+      statusLabel = 'Task Completed';
+    } else if (isSelected) {
+      statusClass = 'status-open';
+      statusLabel = 'Hired / In Progress';
+    } else if (task.status !== 'OPEN') {
+      statusClass = 'status-closed';
+      statusLabel = 'Task Closed';
+    }
+
+    const rawTitle = task.title || 'Untitled Task';
+    const safeTitle = window.escapeHtml(rawTitle);
+    const safeDesc = window.escapeHtml(task.description || '');
+    const safeCategory = window.escapeHtml(task.category || 'General');
+
+    const rawPosterName = `${poster.firstName || ''} ${poster.lastName || ''}`.trim() || poster.username || 'Task Poster';
+    const safePosterName = window.escapeHtml(rawPosterName);
+    const posterInitials = `${(poster.firstName || 'P')[0] || 'P'}${(poster.lastName || '')[0] || ''}`.toUpperCase();
+    const posterAvatar = poster.avatarUrl ? `<img src="${poster.avatarUrl}" alt="${safePosterName}">` : posterInitials;
+
+    const budgetVal = app.bidAmount || task.budget || 0;
+    const budgetStr = `₦${budgetVal.toLocaleString()}`;
+    const appliedDate = new Date(app.createdAt).toLocaleDateString();
 
     return `
       <div class="task-manage-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
-          <div>
+          <div style="flex:1; min-width:280px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-              <span class="status ${statusClass}">${t.status}</span>
-              <span style="font-size:0.8rem; color:var(--muted);">${t.category || 'General'} · Posted ${createdDate}</span>
+              <span class="status ${statusClass}">${statusLabel}</span>
+              <span style="font-size:0.8rem; color:var(--muted);">${safeCategory} · Applied ${appliedDate}</span>
             </div>
-            <h2 style="font-size:1.3rem; color:var(--green-900);">${t.title}</h2>
-            <p style="color:var(--ink-soft); font-size:0.92rem; margin-top:6px; line-height:1.5; max-width:640px;">${t.description || ''}</p>
+            <h2 style="font-size:1.25rem; color:var(--green-900); margin-bottom:6px;">${safeTitle}</h2>
+            <p style="color:var(--ink-soft); font-size:0.9rem; line-height:1.5; margin-bottom:12px;">${safeDesc}</p>
+            
+            <!-- Poster info strip -->
+            <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+              <div class="sidebar-user-avatar" style="width:32px; height:32px; font-size:0.8rem;">${posterAvatar}</div>
+              <div>
+                <div style="font-weight:600; font-size:0.88rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
+                  Posted by ${safePosterName} ${poster.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center;">${checkIcon}</span>` : ''}
+                </div>
+                <div style="font-size:0.75rem; color:var(--muted);">${task.location || 'Remote / Anywhere'}</div>
+              </div>
+            </div>
           </div>
+
           <div style="text-align:right;">
             <div class="mono" style="font-size:1.3rem; font-weight:700; color:var(--green-700);">${budgetStr}</div>
-            <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">${appCount} ${appCount === 1 ? 'Tasker Interested' : 'Taskers Interested'}</div>
+            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${app.bidAmount ? 'Your Bid' : 'Task Budget'}</div>
+            
+            <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end; flex-wrap:wrap;">
+              ${poster.id ? `
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${poster.id}'">Message Poster</button>
+                <a href="../../Poster/Profile/index.html?id=${poster.id}" class="btn btn-ghost btn-sm">View Poster</a>
+              ` : ''}
+            </div>
           </div>
-        </div>
-
-        <div style="margin-top:20px; border-top:1px dashed var(--line); padding-top:16px;">
-          <h4 style="font-size:0.92rem; font-weight:600; color:var(--ink); margin-bottom:10px;">
-            Interested Taskers (${appCount})
-          </h4>
-          ${applicantsHTML}
         </div>
       </div>
     `;
   }).join('');
 }
 
-async function acceptTasker(taskId, applicationId, taskerId, taskerName) {
-  if (!confirm(`Are you sure you want to hire ${taskerName} for this task?`)) return;
-
-  try {
-    // 1. Update Application isSelected = true
-    await window.supabaseClient
-      .from('Application')
-      .update({ isSelected: true })
-      .eq('id', applicationId);
-
-    // 2. Update Task assignedTo & status
-    const { error } = await window.supabaseClient
-      .from('Task')
-      .update({
-        assignedTo: taskerId,
-        status: 'ASSIGNED'
-      })
-      .eq('id', taskId);
-
-    if (error) throw error;
-
-    if (window.showToast) window.showToast(`Hired ${taskerName} successfully!`);
-    await fetchMyTasks();
-  } catch (err) {
-    console.error('acceptTasker error:', err);
-    if (window.showToast) window.showToast('Failed to accept tasker.');
-  }
-}
-
-function messageTasker(id, firstName, lastName, username) {
-  window.location.href = `../Chats/index.html?user=${id}`;
-}
-
-window.acceptTasker = acceptTasker;
-window.messageTasker = messageTasker;
-
 document.addEventListener('DOMContentLoaded', () => {
-  window.addEventListener('taska:ready', initMyTasksPage);
-  if (window.__taskaReady) initMyTasksPage();
+  window.addEventListener('taska:ready', initMyApplicationsPage);
+  if (window.__taskaReady) initMyApplicationsPage();
 });

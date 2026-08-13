@@ -355,7 +355,7 @@ function renderTaskCard(task) {
           }
           <div>
             <div style="font-weight:700; font-size:0.9rem; color:var(--body); display:flex; align-items:center; gap:4px;">
-              ${posterName} ${isVerified ? '<span style="color:var(--green-700); font-size:0.75rem;">✓</span>' : ''}
+              ${posterName} ${isVerified ? '<span style="color:var(--green-700); font-size:0.75rem; display:inline-flex;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
             </div>
             <div class="mono" style="font-size:0.76rem; color:var(--muted);">${posterUsername}</div>
           </div>
@@ -701,7 +701,7 @@ async function openTaskModal(taskId, tasks) {
     if (applyBtn) {
       if (existingApp) {
         applyBtn.disabled = true;
-        applyBtn.textContent = 'Applied ✓';
+        applyBtn.textContent = 'Applied';
       } else {
         applyBtn.disabled = false;
         applyBtn.textContent = 'Apply for this task';
@@ -786,7 +786,7 @@ document.getElementById('modal-apply-btn')?.addEventListener('click', async () =
       }
     } else {
       if (window.showToast) window.showToast('Application submitted successfully!');
-      if (applyBtn) applyBtn.textContent = 'Applied ✓';
+      if (applyBtn) applyBtn.textContent = 'Applied';
       setTimeout(() => {
         const modal = document.getElementById('task-modal');
         if (modal) modal.style.display = 'none';
@@ -1176,7 +1176,7 @@ if (chatFileInput) {
       return;
     }
     pendingChatFile = file;
-    if (chatMediaFilename) chatMediaFilename.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+    if (chatMediaFilename) chatMediaFilename.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
     if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'flex';
   });
 }

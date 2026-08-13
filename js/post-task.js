@@ -1,13 +1,14 @@
 /**
  * Taska Post Task Controller
  * Handles post-task form submission, live summary updates, file attachments, and database insert.
+ * Pure SVG icons, zero emojis, verified navigation paths.
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
   const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
   if (currentRole === 'TASKER') {
     if (window.showToast) window.showToast('Taskers cannot post tasks. Switch to Poster mode to post.');
-    window.location.href = 'browse-tasks.html';
+    window.location.href = '../../Tasker/BrowseTasks/index.html';
     return;
   }
 
@@ -135,13 +136,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function handleFileSelect(file) {
     if (file.size > 5 * 1024 * 1024) {
-      alert('Maximum size for file attachment is 5MB.');
+      if (window.showToast) {
+        window.showToast('Maximum size for file attachment is 5MB.');
+      } else {
+        alert('Maximum size for file attachment is 5MB.');
+      }
       if (mediaInput) mediaInput.value = '';
       return;
     }
     selectedMediaFile = file;
     if (previewWrap && filenameEl) {
-      filenameEl.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
+      filenameEl.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
       previewWrap.style.display = 'flex';
     }
   }
@@ -230,8 +235,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (error) throw error;
 
-        if (window.showToast) window.showToast('Task posted successfully! ✓');
-        window.location.href = 'my-tasks.html';
+        if (window.showToast) window.showToast('Task posted successfully!');
+        
+        // Accurate relative redirect to My Posted Tasks
+        window.location.href = '../MyPostedTasks/index.html';
       } catch (err) {
         console.error('Post task error:', err);
         if (window.showToast) window.showToast('Failed to post task. Please try again.');

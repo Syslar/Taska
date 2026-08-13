@@ -99,6 +99,37 @@
   font-size: 0.78rem;
   font-weight: 600;
 }
+.profile-role-badge--poster {
+  background: #EBF4FF;
+  color: #1E6FA8;
+}
+.profile-role-badge--tasker {
+  background: var(--mint-100);
+  color: var(--green-700);
+}
+
+.profile-tagline {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: italic;
+  margin-top: 4px;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+
+.profile-rate-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--mint-050);
+  border: 1px solid var(--mint-150);
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green-700);
+  align-self: center;
+}
 .profile-location {
   display: flex;
   align-items: center;

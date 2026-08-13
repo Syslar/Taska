@@ -1,5 +1,6 @@
 /* ==========================================================================
-   my-tasks.js — Dedicated Controller for My Posted Tasks Page
+   my-tasks.js — Dedicated Controller for My Posted Tasks Page (Poster)
+   XSS-secure rendering, verified relative routing, and clean SVG badges.
    ========================================================================== */
 
 let myTasksData = [];
@@ -26,7 +27,7 @@ async function initMyTasksPage() {
 }
 
 async function fetchMyTasks() {
-  const profile = window.getTaskaProfile();
+  const profile = await window.ensureTaskaProfile();
   const container = document.getElementById('my-tasks-list');
   if (!profile || !window.supabaseClient || !container) return;
 
@@ -62,13 +63,17 @@ function renderMyTasksList() {
     filtered = myTasksData.filter(t => t.status === 'COMPLETED');
   }
 
+  const clipboardIcon = window.TaskaIcons?.clipboard || '';
+  const checkIcon = window.TaskaIcons?.verified || '';
+  const starIcon = window.TaskaIcons?.star || '';
+
   if (filtered.length === 0) {
     container.innerHTML = `
       <div style="padding:48px 24px; text-align:center; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-md);">
-        <div style="font-size:2rem; margin-bottom:8px;">📋</div>
+        <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No tasks found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't posted any tasks matching this filter.</p>
-        <a href="index.html#post" class="btn btn-primary">+ Post a Task Now</a>
+        <a href="../PostTask/index.html" class="btn btn-primary">+ Post a Task Now</a>
       </div>`;
     return;
   }
@@ -80,39 +85,49 @@ function renderMyTasksList() {
     const budgetStr = t.budget ? `₦${t.budget.toLocaleString()}` : (t.budgetMin && t.budgetMax ? `₦${t.budgetMin.toLocaleString()} – ₦${t.budgetMax.toLocaleString()}` : 'Open Bid');
     const createdDate = new Date(t.createdAt).toLocaleDateString();
 
+    const safeTitle = window.escapeHtml(t.title || 'Untitled Task');
+    const safeDesc = window.escapeHtml(t.description || '');
+    const safeCategory = window.escapeHtml(t.category || 'General');
+
     const applicantsHTML = apps.length === 0 ? `
       <div style="padding:16px; text-align:center; color:var(--muted); font-size:0.85rem; background:var(--paper); border-radius:var(--radius-sm); margin-top:14px;">
         No Taskers have applied for this task yet.
       </div>
     ` : apps.map(app => {
       const tasker = app.tasker || {};
-      const tName = `${tasker.firstName || ''} ${tasker.lastName || ''}`.trim() || 'Tasker';
-      const tUsername = `@${tasker.username || 'user'}`;
+      const rawName = `${tasker.firstName || ''} ${tasker.lastName || ''}`.trim() || 'Tasker';
+      const tName = window.escapeHtml(rawName);
+      const tUsername = window.escapeHtml(tasker.username ? `@${tasker.username}` : '@user');
       const tInit = `${(tasker.firstName || '')[0] || ''}${(tasker.lastName || '')[0] || ''}`.toUpperCase() || 'T';
       const tRating = tasker.averageRating != null ? tasker.averageRating.toFixed(1) : '5.0';
       const isSelected = app.isSelected || t.assignedTo === tasker.id;
       const avHTML = tasker.avatarUrl ? `<img src="${tasker.avatarUrl}" alt="${tName}">` : tInit;
+      const safeAppMsg = app.message ? window.escapeHtml(app.message) : '';
 
       return `
         <div class="applicant-card">
-          <div class="applicant-info" onclick="window.location.href='../Profile/index.html?id=${tasker.id}'">
+          <div class="applicant-info" onclick="window.location.href='../../Tasker/Profile/index.html?id=${tasker.id}'">
             <div class="applicant-avatar">${avHTML}</div>
             <div>
               <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
-                ${tName} ${tasker.isVerified ? '<span style="color:#229150; font-size:0.8rem;" title="Verified Identity">✓ Verified</span>' : ''}
+                ${tName} ${tasker.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">${checkIcon} Verified</span>` : ''}
               </div>
-              <div class="mono" style="font-size:0.78rem; color:var(--muted);">${tUsername} · ★ ${tRating}</div>
-              ${app.message ? `<div style="font-size:0.84rem; color:var(--ink-soft); margin-top:4px;">"${app.message}"</div>` : ''}
+              <div class="mono" style="font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:4px;">${tUsername} · ${starIcon} ${tRating}</div>
+              ${safeAppMsg ? `<div style="font-size:0.84rem; color:var(--ink-soft); margin-top:4px;">"${safeAppMsg}"</div>` : ''}
             </div>
           </div>
           <div class="applicant-actions">
             ${isSelected ? `
-              <span class="badge-hired">Selected Tasker ✓</span>
+              <span class="badge-hired" style="display:inline-flex; align-items:center; gap:4px;">Selected Tasker ${checkIcon}</span>
             ` : (t.status === 'OPEN' ? `
-              <button class="btn btn-primary btn-sm" onclick="acceptTasker('${t.id}', '${app.id}', '${tasker.id}', '${tName}')">Accept / Hire</button>
+              <button class="btn btn-primary btn-sm btn-accept-tasker" 
+                data-task-id="${t.id}" 
+                data-app-id="${app.id}" 
+                data-tasker-id="${tasker.id}" 
+                data-tasker-name="${tName}">Accept / Hire</button>
             ` : '')}
-            <button class="btn btn-secondary btn-sm" onclick="messageTasker('${tasker.id}', '${tasker.firstName || ''}', '${tasker.lastName || ''}', '${tasker.username || ''}')">Message</button>
-            <a href="../Profile/index.html?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
+            <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${tasker.id}'">Message</button>
+            <a href="../../Tasker/Profile/index.html?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
           </div>
         </div>
       `;
@@ -124,10 +139,10 @@ function renderMyTasksList() {
           <div>
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
               <span class="status ${statusClass}">${t.status}</span>
-              <span style="font-size:0.8rem; color:var(--muted);">${t.category || 'General'} · Posted ${createdDate}</span>
+              <span style="font-size:0.8rem; color:var(--muted);">${safeCategory} · Posted ${createdDate}</span>
             </div>
-            <h2 style="font-size:1.3rem; color:var(--green-900);">${t.title}</h2>
-            <p style="color:var(--ink-soft); font-size:0.92rem; margin-top:6px; line-height:1.5; max-width:640px;">${t.description || ''}</p>
+            <h2 style="font-size:1.3rem; color:var(--green-900);">${safeTitle}</h2>
+            <p style="color:var(--ink-soft); font-size:0.92rem; margin-top:6px; line-height:1.5; max-width:640px;">${safeDesc}</p>
           </div>
           <div style="text-align:right;">
             <div class="mono" style="font-size:1.3rem; font-weight:700; color:var(--green-700);">${budgetStr}</div>
@@ -144,6 +159,17 @@ function renderMyTasksList() {
       </div>
     `;
   }).join('');
+
+  // Bind Accept/Hire button event listeners safely
+  container.querySelectorAll('.btn-accept-tasker').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const taskId = btn.dataset.taskId;
+      const appId = btn.dataset.appId;
+      const taskerId = btn.dataset.taskerId;
+      const taskerName = btn.dataset.taskerName;
+      acceptTasker(taskId, appId, taskerId, taskerName);
+    });
+  });
 }
 
 async function acceptTasker(taskId, applicationId, taskerId, taskerName) {
@@ -175,12 +201,7 @@ async function acceptTasker(taskId, applicationId, taskerId, taskerName) {
   }
 }
 
-function messageTasker(id, firstName, lastName, username) {
-  window.location.href = `../Chats/index.html?user=${id}`;
-}
-
 window.acceptTasker = acceptTasker;
-window.messageTasker = messageTasker;
 
 document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('taska:ready', initMyTasksPage);
