@@ -1,5 +1,6 @@
 /**
  * Taska Messaging & Chat Page Controller
+ * Secure XSS-protected message rendering, SVG icons, and verified status.
  */
 
 let activeChatPeerId = null;
@@ -36,7 +37,7 @@ async function initChatsPage() {
       const file = e.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) {
-        alert('Maximum size for media is 5MB.');
+        if (window.showToast) window.showToast('Maximum size for media is 5MB.');
         fileInput.value = '';
         return;
       }
@@ -44,7 +45,7 @@ async function initChatsPage() {
       const previewWrap = document.getElementById('chat-media-preview-wrap');
       const filenameEl = document.getElementById('chat-media-filename');
       if (previewWrap && filenameEl) {
-        filenameEl.textContent = `📎 ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
+        filenameEl.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`;
         previewWrap.style.display = 'flex';
       }
     };
@@ -148,7 +149,7 @@ async function loadChatConversations(silent = false) {
       if (peer && peer.id && !peersMap.has(peer.id)) {
         peersMap.set(peer.id, {
           peer: peer,
-          lastMsg: m.body || m.content || (m.mediaUrl ? '📷 Attachment' : 'Message'),
+          lastMsg: m.body || m.content || (m.mediaUrl ? 'Attachment' : 'Message'),
           time: new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         });
       }
@@ -163,7 +164,9 @@ async function loadChatConversations(silent = false) {
     peersMap.forEach((val, pId) => {
       const p = val.peer;
       const isActive = pId === activeChatPeerId;
-      const pName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || 'User';
+      const rawName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || 'User';
+      const pName = window.escapeHtml ? window.escapeHtml(rawName) : rawName;
+      const safeLastMsg = window.escapeHtml ? window.escapeHtml(val.lastMsg) : val.lastMsg;
       const avatarHTML = p.avatarUrl
         ? `<img src="${p.avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
         : (p.firstName || 'U')[0].toUpperCase();
@@ -176,7 +179,7 @@ async function loadChatConversations(silent = false) {
               <span style="font-weight:600; font-size:0.86rem; color:var(--green-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pName}</span>
               <span style="font-size:0.72rem; color:var(--muted);">${val.time}</span>
             </div>
-            <div style="font-size:0.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${val.lastMsg}</div>
+            <div style="font-size:0.78rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeLastMsg}</div>
           </div>
         </div>
       `;
@@ -208,12 +211,13 @@ async function selectChatConversation(peerId, taskId = null) {
   try {
     const { data: peer } = await window.supabaseClient
       .from('Profile')
-      .select('id, firstName, lastName, username, avatarUrl, isVerified')
+      .select('id, firstName, lastName, username, avatarUrl, isVerified, role')
       .eq('id', peerId)
       .single();
 
     if (peer) {
-      const pName = `${peer.firstName || ''} ${peer.lastName || ''}`.trim() || peer.username || 'User';
+      const rawName = `${peer.firstName || ''} ${peer.lastName || ''}`.trim() || peer.username || 'User';
+      const pName = window.escapeHtml ? window.escapeHtml(rawName) : rawName;
       const peerAvatar = document.getElementById('chat-peer-avatar');
       const peerNameEl = document.getElementById('chat-peer-name');
       const peerUserEl = document.getElementById('chat-peer-username');
@@ -226,8 +230,12 @@ async function selectChatConversation(peerId, taskId = null) {
         }
       }
 
+      const isTasker = peer.role === 'TASKER';
+      const profilePath = isTasker ? `../Tasker/Profile/index.html?id=${peer.id}` : `../Poster/Profile/index.html?id=${peer.id}`;
+      const checkIcon = window.TaskaIcons?.verified || '';
+
       if (peerNameEl) {
-        peerNameEl.innerHTML = `<a href="../Profile/index.html?id=${peer.id}" style="color:var(--green-900); text-decoration:none;">${pName} ${peer.isVerified ? '<span style="color:var(--green-700); font-size:0.8rem;">✓</span>' : ''}</a>`;
+        peerNameEl.innerHTML = `<a href="${profilePath}" style="color:var(--green-900); text-decoration:none; display:inline-flex; align-items:center; gap:6px;">${pName} ${peer.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem;">${checkIcon}</span>` : ''}</a>`;
       }
       if (peerUserEl) peerUserEl.textContent = `@${peer.username || 'user'}`;
     }
@@ -265,7 +273,9 @@ async function loadChatMessages(peerId, silent = false) {
     messages.forEach(m => {
       const isMine = m.senderId === profile.id;
       const timeStr = new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const text = m.body || m.content || '';
+      const rawText = m.body || m.content || '';
+      const safeText = window.escapeHtml ? window.escapeHtml(rawText) : rawText;
+
       let mediaHTML = '';
       if (m.mediaUrl) {
         if (m.mediaUrl.match(/\.(mp4|webm|mov)$/i)) {
@@ -277,9 +287,9 @@ async function loadChatMessages(peerId, silent = false) {
 
       html += `
         <div style="display:flex; flex-direction:column; align-items:${isMine ? 'flex-end' : 'flex-start'}; margin-bottom:6px;">
-          <div style="max-width:75%; padding:10px 14px; border-radius:${isMine ? '14px 14px 2px 14px' : '14px 14px 14px 2px'}; background:${isMine ? 'var(--green-900)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; border:${isMine ? 'none' : '1px solid var(--line)'}; font-size:0.9rem; line-height:1.45;">
+          <div style="max-width:75%; padding:10px 14px; border-radius:${isMine ? '14px 14px 2px 14px' : '14px 14px 14px 2px'}; background:${isMine ? 'var(--green-900)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; border:${isMine ? 'none' : '1px solid var(--line)'}; font-size:0.9rem; line-height:1.45; word-break:break-word;">
             ${mediaHTML}
-            ${text ? `<div>${text}</div>` : ''}
+            ${safeText ? `<div>${safeText}</div>` : ''}
           </div>
           <div style="font-size:0.7rem; color:var(--muted); margin-top:3px; padding:0 4px;">${timeStr}</div>
         </div>

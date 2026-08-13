@@ -1,5 +1,6 @@
 /**
- * Taska Browse Tasks Controller
+ * Taska Browse Tasks Controller (Tasker)
+ * XSS-secure rendering, verified relative routing, and clean SVG badges.
  */
 
 let allTasksData = [];
@@ -88,6 +89,9 @@ function renderTasksGrid() {
     filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
+  const locIcon = window.TaskaIcons?.location || '';
+  const checkIcon = window.TaskaIcons?.verified || '';
+
   if (filtered.length === 0) {
     container.innerHTML = '<div style="padding:60px; text-align:center; color:var(--muted); grid-column:1/-1;">No open tasks found matching your filter criteria.</div>';
     return;
@@ -95,13 +99,19 @@ function renderTasksGrid() {
 
   let html = '';
   filtered.forEach(task => {
-    const category = task.category || 'General';
-    const title = task.title || 'Untitled Task';
-    const desc = task.description ? (task.description.length > 110 ? task.description.slice(0, 110) + '…' : task.description) : '';
-    const budget = (task.budget || 0).toLocaleString();
-    const location = task.location || 'Remote / Anywhere';
+    const rawCat = task.category || 'General';
+    const rawTitle = task.title || 'Untitled Task';
+    const rawDesc = task.description ? (task.description.length > 110 ? task.description.slice(0, 110) + '…' : task.description) : '';
+    const rawLoc = task.location || 'Remote / Anywhere';
     const poster = task.Profile;
-    const posterName = poster ? `${poster.firstName || ''} ${poster.lastName || ''}`.trim() : 'Poster';
+    const rawPosterName = poster ? `${poster.firstName || ''} ${poster.lastName || ''}`.trim() || poster.username : 'Poster';
+
+    const category = window.escapeHtml(rawCat);
+    const title = window.escapeHtml(rawTitle);
+    const desc = window.escapeHtml(rawDesc);
+    const location = window.escapeHtml(rawLoc);
+    const posterName = window.escapeHtml(rawPosterName);
+    const budget = (task.budget || 0).toLocaleString();
 
     html += `
       <div class="gig-card" onclick="openTaskModal('${task.id}')">
@@ -112,7 +122,7 @@ function renderTasksGrid() {
         <h3 style="font-size:1.05rem; margin:6px 0; color:var(--green-900);">${title}</h3>
         <p class="gig-desc">${desc}</p>
         <div class="gig-card-foot">
-          <span class="gig-loc">📍 ${location}</span>
+          <span class="gig-loc" style="display:inline-flex; align-items:center; gap:4px;">${locIcon} ${location}</span>
           <span style="font-size:0.78rem; color:var(--muted);">By ${posterName}</span>
         </div>
       </div>
@@ -133,7 +143,8 @@ window.openTaskModal = async function (taskId) {
   modal.style.display = 'flex';
 
   const poster = task.Profile;
-  const posterName = poster ? `${poster.firstName || ''} ${poster.lastName || ''}`.trim() || poster.username : 'Task Poster';
+  const rawPosterName = poster ? `${poster.firstName || ''} ${poster.lastName || ''}`.trim() || poster.username : 'Task Poster';
+  const posterName = window.escapeHtml(rawPosterName);
 
   document.getElementById('modal-task-title').textContent = task.title || '';
   document.getElementById('modal-task-category').textContent = task.category || 'General';
@@ -142,15 +153,16 @@ window.openTaskModal = async function (taskId) {
   document.getElementById('modal-task-desc').textContent = task.description || '';
   
   const posterLink = document.getElementById('modal-poster-link');
+  const checkIcon = window.TaskaIcons?.verified || '';
   if (posterLink) {
-    posterLink.href = `../Profile/index.html?id=${poster?.id || ''}`;
-    posterLink.innerHTML = `${posterName} ${poster?.isVerified ? '<span style="color:var(--green-700); font-size:0.8rem;">✓ Verified</span>' : ''}`;
+    posterLink.href = `../../Poster/Profile/index.html?id=${poster?.id || ''}`;
+    posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:2px;">${checkIcon} Verified</span>` : ''}`;
   }
 
   const msgBtn = document.getElementById('modal-message-poster-btn');
   if (msgBtn && poster?.id) {
     msgBtn.onclick = () => {
-      window.location.href = `../Chats/index.html?user=${poster.id}`;
+      window.location.href = `../../Chats/index.html?user=${poster.id}`;
     };
   }
 
@@ -176,7 +188,7 @@ window.openTaskModal = async function (taskId) {
 
       if (existing) {
         applyBtn.disabled = true;
-        applyBtn.textContent = 'Already Applied ✓';
+        applyBtn.textContent = 'Already Applied';
       } else {
         applyBtn.disabled = false;
         applyBtn.textContent = 'Apply for this task';
@@ -216,7 +228,7 @@ async function submitApplication(taskId) {
 
     if (error) throw error;
 
-    if (window.showToast) window.showToast('Application submitted successfully! Poster notified ✓');
+    if (window.showToast) window.showToast('Application submitted successfully!');
     closeTaskModal();
     await loadBrowseTasks();
   } catch (err) {

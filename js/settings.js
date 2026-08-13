@@ -1,5 +1,6 @@
 /**
  * Taska Settings Page Controller
+ * Pure SVG icons, zero emojis, verified relative navigation.
  */
 
 window.renderSettingsPage = async function () {
@@ -42,10 +43,15 @@ window.renderSettingsPage = async function () {
     }
   }
 
+  const checkIcon = window.TaskaIcons?.verified || '';
+
   if (nameEl) nameEl.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
   if (usernameEl) usernameEl.textContent = `@${profile.username || 'user'}`;
-  if (roleEl) roleEl.textContent = profile.role || 'Tasker / Poster';
-  if (verifiedEl) verifiedEl.textContent = (profile.isVerified || profile.kycStatus === 'VERIFIED') ? '✓ Verified' : 'Unverified';
+  if (roleEl) roleEl.textContent = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
+  if (verifiedEl) {
+    const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
+    verifiedEl.innerHTML = isVer ? `<span style="color:var(--green-700); display:inline-flex; align-items:center; gap:3px;">${checkIcon} Verified</span>` : 'Unverified';
+  }
   if (emailEl) emailEl.textContent = profile.email || '—';
   if (phoneEl) phoneEl.textContent = profile.phone || '—';
   if (locEl) locEl.textContent = profile.location || '—';
@@ -57,7 +63,7 @@ window.renderSettingsPage = async function () {
       const file = e.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) {
-        alert('Maximum size for media is 5MB.');
+        if (window.showToast) window.showToast('Maximum size for media is 5MB.');
         avatarUploadInput.value = '';
         return;
       }
@@ -79,11 +85,11 @@ window.renderSettingsPage = async function () {
     if (isVer) {
       kycSection.innerHTML = `
         <div style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-md); padding:20px; color:var(--green-900); display:flex; align-items:center; gap:16px;">
-          <div style="width:48px; height:48px; border-radius:50%; background:var(--mint-150); color:var(--green-700); display:flex; align-items:center; justify-content:center; font-size:1.4rem; font-weight:bold; flex-shrink:0;">✓</div>
+          <div style="width:44px; height:44px; border-radius:50%; background:var(--mint-150); color:var(--green-700); display:flex; align-items:center; justify-content:center; flex-shrink:0;">${checkIcon}</div>
           <div>
             <div style="font-weight:700; font-size:1.02rem;">Identity Verified</div>
-            <div style="font-size:0.85rem; color:var(--green-700); margin-top:2px;">Your government identity (NIN / Voter's Card / Driver's License / National ID Card) has been verified with Dojah. You enjoy high trust and verified badges across Taska.</div>
-            ${profile.kycRef ? `<div style="font-size:0.75rem; color:var(--muted); margin-top:4px;" class="mono">Ref: ${profile.kycRef}</div>` : ''}
+            <div style="font-size:0.85rem; color:var(--green-700); margin-top:2px;">Your government identity has been verified with Dojah. You enjoy high trust and verified badges across Taska.</div>
+            ${profile.kycRef ? `<div style="font-size:0.75rem; color:var(--muted); margin-top:4px;" class="mono">Ref: ${window.escapeHtml(profile.kycRef)}</div>` : ''}
           </div>
         </div>
       `;
@@ -189,7 +195,7 @@ document.getElementById('settings-logout-btn')?.addEventListener('click', async 
   if (window.Clerk && window.Clerk.signOut) {
     await window.Clerk.signOut();
   }
-  window.location.href = '../../index.html';
+  window.location.href = '../index.html';
 });
 
 // Run render on load

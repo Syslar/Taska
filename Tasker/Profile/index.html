@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tasker Profile | Taska</title>
+  <meta name="description" content="View this tasker's skills, ratings, and completed task history on Taska.">
+  <link rel="stylesheet" href="../../css/styles.css?v=14">
+  <link rel="stylesheet" href="../../css/tasker/tasker-profile.css?v=14">
+  <style>
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-layout">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main-content">
+    
+    <!-- Back Navigation Link -->
+    <a href="javascript:history.back()" class="profile-back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back
+    </a>
+
+    <div class="profile-layout" id="profile-layout-container">
+      
+      <!-- LEFT COLUMN — Identity card -->
+      <aside class="profile-card panel">
+        <!-- Avatar + verification -->
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar" id="profileAvatar">U</div>
+          <div class="profile-verified-badge" id="verifiedBadge" title="Identity verified" style="display:none;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M9 12L11 14L15 10M12 3L20 6.5V11.5C20 16.2 16.8 20.5 12 22C7.2 20.5 4 16.2 4 11.5V6.5L12 3Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+
+        <!-- Name + role -->
+        <div class="profile-identity">
+          <h1 class="profile-name" id="profileName">Loading Profile…</h1>
+          <div class="profile-role-wrap">
+            <span class="profile-role-badge profile-role-badge--tasker" id="profileRole">Tasker</span>
+            <span class="profile-location" id="profileLocation">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.1 2 5 5.1 5 9C5 14.2 12 22 12 22C12 22 19 14.2 19 9C19 5.1 15.9 2 12 2Z" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9" r="2.5" stroke="currentColor" stroke-width="1.8"/></svg>
+              <span id="profileLocationText">Lagos, Nigeria</span>
+            </span>
+          </div>
+          <!-- Tasker tagline / specialization -->
+          <div class="profile-tagline" id="profileTagline" style="display:none;"></div>
+        </div>
+
+        <!-- Hourly Rate Badge -->
+        <div class="profile-rate-badge" id="profileRateBadge" style="display:none;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="profileRateText">₦0/hr</span>
+        </div>
+
+        <!-- Overall rating display -->
+        <div class="profile-rating-display">
+          <span class="profile-rating-score mono" id="ratingScore">5.0</span>
+          <div class="profile-stars" id="profileStars">
+            <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+          </div>
+          <span class="profile-rating-count" id="ratingCount">0 reviews</span>
+        </div>
+
+        <!-- Tasker-specific quick stats -->
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <span class="profile-stat-value mono" id="statTasksDone">0</span>
+            <span class="profile-stat-label">Tasks done</span>
+          </div>
+          <div class="profile-stat-divider"></div>
+          <div class="profile-stat">
+            <span class="profile-stat-value mono" id="statEarnings">₦0</span>
+            <span class="profile-stat-label">Earned</span>
+          </div>
+          <div class="profile-stat-divider"></div>
+          <div class="profile-stat">
+            <span class="profile-stat-value mono" id="statMemberSince">Aug 26</span>
+            <span class="profile-stat-label">Member since</span>
+          </div>
+        </div>
+
+        <!-- Skills / categories -->
+        <div class="profile-skills" id="profileSkills">
+          <div class="profile-section-label">Skills & Services</div>
+          <div class="profile-skill-chips" id="skillChips">
+            <span class="chip">General Tasks</span>
+          </div>
+        </div>
+
+        <!-- Action buttons — shown on other users' profiles -->
+        <div class="profile-actions" id="profileActions" style="display:none;">
+          <button class="btn btn-primary btn-block" id="btnMessage">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Message
+          </button>
+          <button class="btn btn-secondary btn-block" id="btnReview">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Leave a review
+          </button>
+        </div>
+
+        <!-- Own profile actions — shown only on own profile -->
+        <div class="profile-own-actions" id="ownProfileActions">
+          <a href="../../Settings/account.html" class="btn btn-secondary btn-block" style="text-decoration:none; text-align:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Edit profile
+          </a>
+        </div>
+
+        <!-- Share + Report -->
+        <div class="profile-footer-links">
+          <button type="button" class="profile-footer-link" id="btnShareProfile">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M8.59 13.51L15.42 17.49M15.41 6.51L8.59 10.49" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            Share profile
+          </button>
+          <button type="button" class="profile-footer-link profile-footer-link--danger" id="btnReportUser">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M10.29 3.86L1.82 18C1.64 18.31 1.55 18.66 1.55 19.01C1.55 19.36 1.64 19.71 1.82 20.02C2 20.33 2.26 20.58 2.57 20.75C2.88 20.92 3.23 21.01 3.58 21H20.52C20.87 21.01 21.22 20.92 21.53 20.75C21.84 20.58 22.1 20.33 22.28 20.02C22.46 19.71 22.55 19.36 22.55 19.01C22.55 18.66 22.46 18.31 22.28 18L13.81 3.86C13.63 3.56 13.37 3.31 13.06 3.13C12.75 2.95 12.4 2.86 12.05 2.86C11.7 2.86 11.35 2.95 11.04 3.13C10.73 3.31 10.47 3.56 10.29 3.86Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 9V13M12 17H12.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            Report user
+          </button>
+        </div>
+      </aside>
+
+      <!-- RIGHT COLUMN — Content tabs -->
+      <div class="profile-content">
+        
+        <!-- Tab bar -->
+        <div class="profile-tabs" id="profileTabNav">
+          <button type="button" class="profile-tab is-active" data-tab="reviews">Reviews</button>
+          <button type="button" class="profile-tab" data-tab="about">About</button>
+          <button type="button" class="profile-tab" data-tab="history">Task history</button>
+        </div>
+
+        <!-- REVIEWS TAB -->
+        <div class="profile-tab-panel" id="panel-reviews">
+          <div class="panel rating-breakdown">
+            <div class="rating-breakdown-left">
+              <div class="rating-big mono" id="ratingBig">5.0</div>
+              <div class="rating-stars-big" id="ratingStarsBig">
+                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+              </div>
+              <div class="rating-label">out of 5</div>
+            </div>
+            <div class="rating-breakdown-bars" id="ratingBars">
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">5 Stars</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width: 100%;"></div></div>
+                <span class="rating-bar-pct">100%</span>
+              </div>
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">4 Stars</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width: 0%;"></div></div>
+                <span class="rating-bar-pct">0%</span>
+              </div>
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">3 Stars</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width: 0%;"></div></div>
+                <span class="rating-bar-pct">0%</span>
+              </div>
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">2 Stars</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width: 0%;"></div></div>
+                <span class="rating-bar-pct">0%</span>
+              </div>
+              <div class="rating-bar-row">
+                <span class="rating-bar-label">1 Star</span>
+                <div class="rating-bar-track"><div class="rating-bar-fill" style="width: 0%;"></div></div>
+                <span class="rating-bar-pct">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="reviews-list" id="reviewsList">
+            <div style="padding:20px; text-align:center; color:var(--muted);">Loading reviews…</div>
+          </div>
+        </div>
+
+        <!-- ABOUT TAB -->
+        <div class="profile-tab-panel" id="panel-about" style="display:none;">
+          <div class="panel" style="padding:28px;">
+            <h3 style="font-size:1rem; margin-bottom:14px;">Bio</h3>
+            <p id="aboutBioText" style="color:var(--ink-soft); line-height:1.7; font-size:0.95rem;">
+              No bio provided yet.
+            </p>
+
+            <!-- Tasker specialization details -->
+            <div id="aboutTaskerDetails" style="margin-top:28px; padding-top:22px; border-top:1px solid var(--line-soft);">
+              <h3 style="font-size:1rem; margin-bottom:14px;">Tasker Details</h3>
+              <div class="about-details-grid">
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Specialization</span>
+                  <span class="about-detail-value" id="aboutDetailSpecialization">—</span>
+                </div>
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Hourly Rate</span>
+                  <span class="about-detail-value mono" id="aboutDetailRate">—</span>
+                </div>
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Location</span>
+                  <span class="about-detail-value" id="aboutDetailLocation">Lagos, Nigeria</span>
+                </div>
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Member since</span>
+                  <span class="about-detail-value mono" id="aboutDetailMemberSince">August 2026</span>
+                </div>
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Tasks completed</span>
+                  <span class="about-detail-value mono" id="aboutDetailTasks">0</span>
+                </div>
+                <div class="about-detail-row">
+                  <span class="about-detail-label">Verification</span>
+                  <span class="about-detail-value" id="aboutDetailVerification">
+                    <span class="status status-closed" style="font-size:0.72rem; padding:3px 10px;">Unverified</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:28px; padding-top:22px; border-top:1px solid var(--line-soft);">
+              <h3 style="font-size:1rem; margin-bottom:14px;">Skills & Categories</h3>
+              <div class="profile-skill-chips" id="aboutDetailSkills">
+                <span class="chip">General Services</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TASK HISTORY TAB -->
+        <div class="profile-tab-panel" id="panel-history" style="display:none;">
+          <div class="panel" id="historyTasksList">
+            <div style="padding:20px; text-align:center; color:var(--muted);">Loading task history…</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- LEAVE A REVIEW MODAL -->
+<div class="modal-overlay" id="reviewModal" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" id="closeReviewModalBtn">✕</button>
+    <h2 style="font-size:1.3rem; margin-bottom:6px;">Leave a review</h2>
+    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:24px;">Your review helps other users make better decisions.</p>
+
+    <div style="margin-bottom:22px;">
+      <label class="field-label">Your rating</label>
+      <div class="star-selector" id="starSelector" style="display:flex; gap:6px;">
+        <button class="star-btn" data-value="1" type="button" aria-label="1 star" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="2" type="button" aria-label="2 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="3" type="button" aria-label="3 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="4" type="button" aria-label="4 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn is-active" data-value="5" type="button" aria-label="5 stars" style="background:none; border:none; cursor:pointer; color:#F4A819; padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+      </div>
+      <div class="star-label" id="starLabel">5 Stars — Excellent</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="reviewComment">Comment</label>
+      <textarea class="textarea-input" id="reviewComment" rows="4" placeholder="Share your experience working with this tasker..."></textarea>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="btnSubmitReview">Submit review</button>
+  </div>
+</div>
+
+<!-- REPORT USER MODAL -->
+<div class="modal-overlay" id="reportModal" style="display:none;">
+  <div class="modal" style="max-width:440px;">
+    <button class="modal-close" id="closeReportModalBtn">✕</button>
+    <h2 style="font-size:1.2rem; margin-bottom:6px;">Report this user</h2>
+    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:22px;">Reports are reviewed by the Taska team. Please only report genuine concerns.</p>
+
+    <form id="reportUserForm">
+      <div class="field-group">
+        <label class="field-label">Reason</label>
+        <select class="select-input" id="reportReasonSelect" required>
+          <option value="" disabled selected>Select a reason</option>
+          <option value="Fake identity or impersonation">Fake identity or impersonation</option>
+          <option value="Did not complete agreed work">Did not complete agreed work</option>
+          <option value="Abusive or threatening behaviour">Abusive or threatening behaviour</option>
+          <option value="Attempted to take payment off platform">Attempted to take payment off platform</option>
+          <option value="Spam or misleading profile">Spam or misleading profile</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Details (optional)</label>
+        <textarea class="textarea-input" id="reportDetailsText" rows="3" placeholder="Any additional context..."></textarea>
+      </div>
+      <button type="submit" class="btn btn-block" style="background:var(--red); color:#fff; border-radius:var(--radius-pill); padding:13px 24px; font-weight:600; font-size:0.95rem;">Submit report</button>
+    </form>
+  </div>
+</div>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../js/supabase-client.js"></script>
+
+<!-- Clerk JS -->
+<script
+  crossorigin="anonymous"
+  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+  type="text/javascript">
+</script>
+<script src="../../js/sidebar-component.js"></script>
+<script src="../../js/auth-guard.js?v=14"></script>
+<script src="../../js/tasker/tasker-profile.js?v=14"></script>
+
+</body>
+</html>

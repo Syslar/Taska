@@ -1,6 +1,6 @@
 /**
  * Dojah KYC Verification Helper
- * Initializes Dojah Web Widget for Taska identity verification.
+ * Initializes Dojah Web Widget for Taska identity verification with clean SVG status.
  */
 
 window.launchDojahKyc = async function () {
@@ -11,7 +11,7 @@ window.launchDojahKyc = async function () {
   }
 
   if (profile.isVerified || profile.kycStatus === 'VERIFIED') {
-    if (window.showToast) window.showToast('Your identity is already verified ✓');
+    if (window.showToast) window.showToast('Your identity is already verified.');
     return;
   }
 
@@ -55,7 +55,6 @@ window.launchDojahKyc = async function () {
     },
     onError: function (error) {
       console.error('Dojah KYC Error:', error);
-      // Prompt user with fallback verification form if Dojah test widget returns error
       openFallbackKycModal(profile);
     },
     onClose: function () {
@@ -82,7 +81,7 @@ window.launchDojahKyc = async function () {
           window.__taskaProfile = profile;
 
           if (window.showToast) {
-            window.showToast('Identity verification completed successfully! You are now verified ✓');
+            window.showToast('Identity verification completed successfully! You are now verified.');
           }
 
           if (typeof window.renderSettingsPage === 'function') window.renderSettingsPage();
@@ -116,16 +115,17 @@ function openFallbackKycModal(profile) {
     modal = document.createElement('div');
     modal.id = 'taska-fallback-kyc-modal';
     modal.className = 'modal-overlay';
+    modal.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; z-index:99999; padding:20px;';
     modal.innerHTML = `
-      <div class="modal" style="max-width:500px;">
-        <button class="modal-close" id="closeFallbackKycBtn">✕</button>
+      <div class="modal" style="max-width:500px; width:100%; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-lg); padding:28px; box-shadow:0 20px 40px rgba(0,0,0,0.3); position:relative;">
+        <button class="modal-close" id="closeFallbackKycBtn" style="position:absolute; top:20px; right:20px; background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted);">✕</button>
         <h2 style="font-size:1.25rem; margin-bottom:6px; color:var(--green-900);">Identity Verification (Taska Portal)</h2>
-        <p style="color:var(--muted); font-size:0.86rem; margin-bottom:20px;">Select your government document type and enter your ID number to complete instant verification.</p>
+        <p style="color:var(--muted); font-size:0.86rem; margin-bottom:20px;">Select your government document type and enter your ID number to complete identity verification.</p>
         
         <form id="fallbackKycForm">
           <div class="field-group" style="margin-bottom:16px;">
             <label class="field-label">Document Type *</label>
-            <select class="select-input" id="fallbackIdType" required>
+            <select class="select-input" id="fallbackIdType" required style="width:100%; height:44px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:0 12px; background:var(--paper); font-family:inherit;">
               <option value="NIN">National Identity Number (NIN)</option>
               <option value="VOTER_ID">Voter's Card (VIN)</option>
               <option value="DRIVERS_LICENSE">Driver's License</option>
@@ -135,10 +135,10 @@ function openFallbackKycModal(profile) {
 
           <div class="field-group" style="margin-bottom:20px;">
             <label class="field-label">ID Number / Serial Number *</label>
-            <input class="text-input" type="text" id="fallbackIdNumber" placeholder="e.g. 12345678901" required minlength="6">
+            <input class="text-input" type="text" id="fallbackIdNumber" placeholder="e.g. 12345678901" required minlength="6" style="width:100%;">
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block" id="fallbackKycSubmitBtn">Verify & Submit Identity</button>
+          <button type="submit" class="btn btn-primary btn-block" id="fallbackKycSubmitBtn" style="width:100%;">Verify & Submit Identity</button>
         </form>
       </div>
     `;
@@ -188,7 +188,7 @@ function openFallbackKycModal(profile) {
             modal.style.display = 'none';
 
             if (window.showToast) {
-              window.showToast('Identity verification completed successfully! You are now verified ✓');
+              window.showToast('Identity verification completed successfully! You are now verified.');
             }
 
             if (typeof window.renderSettingsPage === 'function') window.renderSettingsPage();

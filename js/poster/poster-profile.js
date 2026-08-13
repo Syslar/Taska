@@ -1,6 +1,7 @@
 /**
- * Taska Standalone Profile Controller
+ * Taska Poster Profile Controller (Poster Module)
  * Dynamic rendering of user profile, review breakdown, about details, and task history.
+ * XSS-secure rendering, verified relative routing, and clean SVG badges.
  */
 
 window.currentViewingProfile = null;
@@ -35,14 +36,19 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   window.currentViewingProfile = profileToRender;
   const isSelf = myProfile && myProfile.id === profileToRender.id;
 
+  const rawFullName = `${profileToRender.firstName || ''} ${profileToRender.lastName || ''}`.trim() || 'Taska User';
+  const fullName = window.escapeHtml(rawFullName);
+  const initials = `${(profileToRender.firstName || '')[0] || ''}${(profileToRender.lastName || '')[0] || ''}`.toUpperCase() || 'U';
+  const roleLabel = profileToRender.role === 'TASKER' ? 'Tasker' : profileToRender.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
+  const checkIcon = window.TaskaIcons?.verified || '';
+  const starIcon = window.TaskaIcons?.star || '';
+
   // 1. Populate Left Identity Card
   const avatarEl = document.getElementById('profileAvatar');
   const verifiedBadge = document.getElementById('verifiedBadge');
   const nameEl = document.getElementById('profileName');
   const roleEl = document.getElementById('profileRole');
   const locationEl = document.getElementById('profileLocationText');
-
-  const initials = `${(profileToRender.firstName || '')[0] || ''}${(profileToRender.lastName || '')[0] || ''}`.toUpperCase() || 'U';
 
   if (avatarEl) {
     if (profileToRender.avatarUrl) {
@@ -56,8 +62,8 @@ window.renderStandaloneProfile = async function (targetProfileId) {
     verifiedBadge.style.display = (profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED') ? 'flex' : 'none';
   }
 
-  if (nameEl) nameEl.textContent = `${profileToRender.firstName || ''} ${profileToRender.lastName || ''}`.trim() || 'Taska User';
-  if (roleEl) roleEl.textContent = profileToRender.role === 'TASKER' ? 'Tasker' : profileToRender.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
+  if (nameEl) nameEl.textContent = rawFullName;
+  if (roleEl) roleEl.textContent = roleLabel;
   if (locationEl) locationEl.textContent = profileToRender.location || 'Lagos, Nigeria';
 
   // Stats
@@ -105,12 +111,12 @@ window.renderStandaloneProfile = async function (targetProfileId) {
 
   if (aboutBioText) aboutBioText.textContent = profileToRender.bio || 'This user has not added a bio yet.';
   if (aboutDetailLocation) aboutDetailLocation.textContent = profileToRender.location || 'Lagos, Nigeria';
-  if (aboutDetailRole) aboutDetailRole.textContent = profileToRender.role || 'Tasker / Poster';
+  if (aboutDetailRole) aboutDetailRole.textContent = roleLabel;
   if (aboutDetailVerification) {
     const isVer = profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED';
     aboutDetailVerification.innerHTML = isVer
-      ? '<span class="status status-open" style="font-size:0.72rem; padding:3px 10px;">Identity verified</span>'
-      : '<span class="status status-closed" style="font-size:0.72rem; padding:3px 10px;">Unverified</span>';
+      ? `<span class="status status-open" style="font-size:0.72rem; padding:3px 10px; display:inline-flex; align-items:center; gap:4px;">${checkIcon} Identity verified</span>`
+      : `<span class="status status-closed" style="font-size:0.72rem; padding:3px 10px;">Unverified</span>`;
   }
 
   // 3. Load Reviews
@@ -144,10 +150,18 @@ async function loadProfileReviews(profileId) {
     }
 
     reviewsList.innerHTML = reviews.map((rev) => {
-      const reviewerName = rev.reviewer ? `${rev.reviewer.firstName || ''} ${rev.reviewer.lastName || ''}`.trim() : 'Anonymous User';
+      const rawReviewerName = rev.reviewer ? `${rev.reviewer.firstName || ''} ${rev.reviewer.lastName || ''}`.trim() || rev.reviewer.username : 'Anonymous User';
+      const reviewerName = window.escapeHtml(rawReviewerName);
       const revInitials = rev.reviewer ? `${(rev.reviewer.firstName || '')[0] || ''}${(rev.reviewer.lastName || '')[0] || ''}`.toUpperCase() : 'U';
       const revDate = new Date(rev.createdAt || Date.now()).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
-      const stars = '★'.repeat(rev.rating || 5) + '☆'.repeat(5 - (rev.rating || 5));
+      const safeComment = window.escapeHtml(rev.comment || 'No comment provided.');
+      const ratingNum = rev.rating || 5;
+
+      let starsHtml = '';
+      for (let i = 0; i < 5; i++) {
+        const isFilled = i < ratingNum;
+        starsHtml += `<svg width="14" height="14" viewBox="0 0 24 24" fill="${isFilled ? '#F4A819' : 'none'}" stroke="${isFilled ? '#F4A819' : '#D1D5DB'}" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>`;
+      }
 
       return `
         <div class="review-card">
@@ -157,11 +171,11 @@ async function loadProfileReviews(profileId) {
               <div style="font-weight:600; font-size:0.9rem;">${reviewerName}</div>
             </div>
             <div class="review-card-meta">
-              <div class="review-card-stars" style="color:#F4A819;">${stars}</div>
+              <div class="review-card-stars" style="display:inline-flex; gap:2px;">${starsHtml}</div>
               <div class="review-card-date">${revDate}</div>
             </div>
           </div>
-          <div class="review-card-comment">${rev.comment || 'No comment provided.'}</div>
+          <div class="review-card-comment">${safeComment}</div>
         </div>
       `;
     }).join('');
@@ -181,7 +195,7 @@ async function loadProfileTaskHistory(profileId) {
     const { data: tasks, error } = await window.supabaseClient
       .from('Task')
       .select('*')
-      .or(`posterId.eq.${profileId},assignedTaskerId.eq.${profileId}`)
+      .or(`posterId.eq.${profileId},assignedTo.eq.${profileId}`)
       .order('createdAt', { ascending: false })
       .limit(10);
 
@@ -199,11 +213,14 @@ async function loadProfileTaskHistory(profileId) {
 
     historyList.innerHTML = tasks.map((t) => {
       const taskDateStr = new Date(t.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+      const safeTitle = window.escapeHtml(t.title || 'Task');
+      const safeCategory = window.escapeHtml(t.category || 'General');
+
       return `
         <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft);">
           <div>
-            <div style="font-weight:600; font-size:0.92rem; color:var(--green-900);">${t.title}</div>
-            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${t.category || 'Task'} · ${taskDateStr}</div>
+            <div style="font-weight:600; font-size:0.92rem; color:var(--green-900);">${safeTitle}</div>
+            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${safeCategory} · ${taskDateStr}</div>
           </div>
           <span class="status ${t.status === 'COMPLETED' ? 'status-closed' : 'status-open'}" style="font-size:0.75rem;">
             ${t.status}
@@ -218,7 +235,7 @@ async function loadProfileTaskHistory(profileId) {
   }
 }
 
-// Tab Switching Listener
+// Tab Switching & Action Listeners
 document.addEventListener('DOMContentLoaded', () => {
   const tabs = document.querySelectorAll('#profileTabNav button');
   tabs.forEach((tab) => {
@@ -236,8 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Action listeners
   document.getElementById('btnMessage')?.addEventListener('click', () => {
     if (window.currentViewingProfile) {
-      localStorage.setItem('taska_open_chat_peer', JSON.stringify(window.currentViewingProfile));
-      window.location.href = '../Chats/index.html';
+      window.location.href = `../../Chats/index.html?user=${window.currentViewingProfile.id}`;
     }
   });
 
@@ -293,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Submit Review Form
   document.getElementById('btnSubmitReview')?.addEventListener('click', async () => {
     const comment = document.getElementById('reviewComment')?.value.trim();
-    const myProfile = window.getTaskaProfile();
+    const myProfile = await window.ensureTaskaProfile();
 
     if (!myProfile || !window.currentViewingProfile) return;
 
@@ -310,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (error) throw error;
 
       document.getElementById('reviewModal').style.display = 'none';
-      if (window.showToast) window.showToast('Review submitted successfully! ✓');
+      if (window.showToast) window.showToast('Review submitted successfully!');
       loadProfileReviews(window.currentViewingProfile.id);
 
     } catch (err) {
