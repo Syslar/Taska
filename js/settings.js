@@ -52,9 +52,25 @@ window.renderSettingsPage = async function () {
     const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
     verifiedEl.innerHTML = isVer ? `<span style="color:var(--green-700); display:inline-flex; align-items:center; gap:3px;">${checkIcon} Verified</span>` : 'Unverified';
   }
-  if (emailEl) emailEl.textContent = profile.email || '—';
-  if (phoneEl) phoneEl.textContent = profile.phone || '—';
-  if (locEl) locEl.textContent = profile.location || '—';
+  // Real-time input updates for Live Preview
+  const updateLiveName = () => {
+    const fn = (fname ? fname.value : '').trim();
+    const ln = (lname ? lname.value : '').trim();
+    const combined = `${fn} ${ln}`.trim();
+    if (nameEl) nameEl.textContent = combined || 'User Profile';
+    if (avatarEl && !avatarEl.querySelector('img')) {
+      avatarEl.textContent = (fn || 'U')[0].toUpperCase();
+    }
+  };
+
+  if (fname && !fname._hasLiveListener) {
+    fname.addEventListener('input', updateLiveName);
+    fname._hasLiveListener = true;
+  }
+  if (lname && !lname._hasLiveListener) {
+    lname.addEventListener('input', updateLiveName);
+    lname._hasLiveListener = true;
+  }
 
   // Avatar upload preview listener
   const avatarUploadInput = document.getElementById('settingsAvatarUpload');
@@ -69,9 +85,12 @@ window.renderSettingsPage = async function () {
       }
       const reader = new FileReader();
       reader.onload = (ev) => {
+        if (avatarEl) {
+          avatarEl.innerHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+        }
         const preview = document.getElementById('settings-avatar-preview');
         if (preview) {
-          preview.innerHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover;">`;
+          preview.innerHTML = `<img src="${ev.target.result}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
         }
       };
       reader.readAsDataURL(file);
