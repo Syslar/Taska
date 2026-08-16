@@ -168,26 +168,7 @@ async function loadWalletTransactions(filter = 'all') {
       if (txs && txs.length > 0) transactions = txs;
     }
 
-    // Fallback: If no WalletTransaction rows, fetch from Application
-    if (transactions.length === 0) {
-      const { data: myApps } = await window.supabaseClient
-        .from('Application')
-        .select('*, Task(*)')
-        .eq('taskerId', profile.id)
-        .order('createdAt', { ascending: false });
-
-      if (myApps && myApps.length > 0) {
-        transactions = myApps.map(a => ({
-          id: a.id,
-          amount: a.bidAmount || a.Task?.budget || 0,
-          type: a.isSelected ? 'EARNING' : 'HOLD',
-          description: a.Task?.title || 'Task Application',
-          status: a.isSelected ? 'COMPLETED' : 'PENDING',
-          createdAt: a.createdAt
-        }));
-      }
-    }
-
+    // Only use real WalletTransaction records — no fake pending mockups from unhired applications
     if (transactions.length === 0) {
       container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted);">No transaction history yet.</div>';
       return;
@@ -195,9 +176,9 @@ async function loadWalletTransactions(filter = 'all') {
 
     let filtered = transactions;
     if (filter === 'earnings') {
-      filtered = transactions.filter(t => t.type === 'EARNING' || t.type === 'DEPOSIT');
+      filtered = transactions.filter(t => t.type === 'TASK_PAYOUT' || t.type === 'DEPOSIT' || t.type === 'EARNING');
     } else if (filter === 'payments') {
-      filtered = transactions.filter(t => t.type === 'PAYMENT' || t.type === 'ESCROW_LOCK');
+      filtered = transactions.filter(t => t.type === 'ESCROW_LOCK' || t.type === 'PAYMENT');
     } else if (filter === 'withdrawals') {
       filtered = transactions.filter(t => t.type === 'WITHDRAWAL');
     }
@@ -209,19 +190,33 @@ async function loadWalletTransactions(filter = 'all') {
 
     let html = '';
     filtered.forEach(tx => {
-      const title = window.escapeHtml(tx.description || 'Transaction');
+      const title = window.escapeHtml(tx.note || tx.reference || 'Wallet Transaction');
       const amt = tx.amount || 0;
       const dateStr = new Date(tx.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-      const isPositive = tx.type === 'EARNING' || tx.type === 'DEPOSIT' || tx.status === 'COMPLETED';
+      const isCredit = tx.type === 'TASK_PAYOUT' || tx.type === 'DEPOSIT' || tx.type === 'EARNING';
+      const isEscrow = tx.type === 'ESCROW_LOCK';
+
+      let statusLabel = 'Completed';
+      let statusClass = 'status-open';
+
+      if (isEscrow) {
+        statusLabel = 'Held in Escrow';
+        statusClass = 'status-pending';
+      } else if (tx.type === 'WITHDRAWAL') {
+        statusLabel = 'Withdrawal';
+        statusClass = 'status-closed';
+      }
 
       html += `
         <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line-soft);">
           <div style="flex:1; min-width:0;">
             <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</div>
-            <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${dateStr} · <span class="status ${isPositive ? 'status-open' : 'status-pending'}" style="font-size:0.72rem; padding:2px 8px;">${window.escapeHtml(tx.status || 'Completed')}</span></div>
+            <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">
+              ${dateStr} · <span class="status ${statusClass}" style="font-size:0.72rem; padding:2px 8px;">${statusLabel}</span>
+            </div>
           </div>
-          <div class="task-row-amt mono" style="color:${isPositive ? 'var(--green-700)' : 'var(--muted)'}; font-weight:700; font-size:0.95rem;">
-            ${isPositive ? '+' : ''}₦${amt.toLocaleString()}
+          <div class="task-row-amt mono" style="color:${isCredit ? 'var(--green-700)' : 'var(--ink-soft)'}; font-weight:700; font-size:0.95rem;">
+            ${isCredit ? '+' : '-'}₦${amt.toLocaleString()}
           </div>
         </div>
       `;

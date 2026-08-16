@@ -35,86 +35,121 @@
       <!-- Identity & KYC Verification Banner -->
       <div id="settings-kyc-section" style="margin-bottom: 24px;"></div>
 
-      <!-- Unified Profile Module: Live preview and edit in the same module -->
-      <div class="panel" style="max-width: 860px; padding: 32px;">
+      <!-- Unified Profile Module: Live preview, edit, reviews, and task history in the same module -->
+      <div class="panel" style="max-width: 880px; padding: 28px;">
         
         <!-- Live Profile Header Preview -->
-        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding-bottom: 24px; border-bottom: 1px solid var(--line-soft); margin-bottom: 26px;">
-          <div style="display: flex; align-items: center; gap: 20px;">
-            <div style="position: relative; width: 76px; height: 76px; flex-shrink: 0;">
-              <div class="sidebar-user-avatar" id="profile-big-avatar" style="width: 76px; height: 76px; font-size: 1.65rem; border: 2px solid var(--green-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--surface-2); font-weight: 700; color: var(--green-900);">--</div>
-              <label for="settingsAvatarUpload" title="Change profile picture" style="position: absolute; bottom: -2px; right: -2px; width: 28px; height: 28px; background: var(--green-700); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: var(--shadow-sm); transition: transform 0.15s ease;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
+          <div style="display: flex; align-items: center; gap: 18px;">
+            <div style="position: relative; width: 72px; height: 72px; flex-shrink: 0;">
+              <div class="sidebar-user-avatar" id="profile-big-avatar" style="width: 72px; height: 72px; font-size: 1.6rem; border: 2px solid var(--green-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--surface-2); font-weight: 700; color: var(--green-900);">--</div>
+              <label for="settingsAvatarUpload" title="Change profile picture" style="position: absolute; bottom: -2px; right: -2px; width: 26px; height: 26px; background: var(--green-700); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: var(--shadow-sm); transition: transform 0.15s ease;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               </label>
               <input type="file" id="settingsAvatarUpload" accept="image/jpeg,image/png,image/webp" style="display: none;">
             </div>
             <div>
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <h2 id="profile-full-name" style="font-size: 1.3rem; font-weight: 700; color: var(--green-900); margin: 0;">User Profile</h2>
+                <h2 id="profile-full-name" style="font-size: 1.25rem; font-weight: 700; color: var(--green-900); margin: 0;">User Profile</h2>
                 <span id="profile-verified-val" style="font-size: 0.8rem; font-weight: 600; color: var(--green-700); display: inline-flex; align-items: center; gap: 4px;">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   Verified
                 </span>
               </div>
               <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px; flex-wrap: wrap;">
-                <span class="mono" id="profile-username-val" style="font-size: 0.86rem; color: var(--muted);">@username</span>
+                <span class="mono" id="profile-username-val" style="font-size: 0.84rem; color: var(--muted);">@username</span>
                 <span style="color: var(--line);">•</span>
-                <span class="badge" id="profile-role-badge" style="font-size: 0.76rem; padding: 3px 10px; border-radius: var(--radius-pill); background: var(--mint-100); color: var(--green-900); font-weight: 600;">Tasker</span>
+                <span class="badge" id="profile-role-badge" style="font-size: 0.76rem; padding: 2px 10px; border-radius: var(--radius-pill); background: var(--mint-100); color: var(--green-900); font-weight: 600;">Tasker</span>
                 <span style="color: var(--line);">•</span>
-                <span id="profile-email-val" class="mono" style="font-size: 0.84rem; color: var(--muted);">—</span>
+                <span id="profile-email-val" class="mono" style="font-size: 0.82rem; color: var(--muted);">—</span>
               </div>
             </div>
           </div>
-          <div>
-            <label for="settingsAvatarUpload" class="btn btn-secondary btn-sm" style="cursor: pointer; border-radius: 20px; font-size: 0.85rem; padding: 8px 16px;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <label for="settingsAvatarUpload" class="btn btn-secondary btn-sm" style="cursor: pointer; border-radius: 20px; font-size: 0.82rem; padding: 7px 14px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
               Change Photo
             </label>
+            <a id="btnViewLiveProfile" href="#" class="btn btn-primary btn-sm" style="border-radius: 20px; font-size: 0.82rem; padding: 7px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              View Public Profile
+            </a>
           </div>
         </div>
 
-        <!-- Unified Profile Edit Form -->
-        <form id="settingsProfileForm">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
-            <div class="field-group">
-              <label class="field-label" for="settingsFname">First name</label>
-              <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+        <!-- Module Internal Navigation Tabs -->
+        <div style="display:flex; gap:8px; margin-bottom:24px; border-bottom:1px solid var(--line); padding-bottom:10px;" id="profileInnerTabNav">
+          <button type="button" class="btn btn-sm btn-secondary is-active" data-inner-tab="edit" style="border-radius:20px;">Edit Details</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-inner-tab="reviews" style="border-radius:20px;">Reviews & Ratings (<span id="settingsReviewsCount">0</span>)</button>
+          <button type="button" class="btn btn-sm btn-secondary" data-inner-tab="history" style="border-radius:20px;">Task History</button>
+        </div>
+
+        <!-- TAB 1: EDIT PROFILE FORM -->
+        <div id="inner-panel-edit">
+          <form id="settingsProfileForm">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+              <div class="field-group">
+                <label class="field-label" for="settingsFname">First name</label>
+                <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="settingsLname">Last name</label>
+                <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+              </div>
             </div>
-            <div class="field-group">
-              <label class="field-label" for="settingsLname">Last name</label>
-              <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
-            </div>
-          </div>
-          
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
-            <div class="field-group">
-              <label class="field-label" for="settingsPhone">Phone number</label>
-              <div class="phone-input-wrap">
-                <span class="phone-prefix">+234</span>
-                <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+              <div class="field-group">
+                <label class="field-label" for="settingsPhone">Phone number</label>
+                <div class="phone-input-wrap">
+                  <span class="phone-prefix">+234</span>
+                  <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+                </div>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="settingsLocation">Location</label>
+                <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
               </div>
             </div>
 
-            <div class="field-group">
-              <label class="field-label" for="settingsLocation">Location</label>
-              <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
+            <div class="field-group" style="margin-bottom: 24px;">
+              <label class="field-label" for="settingsBio">Bio & Summary</label>
+              <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell other users and clients about your skills, experience, or what you do..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
             </div>
-          </div>
 
-          <div class="field-group" style="margin-bottom: 24px;">
-            <label class="field-label" for="settingsBio">Bio & Summary</label>
-            <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell other users and clients about your skills, experience, or what you do..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
-          </div>
-
-          <!-- Action & Tip Footer -->
-          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-top: 20px; border-top: 1px solid var(--line-soft);">
-            <div style="font-size: 0.84rem; color: var(--muted); display: flex; align-items: center; gap: 6px; max-width: 480px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--green-700); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span>Changes reflect instantly across your public profile card and task applications.</span>
+            <!-- Action & Tip Footer -->
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-top: 20px; border-top: 1px solid var(--line-soft);">
+              <div style="font-size: 0.84rem; color: var(--muted); display: flex; align-items: center; gap: 6px; max-width: 480px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--green-700); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Changes reflect instantly across your public profile card and task applications.</span>
+              </div>
+              <button type="submit" class="btn btn-primary" id="settingsSaveBtn" style="min-width: 150px;">Save Changes</button>
             </div>
-            <button type="submit" class="btn btn-primary" id="settingsSaveBtn" style="min-width: 150px;">Save Changes</button>
+          </form>
+        </div>
+
+        <!-- TAB 2: REVIEWS & RATINGS -->
+        <div id="inner-panel-reviews" style="display:none;">
+          <div style="display:flex; align-items:center; gap:28px; padding:20px; background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); margin-bottom:20px; flex-wrap:wrap;">
+            <div style="text-align:center; min-width:90px;">
+              <div class="mono" style="font-size:2.8rem; font-weight:700; color:var(--green-900); line-height:1;" id="settingsRatingBig">0</div>
+              <div style="display:flex; gap:3px; justify-content:center; margin:6px 0 2px;" id="settingsRatingStars"></div>
+              <div style="font-size:0.75rem; color:var(--muted);" id="settingsRatingCount">0 reviews</div>
+            </div>
+            <div style="flex:1; min-width:220px; display:flex; flex-direction:column; gap:6px;" id="settingsRatingBars"></div>
           </div>
-        </form>
+          <div id="settingsReviewsList" style="display:flex; flex-direction:column; gap:12px;">
+            <div style="padding:24px; text-align:center; color:var(--muted);">Loading reviews…</div>
+          </div>
+        </div>
+
+        <!-- TAB 3: TASK HISTORY -->
+        <div id="inner-panel-history" style="display:none;">
+          <div id="settingsHistoryList" style="border:1px solid var(--line-soft); border-radius:var(--radius-sm); overflow:hidden;">
+            <div style="padding:24px; text-align:center; color:var(--muted);">Loading task history…</div>
+          </div>
+        </div>
 
       </div>
     </div>
