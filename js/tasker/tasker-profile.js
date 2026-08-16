@@ -5,7 +5,7 @@
  */
 
 window.currentViewingProfile = null;
-let selectedRatingValue = 5;
+let selectedRatingValue = 0;
 
 function renderStarsHtml(ratingScore, size = 16) {
   let html = '';
@@ -196,10 +196,10 @@ async function loadProfileReviews(profileId) {
       avgRating = sum / totalReviews;
     }
 
-    const formattedAvg = totalReviews > 0 ? avgRating.toFixed(1) : '—';
+    const formattedAvg = totalReviews > 0 ? avgRating.toFixed(1) : '0';
     if (ratingScoreEl) ratingScoreEl.textContent = formattedAvg;
     if (ratingBigEl) ratingBigEl.textContent = formattedAvg;
-    if (ratingCountEl) ratingCountEl.textContent = totalReviews === 0 ? 'No reviews yet' : totalReviews === 1 ? '1 review' : `${totalReviews} reviews`;
+    if (ratingCountEl) ratingCountEl.textContent = totalReviews === 0 ? '0 reviews' : totalReviews === 1 ? '1 review' : `${totalReviews} reviews`;
 
     if (profileStarsEl) profileStarsEl.innerHTML = renderStarsHtml(totalReviews > 0 ? avgRating : 0, 16);
     if (ratingStarsBigEl) ratingStarsBigEl.innerHTML = renderStarsHtml(totalReviews > 0 ? avgRating : 0, 22);
@@ -360,6 +360,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function openReviewModal() {
     if (reviewModal) {
+      selectedRatingValue = 0;
+      const starBtns = reviewModal.querySelectorAll('#starSelector .star-btn');
+      starBtns.forEach((b) => {
+        b.classList.remove('is-active');
+        b.style.color = 'var(--muted)';
+      });
+      const starLabel = document.getElementById('starLabel');
+      if (starLabel) starLabel.textContent = 'Select a rating (1 to 5 stars)';
+      const commentInput = document.getElementById('reviewComment');
+      if (commentInput) commentInput.value = '';
+
       reviewModal.classList.add('is-open');
       reviewModal.style.display = 'flex';
     }
@@ -434,8 +445,13 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedRatingValue = parseInt(btn.dataset.value, 10);
       starBtns.forEach((b) => {
         const val = parseInt(b.dataset.value, 10);
-        if (val <= selectedRatingValue) b.classList.add('is-active');
-        else b.classList.remove('is-active');
+        if (val <= selectedRatingValue) {
+          b.classList.add('is-active');
+          b.style.color = '#F4A819';
+        } else {
+          b.classList.remove('is-active');
+          b.style.color = 'var(--muted)';
+        }
       });
       if (starLabel) starLabel.textContent = labelMap[selectedRatingValue];
     });
@@ -443,6 +459,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Submit Review Form
   btnSubmitReview?.addEventListener('click', async () => {
+    if (!selectedRatingValue || selectedRatingValue < 1) {
+      if (window.showToast) window.showToast('Please select a star rating (1 to 5 stars).');
+      return;
+    }
+
     const comment = document.getElementById('reviewComment')?.value.trim();
     const myProfile = await window.ensureTaskaProfile();
 

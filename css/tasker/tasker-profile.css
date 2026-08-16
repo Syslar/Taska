@@ -280,8 +280,9 @@
   color: var(--muted);
   font-family: var(--font-mono);
   white-space: nowrap;
-  width: 20px;
+  min-width: 56px;
   text-align: right;
+  flex-shrink: 0;
 }
 .rating-bar-track {
   flex: 1;
