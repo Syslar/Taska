@@ -273,7 +273,10 @@ async function syncSupabaseProfile(clerkUser) {
       lastName,
       email,
       username,
-      role: 'POSTER'
+      role: 'POSTER',
+      isPosterSetup: true,
+      isTaskerSetup: false,
+      activeRole: 'POSTER'
     };
     if (phone) insertPayload.phone = phone;
 

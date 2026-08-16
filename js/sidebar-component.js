@@ -59,9 +59,9 @@
     const settingsIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
     const logoutIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
 
-    // Determine setup states for alternate profiles
-    const isTaskerSetup = !!(profile && (profile.isTaskerSetup || (profile.id && localStorage.getItem(`taska_tasker_setup_${profile.id}`) === 'true') || profile.role === 'TASKER' || profile.taskerSkills || profile.taskerBio));
-    const isPosterSetup = !!(profile && (profile.isPosterSetup || (profile.id && localStorage.getItem(`taska_poster_setup_${profile.id}`) === 'true') || profile.role === 'POSTER' || profile.posterName));
+    // Determine setup states for alternate profiles (backed by Supabase columns)
+    const isTaskerSetup = !!(profile && (profile.isTaskerSetup === true || profile.role === 'TASKER' || profile.taskerSkills || profile.taskerBio || (profile.id && localStorage.getItem(`taska_tasker_setup_${profile.id}`) === 'true')));
+    const isPosterSetup = !!(profile && (profile.isPosterSetup === true || profile.role === 'POSTER' || profile.posterName || profile.posterCategories || (profile.id && localStorage.getItem(`taska_poster_setup_${profile.id}`) === 'true')));
 
     const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
     if (sidebarEl) {
@@ -477,19 +477,42 @@
       form.onsubmit = async (e) => {
         e.preventDefault();
         const p = window.__taskaProfile || {};
+        let updateObj = {};
+
         if (isTasker) {
           p.isTaskerSetup = true;
-          p.taskerTitle = document.getElementById('setup-title')?.value;
-          p.taskerSkills = document.getElementById('setup-categories')?.value;
-          p.taskerRate = document.getElementById('setup-rate')?.value;
-          p.taskerBio = document.getElementById('setup-bio')?.value;
-          if (p.id) localStorage.setItem(`taska_tasker_setup_${p.id}`, 'true');
+          p.taskerTitle = document.getElementById('setup-title')?.value || '';
+          p.taskerSkills = document.getElementById('setup-categories')?.value || '';
+          p.taskerRate = document.getElementById('setup-rate')?.value || '';
+          p.taskerBio = document.getElementById('setup-bio')?.value || '';
+          if (p.id) {
+            try { localStorage.setItem(`taska_tasker_setup_${p.id}`, 'true'); } catch (_) {}
+          }
+          updateObj = {
+            isTaskerSetup: true,
+            taskerTitle: p.taskerTitle,
+            taskerSkills: p.taskerSkills,
+            taskerRate: p.taskerRate,
+            taskerBio: p.taskerBio,
+            bio: p.taskerBio || p.bio || '',
+            updatedAt: new Date().toISOString()
+          };
         } else {
           p.isPosterSetup = true;
-          p.posterName = document.getElementById('setup-title')?.value;
-          p.posterCategories = document.getElementById('setup-categories')?.value;
-          p.posterBio = document.getElementById('setup-bio')?.value;
-          if (p.id) localStorage.setItem(`taska_poster_setup_${p.id}`, 'true');
+          p.posterName = document.getElementById('setup-title')?.value || '';
+          p.posterCategories = document.getElementById('setup-categories')?.value || '';
+          p.posterBio = document.getElementById('setup-bio')?.value || '';
+          if (p.id) {
+            try { localStorage.setItem(`taska_poster_setup_${p.id}`, 'true'); } catch (_) {}
+          }
+          updateObj = {
+            isPosterSetup: true,
+            posterName: p.posterName,
+            posterCategories: p.posterCategories,
+            posterBio: p.posterBio,
+            bio: p.posterBio || p.bio || '',
+            updatedAt: new Date().toISOString()
+          };
         }
 
         window.__taskaProfile = p;
@@ -497,12 +520,13 @@
 
         if (window.supabaseClient && p.id) {
           try {
-            const updateObj = isTasker 
-              ? { isTaskerSetup: true, bio: p.taskerBio || p.bio }
-              : { isPosterSetup: true, bio: p.posterBio || p.bio };
-            await window.supabaseClient.from('Profile').update(updateObj).eq('id', p.id);
+            const { error } = await window.supabaseClient
+              .from('Profile')
+              .update(updateObj)
+              .eq('id', p.id);
+            if (error) throw error;
           } catch (err) {
-            console.error('Supabase profile setup save notice:', err);
+            console.error('Supabase profile setup save error:', err);
           }
         }
 
