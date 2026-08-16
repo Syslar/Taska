@@ -31,7 +31,21 @@ window.getTaskaProfile = function () {
 };
 
 window.getTaskaRole = function () {
-  return (window.__taskaProfile && window.__taskaProfile.activeRole) || (window.__taskaProfile && window.__taskaProfile.role) || 'POSTER';
+  const path = window.location.pathname;
+  if (path.includes('/Tasker/')) return 'TASKER';
+  if (path.includes('/Poster/')) return 'POSTER';
+
+  let stored = null;
+  try { stored = localStorage.getItem('taska_active_role'); } catch (_) {}
+  if (stored === 'TASKER' || stored === 'POSTER') return stored;
+
+  if (window.__taskaProfile && window.__taskaProfile.activeRole) {
+    return window.__taskaProfile.activeRole.toUpperCase();
+  }
+  if (window.__taskaProfile && window.__taskaProfile.role === 'TASKER') {
+    return 'TASKER';
+  }
+  return 'POSTER';
 };
 
 window.switchTaskaRole = async function (newRole) {
@@ -44,6 +58,7 @@ window.switchTaskaRole = async function (newRole) {
 
   try {
     localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+    localStorage.setItem('taska_active_role', targetRole);
   } catch (_) {}
 
   if (window.supabaseClient) {
@@ -84,11 +99,20 @@ window.ensureTaskaProfile = async function () {
 // Populate every sidebar / mobile topbar on the page with real user data
 function populateSidebar(profile) {
   if (!profile) return;
+  const path = window.location.pathname;
+  const inTasker = path.includes('/Tasker/');
+  const inPoster = path.includes('/Poster/');
+
+  let storedRole = null;
+  try { storedRole = localStorage.getItem('taska_active_role'); } catch (_) {}
+
+  const currentRole = inTasker ? 'TASKER' : inPoster ? 'POSTER' : (storedRole || profile.activeRole || profile.role || 'POSTER');
+  const isTaskerMode = currentRole.toUpperCase() === 'TASKER';
+
   const initials = `${(profile.firstName || '')[0] || ''}${(profile.lastName || '')[0] || ''}`.toUpperCase() || 'U';
   const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User';
   const username = `@${profile.username || 'user'}`;
-  const roleLabel = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
-  const isTaskerMode = (profile.activeRole || profile.role) === 'TASKER';
+  const roleLabel = isTaskerMode ? 'Tasker' : 'Task Poster';
 
   const avatarEl     = document.getElementById('sidebar-avatar');
   const nameEl       = document.getElementById('sidebar-name');
@@ -104,7 +128,9 @@ function populateSidebar(profile) {
   }
   if (nameEl) nameEl.textContent = fullName;
   if (usernameEl) {
-    const roleIcon = isTaskerMode ? (window.TaskaIcons?.tasker || '') : (window.TaskaIcons?.poster || '');
+    const taskerIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+    const posterIcon = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+    const roleIcon = isTaskerMode ? taskerIcon : posterIcon;
     usernameEl.innerHTML = `${roleIcon} ${isTaskerMode ? 'Tasker Mode' : 'Poster Mode'}`;
   }
   

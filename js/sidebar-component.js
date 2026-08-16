@@ -15,7 +15,9 @@
     const inChats    = path.includes('/Chats/');
     const inWallet   = path.includes('/Wallet/');
 
-    const currentRole  = window.getTaskaRole ? window.getTaskaRole() : (inTasker ? 'TASKER' : 'POSTER');
+    let storedRole = null;
+    try { storedRole = localStorage.getItem('taska_active_role'); } catch (_) {}
+    const currentRole  = inTasker ? 'TASKER' : inPoster ? 'POSTER' : (storedRole || (window.getTaskaRole ? window.getTaskaRole() : 'POSTER'));
     const isTaskerMode = currentRole === 'TASKER';
 
     const posterRoot   = inPoster   ? '../' : (inTasker ? '../../Poster/' : '../Poster/');
