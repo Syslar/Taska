@@ -1,10 +1,11 @@
 /* ==========================================================================
-   tasker-my-applications.js — Dedicated Controller for Tasker My Applications
-   Fetches submitted bids, offers, shortlisted statuses, and active contracts.
+   tasker-my-applications.js — Full Tasker Applications & Jobs Controller
+   Offers, Active Escrow Contracts, Work Submission, and Completed Payouts.
    ========================================================================== */
 
 let myApplicationsData = [];
 let currentFilter = 'ALL';
+let pendingSubmitTask = null;
 
 async function initMyApplicationsPage() {
   const profile = await window.ensureTaskaProfile();
@@ -23,6 +24,9 @@ async function initMyApplicationsPage() {
     });
   });
 
+  // Setup modal listeners
+  setupSubmitWorkModal();
+
   await fetchMyApplications();
 }
 
@@ -34,7 +38,7 @@ async function fetchMyApplications() {
   try {
     const { data: applications, error } = await window.supabaseClient
       .from('Application')
-      .select('*, task:taskId(*, poster:posterId(id, firstName, lastName, username, avatarUrl, isVerified, averageRating))')
+      .select('*, task:taskId(*, poster:posterId(*))')
       .eq('taskerId', profile.id)
       .order('createdAt', { ascending: false });
 
@@ -58,7 +62,7 @@ function renderApplicationsList() {
   if (currentFilter === 'OPEN') {
     filtered = myApplicationsData.filter(a => !a.isSelected && a.task?.status === 'OPEN');
   } else if (currentFilter === 'ASSIGNED') {
-    filtered = myApplicationsData.filter(a => (a.isSelected || a.task?.assignedTo === a.taskerId) && a.task?.status !== 'COMPLETED' && a.task?.status !== 'CLOSED');
+    filtered = myApplicationsData.filter(a => (a.isSelected || a.task?.assignedTo === a.taskerId) && (a.task?.status === 'ASSIGNED' || a.task?.status === 'IN_PROGRESS' || a.task?.status === 'PROOF_SUBMITTED'));
   } else if (currentFilter === 'COMPLETED') {
     filtered = myApplicationsData.filter(a => a.task?.status === 'COMPLETED' || a.task?.status === 'CLOSED');
   }
@@ -81,18 +85,23 @@ function renderApplicationsList() {
   container.innerHTML = filtered.map(app => {
     const task = app.task || {};
     const poster = task.poster || {};
-    const isSelected = app.isSelected || task.assignedTo === app.taskerId;
+    const isHired = app.isSelected || task.assignedTo === app.taskerId;
     const isCompleted = task.status === 'COMPLETED' || task.status === 'CLOSED';
+    const isProofSubmitted = task.status === 'PROOF_SUBMITTED';
+    const isInProgress = (task.status === 'IN_PROGRESS' || task.status === 'ASSIGNED') && isHired;
 
     let statusClass = 'status-pending';
-    let statusLabel = 'Application Pending';
+    let statusLabel = 'Offer Submitted';
 
     if (isCompleted) {
-      statusClass = 'status-done';
-      statusLabel = 'Task Completed';
-    } else if (isSelected) {
+      statusClass = 'status-closed';
+      statusLabel = 'Completed & Paid';
+    } else if (isProofSubmitted) {
+      statusClass = 'status-pending';
+      statusLabel = 'Work Submitted (Awaiting Approval)';
+    } else if (isInProgress) {
       statusClass = 'status-open';
-      statusLabel = 'Hired / In Progress';
+      statusLabel = 'Hired — In Progress (Escrow Secured)';
     } else if (task.status !== 'OPEN') {
       statusClass = 'status-closed';
       statusLabel = 'Task Closed';
@@ -109,11 +118,11 @@ function renderApplicationsList() {
     const posterAvatar = poster.avatarUrl ? `<img src="${poster.avatarUrl}" alt="${safePosterName}">` : posterInitials;
 
     const budgetVal = app.bidAmount || task.budget || 0;
-    const budgetStr = `₦${budgetVal.toLocaleString()}`;
-    const appliedDate = new Date(app.createdAt).toLocaleDateString();
+    const budgetStr = window.formatNaira ? window.formatNaira(budgetVal) : `₦${budgetVal.toLocaleString()}`;
+    const appliedDate = new Date(app.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 
     return `
-      <div class="task-manage-card">
+      <div class="task-manage-card" style="${isInProgress ? 'border-left: 4px solid var(--green-700);' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
           <div style="flex:1; min-width:280px;">
             <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
@@ -133,13 +142,33 @@ function renderApplicationsList() {
                 <div style="font-size:0.75rem; color:var(--muted);">${task.location || 'Remote / Anywhere'}</div>
               </div>
             </div>
+
+            ${app.message ? `
+              <div style="margin-top:12px; padding:10px 14px; background:var(--paper); border-radius:var(--radius-sm); font-size:0.85rem; color:var(--ink-soft);">
+                <strong>Your Cover Letter / Pitch:</strong> "${window.escapeHtml(app.message)}"
+              </div>
+            ` : ''}
           </div>
 
           <div style="text-align:right;">
-            <div class="mono" style="font-size:1.3rem; font-weight:700; color:var(--green-700);">${budgetStr}</div>
-            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${app.bidAmount ? 'Your Bid' : 'Task Budget'}</div>
+            <div class="mono" style="font-size:1.35rem; font-weight:700; color:var(--green-700);">${budgetStr}</div>
+            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${app.bidAmount ? 'Your Agreed Rate' : 'Task Budget'}</div>
             
             <div style="display:flex; gap:8px; margin-top:16px; justify-content:flex-end; flex-wrap:wrap;">
+              ${isInProgress ? `
+                <button class="btn btn-primary btn-sm btn-submit-work"
+                  data-task-id="${task.id}"
+                  data-task-title="${safeTitle}">
+                  ✓ Submit Completed Work
+                </button>
+              ` : ''}
+
+              ${isProofSubmitted ? `
+                <span class="badge-hired" style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem;">
+                  Proof Sent · Awaiting Review
+                </span>
+              ` : ''}
+
               ${poster.id ? `
                 <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${poster.id}'">Message Poster</button>
                 <a href="../../Poster/Profile/index.html?id=${poster.id}" class="btn btn-ghost btn-sm">View Poster</a>
@@ -150,6 +179,98 @@ function renderApplicationsList() {
       </div>
     `;
   }).join('');
+
+  // Bind Submit Work buttons
+  container.querySelectorAll('.btn-submit-work').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const taskId = btn.dataset.taskId;
+      const taskTitle = btn.dataset.taskTitle;
+      openSubmitWorkModal(taskId, taskTitle);
+    });
+  });
+}
+
+function openSubmitWorkModal(taskId, taskTitle) {
+  pendingSubmitTask = { taskId, taskTitle };
+  const modal = document.getElementById('submitWorkModal');
+  const titleText = document.getElementById('submitWorkTaskTitleText');
+  const notesInput = document.getElementById('workProofNotes');
+
+  if (titleText) {
+    titleText.innerHTML = `You are marking <strong>${window.escapeHtml(taskTitle)}</strong> as finished. The Poster will be notified immediately to review your deliverable and release your escrow payout.`;
+  }
+  if (notesInput) notesInput.value = '';
+
+  if (modal) {
+    modal.classList.add('is-open');
+    modal.style.display = 'flex';
+  }
+}
+
+async function handleConfirmSubmitWork() {
+  if (!pendingSubmitTask) return;
+  const { taskId, taskTitle } = pendingSubmitTask;
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
+  const notes = document.getElementById('workProofNotes')?.value.trim() || '';
+  const confirmBtn = document.getElementById('confirmSubmitWorkBtn');
+
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Submitting…';
+  }
+
+  try {
+    const { error } = await window.supabaseClient
+      .from('Task')
+      .update({
+        status: 'PROOF_SUBMITTED',
+        proofSubmittedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', taskId);
+
+    if (error) throw error;
+
+    const modal = document.getElementById('submitWorkModal');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.style.display = 'none';
+    }
+
+    if (window.showToast) {
+      window.showToast(`Work submitted for "${taskTitle}"! The Poster has been notified to release your payment.`);
+    }
+
+    await fetchMyApplications();
+
+  } catch (err) {
+    console.error('handleConfirmSubmitWork error:', err);
+    if (window.showToast) window.showToast('Could not submit completed work. Please try again.');
+  } finally {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Submit for Poster Approval';
+    }
+  }
+}
+
+function setupSubmitWorkModal() {
+  const modal = document.getElementById('submitWorkModal');
+  document.getElementById('closeSubmitWorkBtn')?.addEventListener('click', () => {
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.style.display = 'none';
+    }
+  });
+  document.getElementById('cancelSubmitWorkBtn')?.addEventListener('click', () => {
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.style.display = 'none';
+    }
+  });
+  document.getElementById('confirmSubmitWorkBtn')?.addEventListener('click', handleConfirmSubmitWork);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

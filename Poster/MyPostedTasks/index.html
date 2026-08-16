@@ -106,13 +106,100 @@
   </main>
 </div>
 
+<!-- ============ MODALS ============ -->
+
+<!-- 1. INSUFFICIENT FUNDS MODAL -->
+<div class="modal-overlay" id="insufficientFundsModal" style="display:none;">
+  <div class="modal" style="max-width:440px; text-align:center;">
+    <div style="width:52px; height:52px; border-radius:50%; background:var(--mint-050); color:var(--green-700); display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+    </div>
+    <h2 style="font-size:1.25rem; color:var(--green-900); margin-bottom:8px;">Insufficient Wallet Balance</h2>
+    <p style="color:var(--ink-soft); font-size:0.92rem; line-height:1.5; margin-bottom:20px;" id="insufficientFundsMsg">
+      To hire this Tasker, the task budget must be secured in Escrow. Please deposit funds into your wallet to proceed.
+    </p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button type="button" class="btn btn-secondary" id="closeInsufficientFundsBtn">Cancel</button>
+      <a href="../../Wallet/index.html" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Top Up Wallet
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- 2. RELEASE PAYMENT MODAL -->
+<div class="modal-overlay" id="releasePaymentModal" style="display:none;">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" id="closeReleasePaymentBtn">✕</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+      <div style="width:44px; height:44px; border-radius:50%; background:var(--mint-100); color:var(--green-700); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div>
+        <h2 style="font-size:1.2rem; color:var(--green-900); margin:0;">Approve & Release Payment</h2>
+        <p style="color:var(--muted); font-size:0.84rem; margin:2px 0 0;">Release funds from escrow to tasker</p>
+      </div>
+    </div>
+
+    <p style="color:var(--ink-soft); font-size:0.92rem; line-height:1.5; margin-bottom:22px;" id="releasePaymentMsg">
+      Are you satisfied with the work? Releasing payment will immediately transfer the escrow amount to the Tasker's wallet.
+    </p>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn btn-secondary" id="cancelReleasePaymentBtn">Not Yet</button>
+      <button type="button" class="btn btn-primary" id="confirmReleasePaymentBtn">Confirm & Release Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. TASK REVIEW MODAL -->
+<div class="modal-overlay" id="taskReviewModal" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" id="closeTaskReviewModalBtn">✕</button>
+    <h2 style="font-size:1.3rem; margin-bottom:6px;">Rate Your Experience</h2>
+    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:20px;" id="taskReviewSubText">How did the tasker perform?</p>
+
+    <div style="margin-bottom:20px;">
+      <label class="field-label">Your Rating</label>
+      <div class="star-selector" id="posterStarSelector" style="display:flex; gap:6px;">
+        <button class="star-btn" data-value="1" type="button" aria-label="1 star" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="2" type="button" aria-label="2 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="3" type="button" aria-label="3 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="4" type="button" aria-label="4 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="5" type="button" aria-label="5 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+      </div>
+      <div class="star-label" id="posterStarLabel" style="color:var(--muted); font-size:0.86rem; margin-top:6px;">Select a rating (1 to 5 stars)</div>
+    </div>
+
+    <div class="field-group" style="margin-bottom:20px;">
+      <label class="field-label" for="posterReviewComment">Feedback & Comments (Optional)</label>
+      <textarea class="textarea-input" id="posterReviewComment" rows="3" placeholder="Share your experience working with this tasker..."></textarea>
+    </div>
+
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <button type="button" class="btn btn-ghost" id="skipTaskReviewBtn">Skip for now</button>
+      <button type="button" class="btn btn-primary" id="submitTaskReviewBtn">Submit Review</button>
+    </div>
+  </div>
+</div>
+
 <!-- SDKs & Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../js/supabase-client.js"></script>
-<script src="../../js/main.js"></script>
-<script src="../../js/sidebar-component.js"></script>
-<script src="../../js/auth-guard.js?v=14"></script>
-<script src="../../js/poster/poster-my-tasks.js?v=14"></script>
+<script src="../../js/supabase-client.js?v=15"></script>
+<script src="../../js/sidebar-component.js?v=15"></script>
+<script src="../../js/auth-guard.js?v=15"></script>
+<script src="../../js/poster/poster-my-tasks.js?v=15"></script>
 
 <!-- Clerk JS Integration -->
 <script

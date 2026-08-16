@@ -109,13 +109,42 @@
   </main>
 </div>
 
+<!-- ============ SUBMIT WORK MODAL ============ -->
+<div class="modal-overlay" id="submitWorkModal" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" id="closeSubmitWorkBtn">✕</button>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+      <div style="width:44px; height:44px; border-radius:50%; background:var(--mint-100); color:var(--green-700); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div>
+        <h2 style="font-size:1.2rem; color:var(--green-900); margin:0;">Submit Completed Work</h2>
+        <p style="color:var(--muted); font-size:0.84rem; margin:2px 0 0;">Notify the poster to review and release payout</p>
+      </div>
+    </div>
+
+    <p style="color:var(--ink-soft); font-size:0.9rem; line-height:1.5; margin-bottom:18px;" id="submitWorkTaskTitleText">
+      You are marking this task as finished.
+    </p>
+
+    <div class="field-group" style="margin-bottom:20px;">
+      <label class="field-label" for="workProofNotes">Completion Notes / Deliverable Summary (Optional)</label>
+      <textarea class="textarea-input" id="workProofNotes" rows="3" placeholder="Briefly describe what you completed or provide links/proof..."></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button type="button" class="btn btn-secondary" id="cancelSubmitWorkBtn">Cancel</button>
+      <button type="button" class="btn btn-primary" id="confirmSubmitWorkBtn">Submit for Poster Approval</button>
+    </div>
+  </div>
+</div>
+
 <!-- SDKs & Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../js/supabase-client.js"></script>
-<script src="../../js/main.js"></script>
-<script src="../../js/sidebar-component.js"></script>
-<script src="../../js/auth-guard.js?v=14"></script>
-<script src="../../js/tasker/tasker-my-applications.js?v=14"></script>
+<script src="../../js/supabase-client.js?v=15"></script>
+<script src="../../js/sidebar-component.js?v=15"></script>
+<script src="../../js/auth-guard.js?v=15"></script>
+<script src="../../js/tasker/tasker-my-applications.js?v=15"></script>
 
 <!-- Clerk JS Integration -->
 <script

@@ -152,6 +152,11 @@ window.openTaskModal = async function (taskId) {
   document.getElementById('modal-task-location').textContent = task.location || 'Remote / Anywhere';
   document.getElementById('modal-task-desc').textContent = task.description || '';
   
+  const bidInput = document.getElementById('modal-bid-amount');
+  const msgInput = document.getElementById('modal-bid-message');
+  if (bidInput) bidInput.value = task.budget || '';
+  if (msgInput) msgInput.value = '';
+
   const posterLink = document.getElementById('modal-poster-link');
   const checkIcon = window.TaskaIcons?.verified || '';
   if (posterLink) {
@@ -191,14 +196,14 @@ window.openTaskModal = async function (taskId) {
         applyBtn.textContent = 'Already Applied';
       } else {
         applyBtn.disabled = false;
-        applyBtn.textContent = 'Apply for this task';
-        applyBtn.onclick = () => submitApplication(taskId);
+        applyBtn.textContent = 'Submit Offer / Apply';
+        applyBtn.onclick = () => submitApplication(taskId, task.budget);
       }
     }
   }
 };
 
-async function submitApplication(taskId) {
+async function submitApplication(taskId, defaultBudget) {
   const profile = await window.ensureTaskaProfile();
   if (!profile) {
     if (window.showToast) window.showToast('Please log in to apply for tasks.');
@@ -211,10 +216,15 @@ async function submitApplication(taskId) {
     return;
   }
 
+  const bidInput = document.getElementById('modal-bid-amount');
+  const msgInput = document.getElementById('modal-bid-message');
+  const customBid = bidInput ? parseFloat(bidInput.value) : defaultBudget;
+  const coverMsg = msgInput ? msgInput.value.trim() : '';
+
   const applyBtn = document.getElementById('modal-apply-btn');
   if (applyBtn) {
     applyBtn.disabled = true;
-    applyBtn.textContent = 'Submitting...';
+    applyBtn.textContent = 'Submitting Offer...';
   }
 
   try {
@@ -223,12 +233,14 @@ async function submitApplication(taskId) {
       .insert({
         taskId: taskId,
         taskerId: profile.id,
+        bidAmount: customBid || defaultBudget || 0,
+        message: coverMsg,
         isSelected: false
       });
 
     if (error) throw error;
 
-    if (window.showToast) window.showToast('Application submitted successfully!');
+    if (window.showToast) window.showToast('Offer submitted successfully! The Poster has been notified.');
     closeTaskModal();
     await loadBrowseTasks();
   } catch (err) {
@@ -236,7 +248,7 @@ async function submitApplication(taskId) {
     if (window.showToast) window.showToast('Could not submit application.');
     if (applyBtn) {
       applyBtn.disabled = false;
-      applyBtn.textContent = 'Apply for this task';
+      applyBtn.textContent = 'Submit Offer / Apply';
     }
   }
 }
