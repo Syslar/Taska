@@ -5,7 +5,7 @@
  */
 
 // Paystack Public Key (Client-side safe ONLY - Secret keys are NEVER exposed to the frontend)
-const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_a0a56e01a88b5d3f84841ff51e60058b88d22744';
+const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa5b21442a0f593c2af57cf0af33adcb93f1c9ae';
 
 async function initWalletPage() {
   const profile = await window.ensureTaskaProfile();
