@@ -160,20 +160,25 @@ async function initWalletPage() {
               amount: netCredit,
               type: 'DEPOSIT',
               reference: txRef || paymentRef,
-              note: `Paystack Deposit (₦${grossAmt.toLocaleString()} less 10% Taska fee)`,
+              note: `Paystack Deposit — ₦${grossAmt.toLocaleString()} paid, ₦${netCredit.toLocaleString()} credited (10% Taska fee stays in Taska Paystack account)`,
               createdAt: new Date().toISOString()
             });
         }
 
-        // 3. Record & Credit the 10% Fee to Taska Master Treasury Account
-        await window.recordPlatformRevenue(
-          'DEPOSIT_FEE',
-          taskaFee,
-          grossAmt,
-          profile.id,
-          txRef || paymentRef,
-          `10% Deposit fee from @${profile.username || 'user'}`
-        );
+        // 3. Audit log: record the 10% deposit fee in PlatformRevenue
+        // The fee already stays in Taska's Paystack merchant account automatically —
+        // we only credit the user 90%, so the 10% never leaves Taska's Paystack balance.
+        await window.supabaseClient
+          .from('PlatformRevenue')
+          .insert({
+            type: 'DEPOSIT_FEE',
+            amount: taskaFee,
+            grossAmount: grossAmt,
+            sourceProfileId: profile.id,
+            reference: txRef || paymentRef,
+            note: `10% deposit fee from @${profile.username || 'user'} — retained in Taska Paystack account`,
+            createdAt: new Date().toISOString()
+          });
 
         if (depositAmountInput) depositAmountInput.value = '5000';
         updateDepositFeeBreakdown();
@@ -339,19 +344,24 @@ async function initWalletPage() {
       return;
     }
 
+    const selectedBankCode = withdrawBankSelect?.value || '';
     const selectedBankName = withdrawBankSelect?.options[withdrawBankSelect.selectedIndex]?.text || 'Bank';
+    if (!selectedBankCode) {
+      if (window.showToast) window.showToast('Please select a bank.');
+      return;
+    }
 
     if (withdrawSubmitBtn) {
       withdrawSubmitBtn.disabled = true;
       withdrawSubmitBtn.textContent = 'Processing Payout...';
     }
 
-    // 10% fee calculation on withdrawal
+    // 10% fee stays in Taska's Paystack account; user receives 90%
     const taskaFee = Math.round(grossAmt * 0.10);
     const netPayout = grossAmt - taskaFee;
 
     try {
-      // 1. Fetch current wallet balance securely
+      // 1. Verify user has sufficient internal wallet balance
       const { data: wallet } = await window.supabaseClient
         .from('Wallet')
         .select('*')
@@ -363,11 +373,35 @@ async function initWalletPage() {
         return;
       }
 
+      const withdrawRef = `TK-WTH-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const accountName = withdrawNameEl?.textContent || `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
+
+      // 2. Call Netlify serverless function to execute real Paystack bank transfer
+      //    The secret key is ONLY on the server — never exposed to the browser
+      const transferRes = await fetch('/.netlify/functions/paystack-withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: grossAmt,
+          bankCode: selectedBankCode,
+          accountNumber: accNum,
+          accountName,
+          reference: withdrawRef,
+        }),
+      });
+
+      const transferResult = await transferRes.json();
+
+      if (!transferResult.success) {
+        if (window.showToast) window.showToast(`Transfer failed: ${transferResult.error || 'Please try again.'}`);
+        return;
+      }
+
+      // 3. Deduct full requested amount from internal wallet (after confirmed transfer)
       const newBal = wallet.balance - grossAmt;
       const newWithdrawn = (wallet.lifetimeWithdrawn || 0) + grossAmt;
 
-      // 2. Deduct full requested amount from user balance and increase lifetimeWithdrawn
-      const { error: updateErr } = await window.supabaseClient
+      await window.supabaseClient
         .from('Wallet')
         .update({
           balance: newBal,
@@ -376,30 +410,30 @@ async function initWalletPage() {
         })
         .eq('id', wallet.id);
 
-      if (updateErr) throw updateErr;
-
-      // 3. Log WITHDRAWAL transaction in user ledger
-      const withdrawRef = `TK-WTH-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      // 4. Log WITHDRAWAL transaction in user ledger
       await window.supabaseClient
         .from('WalletTransaction')
         .insert({
           walletId: wallet.id,
           amount: grossAmt,
           type: 'WITHDRAWAL',
-          reference: withdrawRef,
-          note: `Payout of ₦${grossAmt.toLocaleString()} to ${selectedBankName} (${accNum.slice(0, 3)}****${accNum.slice(7)}) (Disbursed: ₦${netPayout.toLocaleString()} after 10% fee)`,
+          reference: transferResult.transferReference || withdrawRef,
+          note: `₦${netPayout.toLocaleString()} sent to ${selectedBankName} ending ${accNum.slice(-4)} (10% Taska fee: ₦${taskaFee.toLocaleString()})`,
           createdAt: new Date().toISOString()
         });
 
-      // 4. Record & Credit the 10% Withdrawal Fee to Taska Master Treasury Account
-      await window.recordPlatformRevenue(
-        'WITHDRAWAL_FEE',
-        taskaFee,
-        grossAmt,
-        profile.id,
-        withdrawRef,
-        `10% Withdrawal fee from @${profile.username || 'user'}`
-      );
+      // 5. Log fee in PlatformRevenue audit table (the fee stays in Taska's Paystack account)
+      await window.supabaseClient
+        .from('PlatformRevenue')
+        .insert({
+          type: 'WITHDRAWAL_FEE',
+          amount: taskaFee,
+          grossAmount: grossAmt,
+          sourceProfileId: profile.id,
+          reference: withdrawRef,
+          note: `10% withdrawal fee from @${profile.username || 'user'} — stays in Taska Paystack account`,
+          createdAt: new Date().toISOString()
+        });
 
       if (withdrawModal) withdrawModal.style.display = 'none';
       if (withdrawAmountInput) withdrawAmountInput.value = '';
@@ -408,7 +442,7 @@ async function initWalletPage() {
       updateWithdrawFeeBreakdown();
 
       if (window.showToast) {
-        window.showToast(`Withdrawal requested! ₦${netPayout.toLocaleString()} will disburse to your bank (after 10% Taska fee).`);
+        window.showToast(`₦${netPayout.toLocaleString()} sent to your ${selectedBankName} account! (10% platform fee applied)`);
       }
 
       await loadWalletData();

@@ -477,29 +477,19 @@ async function executeReleasePayment() {
           note: `Earnings payout for: ${taskTitle} (₦${budget.toLocaleString()} less 10% Taska fee)`
         });
 
-      // Credit 10% Commission to Taska Master Treasury
-      if (typeof window.recordPlatformRevenue === 'function') {
-        await window.recordPlatformRevenue(
-          'TASK_COMMISSION',
-          taskaFee,
-          budget,
-          profile.id,
-          `COMMISSION_${Date.now()}`,
-          `10% Platform commission on task: ${taskTitle}`
-        );
-      } else {
-        // Fallback direct insert into PlatformRevenue
-        try {
-          await window.supabaseClient.from('PlatformRevenue').insert({
-            type: 'TASK_COMMISSION',
-            amount: taskaFee,
-            grossAmount: budget,
-            sourceProfileId: profile.id,
-            reference: `COMMISSION_${Date.now()}`,
-            note: `10% Platform commission on task: ${taskTitle}`
-          });
-        } catch (_) {}
-      }
+      // Audit log: 10% platform commission on task payout
+      // This stays in Taska's Paystack float (all money originated from Paystack deposits)
+      try {
+        await window.supabaseClient.from('PlatformRevenue').insert({
+          type: 'TASK_COMMISSION',
+          amount: taskaFee,
+          grossAmount: budget,
+          sourceProfileId: profile.id,
+          reference: `COMMISSION_${Date.now()}_${Math.floor(Math.random() * 9999)}`,
+          note: `10% platform commission on task: ${taskTitle} — retained in Taska Paystack float`,
+          createdAt: new Date().toISOString()
+        });
+      } catch (e) { console.warn('[Treasury] PlatformRevenue audit log failed:', e); }
     }
 
     // 3. Mark Task as COMPLETED
