@@ -1,11 +1,78 @@
 /**
  * Taska Wallet Controller
- * Secure Paystack Inline Deposit, Nigerian Bank Account Resolution & Withdrawal Engine with 10% Platform Fee.
+ * Secure Paystack Inline Deposit, Nigerian Bank Account Resolution, Withdrawal Engine,
+ * and Automated Platform Treasury Revenue Accounting.
  * Pure SVG icons, zero emojis, verified relative navigation.
  */
 
 // Paystack Public Key (Client-side safe ONLY - Secret keys are NEVER exposed to the frontend)
 const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa5b21442a0f593c2af57cf0af33adcb93f1c9ae';
+
+// Global helper to credit Taska Treasury & record in PlatformRevenue
+window.recordPlatformRevenue = async function (type, feeAmount, grossAmount, sourceProfileId, reference, note) {
+  if (!window.supabaseClient || !feeAmount || feeAmount <= 0) return;
+
+  try {
+    // 1. Insert into PlatformRevenue table
+    await window.supabaseClient
+      .from('PlatformRevenue')
+      .insert({
+        type,
+        amount: feeAmount,
+        grossAmount: grossAmount || feeAmount,
+        sourceProfileId: sourceProfileId || null,
+        reference: reference || `REV_${Date.now()}`,
+        note: note || `Platform revenue for ${type}`,
+        createdAt: new Date().toISOString()
+      });
+
+    // 2. Credit Taska Master Treasury Account
+    const { data: treasuryProf } = await window.supabaseClient
+      .from('Profile')
+      .select('id, Wallet(*)')
+      .eq('email', 'treasury@taska.com.ng')
+      .maybeSingle();
+
+    if (treasuryProf) {
+      let tWallet = treasuryProf.Wallet && treasuryProf.Wallet.length > 0 ? treasuryProf.Wallet[0] : null;
+      if (!tWallet) {
+        const { data: newW } = await window.supabaseClient
+          .from('Wallet')
+          .insert({ profileId: treasuryProf.id, balance: 0, escrowBalance: 0, lifetimeEarned: 0, lifetimeWithdrawn: 0 })
+          .select()
+          .single();
+        tWallet = newW;
+      }
+
+      if (tWallet) {
+        const updatedBal = (tWallet.balance || 0) + feeAmount;
+        const updatedEarned = (tWallet.lifetimeEarned || 0) + feeAmount;
+
+        await window.supabaseClient
+          .from('Wallet')
+          .update({
+            balance: updatedBal,
+            lifetimeEarned: updatedEarned,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', tWallet.id);
+
+        await window.supabaseClient
+          .from('WalletTransaction')
+          .insert({
+            walletId: tWallet.id,
+            amount: feeAmount,
+            type: 'DEPOSIT',
+            reference: reference || `REV_${Date.now()}`,
+            note: note || `Platform revenue collected from ${type}`,
+            createdAt: new Date().toISOString()
+          });
+      }
+    }
+  } catch (err) {
+    console.error('recordPlatformRevenue notice:', err);
+  }
+};
 
 async function initWalletPage() {
   const profile = await window.ensureTaskaProfile();
@@ -113,7 +180,7 @@ async function initWalletPage() {
         if (depositModal) depositModal.style.display = 'none';
         if (window.showToast) window.showToast('Verifying and crediting your deposit...');
 
-        // Fetch or create wallet
+        // 1. Fetch or create user wallet
         const { data: currentWallet } = await window.supabaseClient
           .from('Wallet')
           .select('*')
@@ -143,7 +210,7 @@ async function initWalletPage() {
             });
         }
 
-        // Record verified transaction in WalletTransaction ledger
+        // 2. Record verified transaction in User WalletTransaction ledger
         if (currentWallet?.id) {
           await window.supabaseClient
             .from('WalletTransaction')
@@ -157,10 +224,20 @@ async function initWalletPage() {
             });
         }
 
+        // 3. Record & Credit the 10% Fee to Taska Master Treasury Account
+        await window.recordPlatformRevenue(
+          'DEPOSIT_FEE',
+          taskaFee,
+          grossAmt,
+          profile.id,
+          txRef || paymentRef,
+          `10% Deposit fee from @${profile.username || 'user'}`
+        );
+
         if (depositAmountInput) depositAmountInput.value = '5000';
         updateDepositFeeBreakdown();
         if (window.showToast) {
-          window.showToast(`₦${netCredit.toLocaleString()} credited to your wallet (after 10% fee).`);
+          window.showToast(`₦${netCredit.toLocaleString()} credited to your wallet (after 10% Taska fee).`);
         }
         await loadWalletData();
 
@@ -348,7 +425,7 @@ async function initWalletPage() {
       const newBal = wallet.balance - grossAmt;
       const newWithdrawn = (wallet.lifetimeWithdrawn || 0) + grossAmt;
 
-      // 2. Deduct full requested amount from balance and increase lifetimeWithdrawn
+      // 2. Deduct full requested amount from user balance and increase lifetimeWithdrawn
       const { error: updateErr } = await window.supabaseClient
         .from('Wallet')
         .update({
@@ -360,7 +437,7 @@ async function initWalletPage() {
 
       if (updateErr) throw updateErr;
 
-      // 3. Log WITHDRAWAL transaction in ledger
+      // 3. Log WITHDRAWAL transaction in user ledger
       const withdrawRef = `TK-WTH-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
       await window.supabaseClient
         .from('WalletTransaction')
@@ -373,6 +450,16 @@ async function initWalletPage() {
           createdAt: new Date().toISOString()
         });
 
+      // 4. Record & Credit the 10% Withdrawal Fee to Taska Master Treasury Account
+      await window.recordPlatformRevenue(
+        'WITHDRAWAL_FEE',
+        taskaFee,
+        grossAmt,
+        profile.id,
+        withdrawRef,
+        `10% Withdrawal fee from @${profile.username || 'user'}`
+      );
+
       if (withdrawModal) withdrawModal.style.display = 'none';
       if (withdrawAmountInput) withdrawAmountInput.value = '';
       if (withdrawAccInput) withdrawAccInput.value = '';
@@ -380,7 +467,7 @@ async function initWalletPage() {
       updateWithdrawFeeBreakdown();
 
       if (window.showToast) {
-        window.showToast(`Withdrawal requested! ₦${netPayout.toLocaleString()} will disburse to your bank (after 10% fee).`);
+        window.showToast(`Withdrawal requested! ₦${netPayout.toLocaleString()} will disburse to your bank (after 10% Taska fee).`);
       }
 
       await loadWalletData();

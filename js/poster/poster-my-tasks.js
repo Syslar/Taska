@@ -476,6 +476,30 @@ async function executeReleasePayment() {
           reference: `PAYOUT_${Date.now()}`,
           note: `Earnings payout for: ${taskTitle} (₦${budget.toLocaleString()} less 10% Taska fee)`
         });
+
+      // Credit 10% Commission to Taska Master Treasury
+      if (typeof window.recordPlatformRevenue === 'function') {
+        await window.recordPlatformRevenue(
+          'TASK_COMMISSION',
+          taskaFee,
+          budget,
+          profile.id,
+          `COMMISSION_${Date.now()}`,
+          `10% Platform commission on task: ${taskTitle}`
+        );
+      } else {
+        // Fallback direct insert into PlatformRevenue
+        try {
+          await window.supabaseClient.from('PlatformRevenue').insert({
+            type: 'TASK_COMMISSION',
+            amount: taskaFee,
+            grossAmount: budget,
+            sourceProfileId: profile.id,
+            reference: `COMMISSION_${Date.now()}`,
+            note: `10% Platform commission on task: ${taskTitle}`
+          });
+        } catch (_) {}
+      }
     }
 
     // 3. Mark Task as COMPLETED
