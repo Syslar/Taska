@@ -8,71 +8,12 @@
 // Paystack Public Key (Client-side safe ONLY - Secret keys are NEVER exposed to the frontend)
 const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa5b21442a0f593c2af57cf0af33adcb93f1c9ae';
 
-// Global helper to credit Taska Treasury & record in PlatformRevenue
-window.recordPlatformRevenue = async function (type, feeAmount, grossAmount, sourceProfileId, reference, note) {
-  if (!window.supabaseClient || !feeAmount || feeAmount <= 0) return;
+// NOTE: window.recordPlatformRevenue is provided by platform-revenue.js (loaded before this script)
+// Treasury IDs for reference (also set in platform-revenue.js)
+const TASKA_TREASURY_WALLET_ID  = window.TASKA_TREASURY_WALLET_ID  || '4231da9f-6e94-45b2-a3ee-9dbe47f74284';
+const TASKA_TREASURY_PROFILE_ID = window.TASKA_TREASURY_PROFILE_ID || '6fbcb633-16ad-4d02-bd6e-8115d270d4e4';
 
-  try {
-    // 1. Insert into PlatformRevenue table
-    await window.supabaseClient
-      .from('PlatformRevenue')
-      .insert({
-        type,
-        amount: feeAmount,
-        grossAmount: grossAmount || feeAmount,
-        sourceProfileId: sourceProfileId || null,
-        reference: reference || `REV_${Date.now()}`,
-        note: note || `Platform revenue for ${type}`,
-        createdAt: new Date().toISOString()
-      });
 
-    // 2. Credit Taska Master Treasury Account
-    const { data: treasuryProf } = await window.supabaseClient
-      .from('Profile')
-      .select('id, Wallet(*)')
-      .eq('email', 'treasury@taska.com.ng')
-      .maybeSingle();
-
-    if (treasuryProf) {
-      let tWallet = treasuryProf.Wallet && treasuryProf.Wallet.length > 0 ? treasuryProf.Wallet[0] : null;
-      if (!tWallet) {
-        const { data: newW } = await window.supabaseClient
-          .from('Wallet')
-          .insert({ profileId: treasuryProf.id, balance: 0, escrowBalance: 0, lifetimeEarned: 0, lifetimeWithdrawn: 0 })
-          .select()
-          .single();
-        tWallet = newW;
-      }
-
-      if (tWallet) {
-        const updatedBal = (tWallet.balance || 0) + feeAmount;
-        const updatedEarned = (tWallet.lifetimeEarned || 0) + feeAmount;
-
-        await window.supabaseClient
-          .from('Wallet')
-          .update({
-            balance: updatedBal,
-            lifetimeEarned: updatedEarned,
-            updatedAt: new Date().toISOString()
-          })
-          .eq('id', tWallet.id);
-
-        await window.supabaseClient
-          .from('WalletTransaction')
-          .insert({
-            walletId: tWallet.id,
-            amount: feeAmount,
-            type: 'DEPOSIT',
-            reference: reference || `REV_${Date.now()}`,
-            note: note || `Platform revenue collected from ${type}`,
-            createdAt: new Date().toISOString()
-          });
-      }
-    }
-  } catch (err) {
-    console.error('recordPlatformRevenue notice:', err);
-  }
-};
 
 async function initWalletPage() {
   const profile = await window.ensureTaskaProfile();
