@@ -106,8 +106,20 @@
     <!-- Application Form Details -->
     <div style="margin-bottom:16px;">
       <label class="field-label" for="modal-bid-amount">Your Proposed Rate (₦)</label>
-      <input type="number" class="text-input" id="modal-bid-amount" placeholder="e.g. 15000" style="margin-bottom:12px;">
+      <input type="number" class="text-input" id="modal-bid-amount" placeholder="e.g. 15000" style="margin-bottom:8px;">
       
+      <!-- Live Take-home Earnings Breakdown -->
+      <div id="bid-fee-breakdown" style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:12px; display:none;">
+        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:3px;">
+          <span>Taska Service Fee (10%):</span>
+          <span class="mono" id="bid-fee-val">-₦0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.86rem; font-weight:700; color:var(--green-900);">
+          <span>Your Take-Home Earnings:</span>
+          <span class="mono" id="bid-takehome-val">₦0</span>
+        </div>
+      </div>
+
       <label class="field-label" for="modal-bid-message">Pitch / Why are you the best fit? (Optional)</label>
       <textarea class="textarea-input" id="modal-bid-message" rows="2" placeholder="Briefly state your experience or when you can start..."></textarea>
     </div>

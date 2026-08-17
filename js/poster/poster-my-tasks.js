@@ -435,7 +435,10 @@ async function executeReleasePayment() {
         });
     }
 
-    // 2. Credit Tasker's Wallet
+    // 2. Credit Tasker's Wallet (90% Net Payout after 10% Taska Service Fee)
+    const taskaFee = Math.round(budget * 0.10);
+    const netPayout = budget - taskaFee;
+
     let { data: taskerWallet } = await window.supabaseClient
       .from('Wallet')
       .select('*')
@@ -452,8 +455,8 @@ async function executeReleasePayment() {
     }
 
     if (taskerWallet) {
-      const taskerNewBal = (taskerWallet.balance || 0) + budget;
-      const taskerNewEarned = (taskerWallet.lifetimeEarned || 0) + budget;
+      const taskerNewBal = (taskerWallet.balance || 0) + netPayout;
+      const taskerNewEarned = (taskerWallet.lifetimeEarned || 0) + netPayout;
 
       await window.supabaseClient
         .from('Wallet')
@@ -469,9 +472,9 @@ async function executeReleasePayment() {
         .insert({
           walletId: taskerWallet.id,
           type: 'TASK_PAYOUT',
-          amount: budget,
+          amount: netPayout,
           reference: `PAYOUT_${Date.now()}`,
-          note: `Earnings payout for completed task: ${taskTitle}`
+          note: `Earnings payout for: ${taskTitle} (₦${budget.toLocaleString()} less 10% Taska fee)`
         });
     }
 

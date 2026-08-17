@@ -154,7 +154,31 @@ window.openTaskModal = async function (taskId) {
   
   const bidInput = document.getElementById('modal-bid-amount');
   const msgInput = document.getElementById('modal-bid-message');
-  if (bidInput) bidInput.value = task.budget || '';
+  const feeBox = document.getElementById('bid-fee-breakdown');
+  const feeValEl = document.getElementById('bid-fee-val');
+  const takehomeValEl = document.getElementById('bid-takehome-val');
+
+  const updateBidFeeDisplay = () => {
+    const rawVal = parseFloat(bidInput?.value || '0');
+    if (rawVal > 0) {
+      const fee = Math.round(rawVal * 0.10);
+      const takehome = rawVal - fee;
+      if (feeValEl) feeValEl.textContent = `-₦${fee.toLocaleString()}`;
+      if (takehomeValEl) takehomeValEl.textContent = `₦${takehome.toLocaleString()}`;
+      if (feeBox) feeBox.style.display = 'block';
+    } else {
+      if (feeBox) feeBox.style.display = 'none';
+    }
+  };
+
+  if (bidInput) {
+    bidInput.value = task.budget || '';
+    updateBidFeeDisplay();
+    if (!bidInput._hasFeeListener) {
+      bidInput.addEventListener('input', updateBidFeeDisplay);
+      bidInput._hasFeeListener = true;
+    }
+  }
   if (msgInput) msgInput.value = '';
 
   const posterLink = document.getElementById('modal-poster-link');

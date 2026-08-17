@@ -136,10 +136,26 @@
     </div>
 
     <form id="wallet-deposit-form">
-      <div class="field-group" style="margin-bottom:18px;">
+      <div class="field-group" style="margin-bottom:14px;">
         <label class="field-label" for="deposit-amount">Custom Amount (NGN)</label>
         <input class="text-input mono" type="number" id="deposit-amount" min="500" max="2000000" step="100" value="5000" placeholder="e.g. 5000" required style="font-size:1.05rem; font-weight:600;">
-        <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Minimum deposit is ₦500. Zero hidden fees.</div>
+        <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Minimum deposit is ₦500.</div>
+      </div>
+
+      <!-- Live Deposit Fee Breakdown -->
+      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--ink-soft); margin-bottom:4px;">
+          <span>Gross Deposit:</span>
+          <span class="mono" id="deposit-gross-display">₦5,000</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--muted); margin-bottom:6px;">
+          <span>Taska Fee (10%):</span>
+          <span class="mono" id="deposit-fee-display">-₦500</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:700; color:var(--green-900); padding-top:6px; border-top:1px solid var(--line-soft);">
+          <span>Net Credited to Wallet:</span>
+          <span class="mono" id="deposit-net-display">₦4,500</span>
+        </div>
       </div>
 
       <div style="background:var(--surface-2); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px; margin-bottom:20px; display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--ink-soft);">
@@ -179,6 +195,22 @@
         <label class="field-label" for="withdraw-amount">Amount (NGN)</label>
         <input class="text-input mono" type="number" id="withdraw-amount" min="1000" step="100" placeholder="e.g. 5000" required style="font-size:1.02rem; font-weight:600;">
         <div style="font-size:0.74rem; color:var(--muted); margin-top:3px;">Minimum withdrawal is ₦1,000.</div>
+      </div>
+
+      <!-- Live Withdrawal Fee Breakdown -->
+      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--ink-soft); margin-bottom:4px;">
+          <span>Withdrawal Amount:</span>
+          <span class="mono" id="withdraw-gross-display">₦0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--muted); margin-bottom:6px;">
+          <span>Taska Fee (10%):</span>
+          <span class="mono" id="withdraw-fee-display">-₦0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:700; color:var(--green-900); padding-top:6px; border-top:1px solid var(--line-soft);">
+          <span>Net Disbursed to Bank:</span>
+          <span class="mono" id="withdraw-net-display">₦0</span>
+        </div>
       </div>
 
       <div class="field-group" style="margin-bottom:14px;">

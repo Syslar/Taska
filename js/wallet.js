@@ -1,6 +1,6 @@
 /**
  * Taska Wallet Controller
- * Secure Paystack Inline Deposit, Nigerian Bank Account Resolution & Withdrawal Engine.
+ * Secure Paystack Inline Deposit, Nigerian Bank Account Resolution & Withdrawal Engine with 10% Platform Fee.
  * Pure SVG icons, zero emojis, verified relative navigation.
  */
 
@@ -23,13 +23,33 @@ async function initWalletPage() {
     });
   });
 
-  // 2. Deposit Modal & Quick Amount Chips
+  // 2. Deposit Modal, Quick Amount Chips & Live Fee Calculation
   const depositModal = document.getElementById('wallet-deposit-modal');
   const depositAmountInput = document.getElementById('deposit-amount');
   const depositSubmitBtn = document.getElementById('deposit-submit-btn');
 
+  const depositGrossDisplay = document.getElementById('deposit-gross-display');
+  const depositFeeDisplay = document.getElementById('deposit-fee-display');
+  const depositNetDisplay = document.getElementById('deposit-net-display');
+
+  const updateDepositFeeBreakdown = () => {
+    const gross = parseFloat(depositAmountInput?.value || '0');
+    if (!isNaN(gross) && gross > 0) {
+      const fee = Math.round(gross * 0.10);
+      const net = Math.max(0, gross - fee);
+      if (depositGrossDisplay) depositGrossDisplay.textContent = `₦${gross.toLocaleString()}`;
+      if (depositFeeDisplay) depositFeeDisplay.textContent = `-₦${fee.toLocaleString()}`;
+      if (depositNetDisplay) depositNetDisplay.textContent = `₦${net.toLocaleString()}`;
+    } else {
+      if (depositGrossDisplay) depositGrossDisplay.textContent = `₦0`;
+      if (depositFeeDisplay) depositFeeDisplay.textContent = `-₦0`;
+      if (depositNetDisplay) depositNetDisplay.textContent = `₦0`;
+    }
+  };
+
   document.getElementById('wallet-deposit-btn')?.addEventListener('click', () => {
     if (depositModal) depositModal.style.display = 'flex';
+    updateDepositFeeBreakdown();
   });
 
   document.getElementById('wallet-deposit-close-btn')?.addEventListener('click', () => {
@@ -43,7 +63,10 @@ async function initWalletPage() {
       chips.forEach(c => c.classList.remove('is-selected'));
       chip.classList.add('is-selected');
       const amtVal = chip.dataset.amt;
-      if (depositAmountInput) depositAmountInput.value = amtVal;
+      if (depositAmountInput) {
+        depositAmountInput.value = amtVal;
+        updateDepositFeeBreakdown();
+      }
     });
   });
 
@@ -56,6 +79,7 @@ async function initWalletPage() {
         c.classList.remove('is-selected');
       }
     });
+    updateDepositFeeBreakdown();
   });
 
   // Handle Paystack Deposit Submission
@@ -66,11 +90,15 @@ async function initWalletPage() {
       return;
     }
 
-    const amt = parseFloat(depositAmountInput?.value || '0');
-    if (isNaN(amt) || amt < 500) {
+    const grossAmt = parseFloat(depositAmountInput?.value || '0');
+    if (isNaN(grossAmt) || grossAmt < 500) {
       if (window.showToast) window.showToast('Minimum deposit amount is ₦500.');
       return;
     }
+
+    // Calculate 10% Taska processing fee
+    const taskaFee = Math.round(grossAmt * 0.10);
+    const netCredit = grossAmt - taskaFee;
 
     if (depositSubmitBtn) {
       depositSubmitBtn.disabled = true;
@@ -93,7 +121,7 @@ async function initWalletPage() {
           .maybeSingle();
 
         const currentBal = currentWallet?.balance || 0;
-        const newBalance = currentBal + amt;
+        const newBalance = currentBal + netCredit;
 
         if (currentWallet) {
           await window.supabaseClient
@@ -121,16 +149,19 @@ async function initWalletPage() {
             .from('WalletTransaction')
             .insert({
               walletId: currentWallet.id,
-              amount: amt,
+              amount: netCredit,
               type: 'DEPOSIT',
               reference: txRef || paymentRef,
-              note: 'Paystack Card/Bank Deposit',
+              note: `Paystack Deposit (₦${grossAmt.toLocaleString()} less 10% Taska fee)`,
               createdAt: new Date().toISOString()
             });
         }
 
         if (depositAmountInput) depositAmountInput.value = '5000';
-        if (window.showToast) window.showToast(`₦${amt.toLocaleString()} successfully added to your wallet!`);
+        updateDepositFeeBreakdown();
+        if (window.showToast) {
+          window.showToast(`₦${netCredit.toLocaleString()} credited to your wallet (after 10% fee).`);
+        }
         await loadWalletData();
 
       } catch (err) {
@@ -150,7 +181,7 @@ async function initWalletPage() {
         const handler = window.PaystackPop.setup({
           key: PAYSTACK_PUBLIC_KEY,
           email: userEmail,
-          amount: Math.round(amt * 100), // in kobo
+          amount: Math.round(grossAmt * 100), // in kobo
           currency: 'NGN',
           ref: paymentRef,
           metadata: {
@@ -181,7 +212,7 @@ async function initWalletPage() {
     }
   });
 
-  // 3. Withdrawal Modal & Bank Lookup
+  // 3. Withdrawal Modal, Bank Lookup & Live Fee Calculation
   const withdrawModal = document.getElementById('wallet-withdraw-modal');
   const withdrawAmountInput = document.getElementById('withdraw-amount');
   const withdrawBankSelect = document.getElementById('withdraw-bank-select');
@@ -190,6 +221,25 @@ async function initWalletPage() {
   const withdrawNameEl = document.getElementById('withdraw-resolved-name');
   const withdrawSubmitBtn = document.getElementById('withdraw-submit-btn');
   const withdrawAvailableBalEl = document.getElementById('withdraw-available-bal');
+
+  const withdrawGrossDisplay = document.getElementById('withdraw-gross-display');
+  const withdrawFeeDisplay = document.getElementById('withdraw-fee-display');
+  const withdrawNetDisplay = document.getElementById('withdraw-net-display');
+
+  const updateWithdrawFeeBreakdown = () => {
+    const gross = parseFloat(withdrawAmountInput?.value || '0');
+    if (!isNaN(gross) && gross > 0) {
+      const fee = Math.round(gross * 0.10);
+      const net = Math.max(0, gross - fee);
+      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = `₦${gross.toLocaleString()}`;
+      if (withdrawFeeDisplay) withdrawFeeDisplay.textContent = `-₦${fee.toLocaleString()}`;
+      if (withdrawNetDisplay) withdrawNetDisplay.textContent = `₦${net.toLocaleString()}`;
+    } else {
+      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = `₦0`;
+      if (withdrawFeeDisplay) withdrawFeeDisplay.textContent = `-₦0`;
+      if (withdrawNetDisplay) withdrawNetDisplay.textContent = `₦0`;
+    }
+  };
 
   document.getElementById('wallet-withdraw-btn')?.addEventListener('click', async () => {
     const { data: wallet } = await window.supabaseClient
@@ -209,6 +259,7 @@ async function initWalletPage() {
     }
 
     if (withdrawModal) withdrawModal.style.display = 'flex';
+    updateWithdrawFeeBreakdown();
   });
 
   document.getElementById('wallet-withdraw-close-btn')?.addEventListener('click', () => {
@@ -223,8 +274,13 @@ async function initWalletPage() {
       .maybeSingle();
 
     const bal = wallet?.balance || 0;
-    if (withdrawAmountInput) withdrawAmountInput.value = bal;
+    if (withdrawAmountInput) {
+      withdrawAmountInput.value = bal;
+      updateWithdrawFeeBreakdown();
+    }
   });
+
+  withdrawAmountInput?.addEventListener('input', updateWithdrawFeeBreakdown);
 
   // Live account number verification feedback
   const resolveAccountHandler = () => {
@@ -253,8 +309,8 @@ async function initWalletPage() {
       return;
     }
 
-    const amt = parseFloat(withdrawAmountInput?.value || '0');
-    if (isNaN(amt) || amt < 1000) {
+    const grossAmt = parseFloat(withdrawAmountInput?.value || '0');
+    if (isNaN(grossAmt) || grossAmt < 1000) {
       if (window.showToast) window.showToast('Minimum withdrawal amount is ₦1,000.');
       return;
     }
@@ -272,6 +328,10 @@ async function initWalletPage() {
       withdrawSubmitBtn.textContent = 'Processing Payout...';
     }
 
+    // 10% fee calculation on withdrawal
+    const taskaFee = Math.round(grossAmt * 0.10);
+    const netPayout = grossAmt - taskaFee;
+
     try {
       // 1. Fetch current wallet balance securely
       const { data: wallet } = await window.supabaseClient
@@ -280,15 +340,15 @@ async function initWalletPage() {
         .eq('profileId', profile.id)
         .maybeSingle();
 
-      if (!wallet || wallet.balance < amt) {
+      if (!wallet || wallet.balance < grossAmt) {
         if (window.showToast) window.showToast('Insufficient wallet balance for this withdrawal.');
         return;
       }
 
-      const newBal = wallet.balance - amt;
-      const newWithdrawn = (wallet.lifetimeWithdrawn || 0) + amt;
+      const newBal = wallet.balance - grossAmt;
+      const newWithdrawn = (wallet.lifetimeWithdrawn || 0) + grossAmt;
 
-      // 2. Deduct from balance and increase lifetimeWithdrawn
+      // 2. Deduct full requested amount from balance and increase lifetimeWithdrawn
       const { error: updateErr } = await window.supabaseClient
         .from('Wallet')
         .update({
@@ -306,10 +366,10 @@ async function initWalletPage() {
         .from('WalletTransaction')
         .insert({
           walletId: wallet.id,
-          amount: amt,
+          amount: grossAmt,
           type: 'WITHDRAWAL',
           reference: withdrawRef,
-          note: `Payout to ${selectedBankName} (${accNum.slice(0, 3)}****${accNum.slice(7)})`,
+          note: `Payout of ₦${grossAmt.toLocaleString()} to ${selectedBankName} (${accNum.slice(0, 3)}****${accNum.slice(7)}) (Disbursed: ₦${netPayout.toLocaleString()} after 10% fee)`,
           createdAt: new Date().toISOString()
         });
 
@@ -317,9 +377,10 @@ async function initWalletPage() {
       if (withdrawAmountInput) withdrawAmountInput.value = '';
       if (withdrawAccInput) withdrawAccInput.value = '';
       if (withdrawNameBox) withdrawNameBox.style.display = 'none';
+      updateWithdrawFeeBreakdown();
 
       if (window.showToast) {
-        window.showToast(`Withdrawal of ₦${amt.toLocaleString()} submitted! Funds transfer in progress.`);
+        window.showToast(`Withdrawal requested! ₦${netPayout.toLocaleString()} will disburse to your bank (after 10% fee).`);
       }
 
       await loadWalletData();
