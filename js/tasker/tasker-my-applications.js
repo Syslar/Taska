@@ -101,15 +101,20 @@ function renderApplicationsList() {
       statusLabel = 'Work Submitted (Awaiting Approval)';
     } else if (isInProgress) {
       statusClass = 'status-open';
-      statusLabel = 'Hired — In Progress (Escrow Secured)';
+      statusLabel = task.revisionNotes ? 'Revisions Requested' : 'Hired — In Progress (Escrow Secured)';
     } else if (task.status !== 'OPEN') {
       statusClass = 'status-closed';
       statusLabel = 'Task Closed';
     }
 
+    const { cleanText, mediaUrls } = window.parseTaskMediaAndText
+      ? window.parseTaskMediaAndText(task.description, task.proofUrls)
+      : { cleanText: task.description || '', mediaUrls: task.proofUrls || [] };
+
     const rawTitle = task.title || 'Untitled Task';
     const safeTitle = window.escapeHtml(rawTitle);
-    const safeDesc = window.escapeHtml(task.description || '');
+    const safeDesc = window.escapeHtml(cleanText);
+    const mediaHTML = window.renderTaskMediaHTML ? window.renderTaskMediaHTML(mediaUrls) : '';
     const safeCategory = window.escapeHtml(task.category || 'General');
 
     const rawPosterName = `${poster.firstName || ''} ${poster.lastName || ''}`.trim() || poster.username || 'Task Poster';
@@ -121,6 +126,36 @@ function renderApplicationsList() {
     const budgetStr = window.formatNaira ? window.formatNaira(budgetVal) : `₦${budgetVal.toLocaleString()}`;
     const appliedDate = new Date(app.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
 
+    // Review / Submission status box
+    let statusBoxHTML = '';
+    if (isProofSubmitted) {
+      const submittedDate = task.proofSubmittedAt ? new Date(task.proofSubmittedAt) : new Date(task.updatedAt);
+      const autoReleaseDate = new Date(submittedDate.getTime() + 7 * 86400000);
+      const daysRemaining = Math.max(0, Math.ceil((autoReleaseDate.getTime() - Date.now()) / 86400000));
+      const autoReleaseDateStr = autoReleaseDate.toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      statusBoxHTML = `
+        <div style="background:#FFFBEB; border:1px solid #FCD34D; border-radius:var(--radius-sm); padding:12px 14px; margin-top:12px; font-size:0.85rem; color:#92400E;">
+          <div style="font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Deliverable Submitted for Review
+          </div>
+          ${task.proofNotes ? `<div style="color:var(--ink); margin-bottom:4px;"><strong>Your Notes:</strong> ${window.escapeHtml(task.proofNotes)}</div>` : ''}
+          <div style="font-size:0.8rem; color:#B45309; margin-top:4px;">
+            ⏳ <strong>7-Day Auto-Release:</strong> If the poster takes no action, payment automatically releases in <strong>${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'}</strong> (${autoReleaseDateStr}).
+          </div>
+        </div>
+      `;
+    } else if (isInProgress && task.revisionNotes) {
+      statusBoxHTML = `
+        <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:var(--radius-sm); padding:12px 14px; margin-top:12px; font-size:0.85rem; color:#991B1B;">
+          <div style="font-weight:700; margin-bottom:4px;">Revision Requested by Poster:</div>
+          <div style="margin-bottom:6px;">"${window.escapeHtml(task.revisionNotes)}"</div>
+          <div style="font-size:0.8rem; color:#B91C1C;">Please make the requested adjustments and click "Resubmit Completed Work" below.</div>
+        </div>
+      `;
+    }
+
     return `
       <div class="task-manage-card" style="${isInProgress ? 'border-left: 4px solid var(--green-700);' : ''}">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;">
@@ -130,7 +165,8 @@ function renderApplicationsList() {
               <span style="font-size:0.8rem; color:var(--muted);">${safeCategory} · Applied ${appliedDate}</span>
             </div>
             <h2 style="font-size:1.25rem; color:var(--green-900); margin-bottom:6px;">${safeTitle}</h2>
-            <p style="color:var(--ink-soft); font-size:0.9rem; line-height:1.5; margin-bottom:12px;">${safeDesc}</p>
+            <p style="color:var(--ink-soft); font-size:0.9rem; line-height:1.5; margin-bottom:6px;">${safeDesc}</p>
+            ${mediaHTML}
             
             <!-- Poster info strip -->
             <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
@@ -148,6 +184,8 @@ function renderApplicationsList() {
                 <strong>Your Cover Letter / Pitch:</strong> "${window.escapeHtml(app.message)}"
               </div>
             ` : ''}
+
+            ${statusBoxHTML}
           </div>
 
           <div style="text-align:right;">
@@ -159,7 +197,7 @@ function renderApplicationsList() {
                 <button class="btn btn-primary btn-sm btn-submit-work"
                   data-task-id="${task.id}"
                   data-task-title="${safeTitle}">
-                  ✓ Submit Completed Work
+                  ${task.revisionNotes ? '✓ Resubmit Completed Work' : '✓ Submit Completed Work'}
                 </button>
               ` : ''}
 
@@ -197,7 +235,7 @@ function openSubmitWorkModal(taskId, taskTitle) {
   const notesInput = document.getElementById('workProofNotes');
 
   if (titleText) {
-    titleText.innerHTML = `You are marking <strong>${window.escapeHtml(taskTitle)}</strong> as finished. The Poster will be notified immediately to review your deliverable and release your escrow payout.`;
+    titleText.innerHTML = `You are submitting your deliverable for <strong>${window.escapeHtml(taskTitle)}</strong>. The Poster will be notified immediately to review and release your payout (auto-releases in 7 days if inactive).`;
   }
   if (notesInput) notesInput.value = '';
 
@@ -226,6 +264,8 @@ async function handleConfirmSubmitWork() {
       .from('Task')
       .update({
         status: 'PROOF_SUBMITTED',
+        proofNotes: notes,
+        revisionNotes: null,
         proofSubmittedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       })
@@ -240,7 +280,7 @@ async function handleConfirmSubmitWork() {
     }
 
     if (window.showToast) {
-      window.showToast(`Work submitted for "${taskTitle}"! The Poster has been notified to release your payment.`);
+      window.showToast(`Work submitted for "${taskTitle}"! The Poster has been notified.`);
     }
 
     await fetchMyApplications();

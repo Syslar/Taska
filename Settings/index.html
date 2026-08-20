@@ -113,6 +113,25 @@
               </div>
             </div>
 
+            <!-- Gender and Date of Birth (Age) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+              <div class="field-group">
+                <label class="field-label" for="settingsGender">Gender</label>
+                <select class="text-input" id="settingsGender" style="width:100%;">
+                  <option value="">Select Gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label class="field-label" for="settingsDob">Date of Birth (Age)</label>
+                <input class="text-input" type="date" id="settingsDob" max="2012-12-31">
+                <span class="field-hint" id="settingsAgeHint" style="font-size:0.75rem; color:var(--muted); margin-top:3px; display:block;">Required for age-restricted tasks.</span>
+              </div>
+            </div>
+
             <div class="field-group" style="margin-bottom: 24px;">
               <label class="field-label" for="settingsBio">Bio & Summary</label>
               <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell other users and clients about your skills, experience, or what you do..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>

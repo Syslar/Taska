@@ -23,7 +23,30 @@
 }
 
 @media (max-width: 900px) {
-  .profile-layout { grid-template-columns: 1fr; }
+  .profile-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 20px;
+  }
+  .profile-card {
+    position: static !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .profile-content {
+    width: 100%;
+    box-sizing: border-box;
+    display: block !important;
+  }
+  .profile-tabs {
+    display: flex !important;
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
 }
 
 .profile-card {

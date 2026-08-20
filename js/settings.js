@@ -24,9 +24,22 @@ window.renderSettingsPage = async function () {
   const phone = document.getElementById('settingsPhone');
   const loc = document.getElementById('settingsLocation');
   const bio = document.getElementById('settingsBio');
+  const genderEl = document.getElementById('settingsGender');
+  const dobEl = document.getElementById('settingsDob');
+  const ageHint = document.getElementById('settingsAgeHint');
 
   if (fname) fname.value = profile.firstName || '';
   if (lname) lname.value = profile.lastName || '';
+  if (genderEl) genderEl.value = profile.gender || '';
+  if (dobEl) {
+    dobEl.value = profile.dateOfBirth || '';
+    if (profile.dateOfBirth && ageHint) {
+      const birthYear = new Date(profile.dateOfBirth).getFullYear();
+      const age = new Date().getFullYear() - birthYear;
+      ageHint.textContent = `Declared Age: ~${age} years old`;
+      ageHint.style.color = 'var(--green-700)';
+    }
+  }
 
   const rawPhone = profile.phone || '';
   const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
@@ -340,9 +353,11 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
 
   const location = document.getElementById('settingsLocation')?.value.trim() || '';
   const bio = document.getElementById('settingsBio')?.value.trim() || '';
+  const gender = document.getElementById('settingsGender')?.value || null;
+  const dateOfBirth = document.getElementById('settingsDob')?.value || null;
 
   try {
-    const updatePayload = { firstName, lastName, phone: fullPhone, location, bio };
+    const updatePayload = { firstName, lastName, phone: fullPhone, location, bio, gender, dateOfBirth };
     if (newAvatarUrl) updatePayload.avatarUrl = newAvatarUrl;
 
     const { error } = await window.supabaseClient
@@ -354,6 +369,9 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
 
     Object.assign(profile, updatePayload);
     window.__taskaProfile = profile;
+    try {
+      localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+    } catch (_) {}
 
     if (window.showToast) window.showToast('Profile updated successfully!');
     window.renderSettingsPage();

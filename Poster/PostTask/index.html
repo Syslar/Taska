@@ -4,10 +4,86 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Post a Task — Taska</title>
-  <link rel="stylesheet" href="../../css/styles.css?v=14">
-  <link rel="stylesheet" href="../../css/poster/poster-post-task.css?v=14">
+  <link rel="stylesheet" href="../../css/styles.css?v=17">
+  <link rel="stylesheet" href="../../css/poster/poster-post-task.css?v=17">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    
+    /* Wizard Stepper Styling */
+    .wizard-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding: 16px 20px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      position: relative;
+    }
+    .wizard-step-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s ease;
+    }
+    .wizard-step-node.is-active {
+      color: var(--green-800);
+    }
+    .wizard-step-node.is-completed {
+      color: var(--green-700);
+    }
+    .wizard-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--paper);
+      border: 1.5px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      transition: all 0.15s ease;
+    }
+    .wizard-step-node.is-active .wizard-step-num {
+      background: var(--green-800);
+      color: #fff;
+      border-color: var(--green-800);
+    }
+    .wizard-step-node.is-completed .wizard-step-num {
+      background: var(--mint-150);
+      color: var(--green-900);
+      border-color: var(--mint-150);
+    }
+    .wizard-step-divider {
+      flex: 1;
+      height: 2px;
+      background: var(--line-soft);
+      margin: 0 10px;
+    }
+    @media (max-width: 768px) {
+      .wizard-step-text { display: none; }
+      .wizard-step-divider { margin: 0 4px; }
+    }
+
+    /* Slide transition */
+    .step-panel {
+      display: none;
+      animation: fadeInSlide 0.2s ease forwards;
+    }
+    .step-panel.is-active {
+      display: block;
+    }
+    @keyframes fadeInSlide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
@@ -19,20 +95,55 @@
     <div class="app-header">
       <div>
         <h1>Post a task</h1>
-        <p class="sub">Be specific. The more detail you provide, the better the applications you receive.</p>
+        <p class="sub">Fill out the details below to receive competitive bids from verified Nigerian Taskers.</p>
       </div>
     </div>
 
     <div class="form-two-col">
 
-      <!-- Left: the form -->
+      <!-- Left: the form wizard -->
       <div>
-        <form id="postTaskForm">
+        <!-- Wizard Progress Header -->
+        <div class="wizard-stepper" id="wizardStepper">
+          <div class="wizard-step-node is-active" data-step="1">
+            <span class="wizard-step-num">1</span>
+            <span class="wizard-step-text">Basics</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" data-step="2">
+            <span class="wizard-step-num">2</span>
+            <span class="wizard-step-text">Location</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" data-step="3">
+            <span class="wizard-step-num">3</span>
+            <span class="wizard-step-text">Budget</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" data-step="4">
+            <span class="wizard-step-num">4</span>
+            <span class="wizard-step-text">Media</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" data-step="5">
+            <span class="wizard-step-num">5</span>
+            <span class="wizard-step-text">Criteria</span>
+          </div>
+        </div>
 
-          <!-- Step 1: Basics -->
-          <div class="panel" style="margin-bottom: 20px;">
+        <form id="postTaskForm">
+          <!-- Draft Notice Banner -->
+          <div id="draft-loaded-banner" style="display: none; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; align-items: center; justify-content: space-between;">
+            <div style="font-size: 0.88rem; color: #92400E;">
+              <strong>Editing Saved Draft:</strong> You are editing a previously saved draft.
+            </div>
+            <button type="button" id="btn-discard-draft" style="background: none; border: none; font-size: 0.8rem; color: #B45309; text-decoration: underline; cursor: pointer;">Discard Draft</button>
+          </div>
+
+          <!-- SLIDE 1: Basics -->
+          <div class="panel step-panel is-active" id="step-panel-1" style="margin-bottom: 20px;">
             <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 01</div>
+              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 01 of 05</div>
               <h2 style="font-size: 1.15rem;">Task basics</h2>
             </div>
 
@@ -62,22 +173,29 @@
                 placeholder="Describe what needs to be done, any specific requirements, access details, tools or materials the Tasker should bring..." required></textarea>
               <span class="field-hint">Include as much context as possible. Vague tasks attract vague applications.</span>
             </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft);">
+              <button type="button" class="btn btn-secondary" id="save-draft-btn-1">Save Draft</button>
+              <button type="button" class="btn btn-primary" id="btn-next-1">Next: Location &amp; Timing →</button>
+            </div>
           </div>
 
-          <!-- Step 2: Location & Deadline -->
-          <div class="panel" style="margin-bottom: 20px;">
+          <!-- SLIDE 2: Location & Deadline -->
+          <div class="panel step-panel" id="step-panel-2" style="margin-bottom: 20px;">
             <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 02</div>
+              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 02 of 05</div>
               <h2 style="font-size: 1.15rem;">Location &amp; timing</h2>
             </div>
 
-            <div class="field-group">
+            <div class="field-group" style="margin-bottom: 18px;">
               <label class="field-label">Task type</label>
-              <div class="toggle-group" id="taskTypeToggle" style="margin-bottom: 4px;">
-                <button type="button" class="toggle-option is-active" data-type="physical" style="padding: 10px 24px; border:none; cursor:pointer;">Physical — in person</button>
-                <button type="button" class="toggle-option" data-type="remote" style="padding: 10px 24px; border:none; cursor:pointer;">Remote — online</button>
+              <div style="display: block;">
+                <div class="toggle-group" id="taskTypeToggle">
+                  <button type="button" class="toggle-option is-active" data-type="physical" style="padding: 9px 22px; border:none; cursor:pointer;">Physical — in person</button>
+                  <button type="button" class="toggle-option" data-type="remote" style="padding: 9px 22px; border:none; cursor:pointer;">Remote — online</button>
+                </div>
               </div>
-              <span class="field-hint">Physical tasks require the Tasker to be present at a location.</span>
+              <span class="field-hint" id="taskTypeHint" style="display:block; margin-top:6px;">Physical tasks require the Tasker to be present at a location.</span>
             </div>
 
             <div id="locationWrap">
@@ -98,7 +216,7 @@
               <div class="field-group">
                 <label class="field-label" for="taskDate">Task date</label>
                 <input class="text-input" type="date" id="taskDate">
-                <span class="field-hint">When should this be done by?</span>
+                <span class="field-hint">When should this be done by? (Present or future dates)</span>
               </div>
               <div class="field-group">
                 <label class="field-label" for="taskTime">Preferred time</label>
@@ -110,20 +228,30 @@
                 </select>
               </div>
             </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft);">
+              <button type="button" class="btn btn-secondary" id="btn-back-2">← Back</button>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-secondary" id="save-draft-btn-2">Save Draft</button>
+                <button type="button" class="btn btn-primary" id="btn-next-2">Next: Budget &amp; Pricing →</button>
+              </div>
+            </div>
           </div>
 
-          <!-- Step 3: Budget -->
-          <div class="panel" style="margin-bottom: 20px;">
+          <!-- SLIDE 3: Budget & Settings -->
+          <div class="panel step-panel" id="step-panel-3" style="margin-bottom: 20px;">
             <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 03</div>
-              <h2 style="font-size: 1.15rem;">Budget</h2>
+              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 03 of 05</div>
+              <h2 style="font-size: 1.15rem;">Budget &amp; options</h2>
             </div>
 
             <div class="field-group">
               <label class="field-label">How would you like to pay?</label>
-              <div class="toggle-group" id="budgetTypeToggle" style="margin-bottom: 8px;">
-                <button type="button" class="toggle-option is-active" data-budget-type="fixed" style="padding: 10px 24px; border:none; cursor:pointer;">Fixed price</button>
-                <button type="button" class="toggle-option" data-budget-type="open" style="padding: 10px 24px; border:none; cursor:pointer;">Open to bids</button>
+              <div style="display:block;">
+                <div class="toggle-group" id="budgetTypeToggle" style="margin-bottom: 8px;">
+                  <button type="button" class="toggle-option is-active" data-budget-type="fixed" style="padding: 9px 22px; border:none; cursor:pointer;">Fixed price</button>
+                  <button type="button" class="toggle-option" data-budget-type="open" style="padding: 9px 22px; border:none; cursor:pointer;">Open to bids</button>
+                </div>
               </div>
             </div>
 
@@ -131,7 +259,7 @@
               <div class="field-group">
                 <label class="field-label" for="taskBudget">Your budget (₦) *</label>
                 <input class="text-input" type="number" id="taskBudget" placeholder="e.g. 7500" min="500">
-                <span class="field-hint">This is the total you're willing to pay including the Taska service fee.</span>
+                <span class="field-hint">This is the total budget secured in escrow when hiring.</span>
               </div>
             </div>
 
@@ -146,19 +274,52 @@
                   <input class="text-input" type="number" id="budgetMax" placeholder="e.g. 10000">
                 </div>
               </div>
-              <span class="field-hint" style="display:block; margin-top:-14px; margin-bottom:18px;">Taskers bid within your stated range. You choose who to assign.</span>
+              <span class="field-hint" style="display:block; margin-top:-10px; margin-bottom:14px;">Taskers bid within your stated range.</span>
+            </div>
+
+            <!-- Allow Custom Price Proposals Checkbox -->
+            <div style="margin-top: 14px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+              <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="allowPriceProposals" style="margin-top: 3px; accent-color: var(--green-700); width: 18px; height: 18px; cursor: pointer;">
+                <div>
+                  <span style="font-weight: 600; font-size: 0.92rem; color: var(--green-900);">Allow Taskers to submit custom Price Proposals</span>
+                  <p style="font-size: 0.8rem; color: var(--muted); margin: 3px 0 0; line-height: 1.4;">If enabled, Taskers can propose counter-prices. If disabled, Taskers can only apply at your stated budget.</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Allow Direct Messages Checkbox -->
+            <div style="margin-top: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+              <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="allowDirectMessages" style="margin-top: 3px; accent-color: var(--green-700); width: 18px; height: 18px; cursor: pointer;">
+                <div>
+                  <span style="font-weight: 600; font-size: 0.92rem; color: var(--green-900);">Allow Taskers to Direct Message me before applying</span>
+                  <p style="font-size: 0.8rem; color: var(--muted); margin: 3px 0 0; line-height: 1.4;">If enabled, a "Message Poster" button will appear on your task card. If disabled, messaging is private only after hiring.</p>
+                </div>
+              </label>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft);">
+              <button type="button" class="btn btn-secondary" id="btn-back-3">← Back</button>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-secondary" id="save-draft-btn-3">Save Draft</button>
+                <button type="button" class="btn btn-primary" id="btn-next-3">Next: Attachments →</button>
+              </div>
             </div>
           </div>
 
-          <!-- Step 4: Attachments -->
-          <div class="panel" style="margin-bottom: 28px;">
-            <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px;">
-              <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 04 — Optional</div>
-              <h2 style="font-size: 1.15rem;">Attachments</h2>
+          <!-- SLIDE 4: Attachments (Optional) -->
+          <div class="panel step-panel" id="step-panel-4" style="margin-bottom: 20px;">
+            <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px; display:flex; justify-content:space-between; align-items:flex-end;">
+              <div>
+                <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 04 of 05 — Optional</div>
+                <h2 style="font-size: 1.15rem; margin:0;">Attachments &amp; media</h2>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-skip-4" style="font-size:0.8rem; color:var(--muted);">Skip Step ↷</button>
             </div>
 
             <div class="field-group">
-              <label class="field-label">Reference photos or documents</label>
+              <label class="field-label">Reference photos or documents (Optional)</label>
               <div class="dropzone" id="task-media-dropzone" role="button" tabindex="0" aria-label="Upload attachments">
                 <input type="file" id="task-media-input" accept="image/*,video/*,.pdf" style="display:none;">
                 <div class="dropzone-icon">
@@ -172,11 +333,88 @@
                 <button type="button" id="task-media-remove-btn" style="background:none; border:none; color:var(--red); font-weight:700; cursor:pointer;">✕ Remove</button>
               </div>
             </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft);">
+              <button type="button" class="btn btn-secondary" id="btn-back-4">← Back</button>
+              <div style="display:flex; gap:10px;">
+                <button type="button" class="btn btn-secondary" id="btn-skip-4-alt">Skip</button>
+                <button type="button" class="btn btn-secondary" id="save-draft-btn-4">Save Draft</button>
+                <button type="button" class="btn btn-primary" id="btn-next-4">Next: Criteria →</button>
+              </div>
+            </div>
           </div>
 
-          <div style="display: flex; gap: 14px; margin-bottom: 40px;">
-            <button type="submit" class="btn btn-primary" id="post-submit-btn" style="flex:1;">Post task</button>
-            <a href="../Dashboard/index.html" class="btn btn-secondary">Cancel</a>
+          <!-- SLIDE 5: Tasker Eligibility Criteria (Optional) -->
+          <div class="panel step-panel" id="step-panel-5" style="margin-bottom: 20px;">
+            <div style="padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); margin-bottom: 22px; display:flex; justify-content:space-between; align-items:flex-end;">
+              <div>
+                <div class="mono" style="font-size: 0.75rem; color: var(--green-700); margin-bottom: 4px;">Step 05 of 05 — Optional</div>
+                <h2 style="font-size: 1.15rem; margin:0;">Tasker Eligibility Criteria</h2>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-skip-5" style="font-size:0.8rem; color:var(--muted);">Use Default Criteria</button>
+            </div>
+
+            <p style="font-size: 0.82rem; color: var(--muted); margin-bottom: 18px;">Specify who is allowed to apply for this task based on verification, gender, age, or location.</p>
+
+            <!-- KYC Verification Requirement Toggle -->
+            <div style="margin-bottom: 18px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+              <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="criteriaKycOnly" style="margin-top: 3px; accent-color: var(--green-700); width: 18px; height: 18px; cursor: pointer;">
+                <div>
+                  <span style="font-weight: 600; font-size: 0.92rem; color: var(--green-900);">Require KYC Verified Taskers Only</span>
+                  <p style="font-size: 0.8rem; color: var(--muted); margin: 3px 0 0; line-height: 1.4;">Only taskers who have completed identity verification (NIN/Voters Card/Govt ID) can apply.</p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Gender Preference -->
+            <div class="field-group" style="margin-bottom: 18px;">
+              <label class="field-label" for="criteriaGender">Gender Preference</label>
+              <select class="text-input" id="criteriaGender" style="width: 100%;">
+                <option value="ANY" selected>Any Gender (Open to all)</option>
+                <option value="MALE">Male Taskers Only</option>
+                <option value="FEMALE">Female Taskers Only</option>
+              </select>
+            </div>
+
+            <!-- Age Range Criteria -->
+            <div class="input-row" style="margin-bottom: 18px;">
+              <div class="field-group">
+                <label class="field-label" for="criteriaMinAge">Minimum Age (Years)</label>
+                <input class="text-input" type="number" id="criteriaMinAge" placeholder="e.g. 18" min="18" max="100">
+              </div>
+              <div class="field-group">
+                <label class="field-label" for="criteriaMaxAge">Maximum Age (Years)</label>
+                <input class="text-input" type="number" id="criteriaMaxAge" placeholder="e.g. 35" min="18" max="100">
+              </div>
+            </div>
+
+            <!-- Location Filter Requirement -->
+            <div class="field-group">
+              <label class="field-label" for="criteriaLocation">Location Requirement</label>
+              <select class="text-input" id="criteriaLocation" style="width: 100%;">
+                <option value="ANY" selected>Any Location / Remote</option>
+                <option value="Abia">Abia</option>
+                <option value="Abuja">Abuja (FCT)</option>
+                <option value="Anambra">Anambra</option>
+                <option value="Delta">Delta</option>
+                <option value="Edo">Edo</option>
+                <option value="Enugu">Enugu</option>
+                <option value="Kano">Kano</option>
+                <option value="Lagos">Lagos</option>
+                <option value="Ogun">Ogun</option>
+                <option value="Oyo">Oyo</option>
+                <option value="Rivers">Rivers</option>
+              </select>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft); flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary" id="btn-back-5">← Back</button>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" id="save-draft-btn-5">Save Draft</button>
+                <button type="submit" class="btn btn-primary" id="post-submit-btn" style="min-width: 160px;">Post Task Now 🚀</button>
+              </div>
+            </div>
           </div>
 
         </form>
@@ -187,38 +425,36 @@
         <div class="panel summary-card">
           <h2 style="font-size: 1.05rem; margin-bottom: 18px;">Task summary</h2>
 
-          <div class="summary-row">
-            <span class="k">Category</span>
-            <span class="v" id="sumCategory">—</span>
+          <div class="summary-line">
+            <span class="label">Category</span>
+            <span class="value" id="sumCategory">—</span>
           </div>
-          <div class="summary-row">
-            <span class="k">Type</span>
-            <span class="v" id="sumType">Physical</span>
+          <div class="summary-line">
+            <span class="label">Type</span>
+            <span class="value" id="sumType">Physical</span>
           </div>
-          <div class="summary-row">
-            <span class="k">Budget</span>
-            <span class="v mono" id="sumBudget">—</span>
+          <div class="summary-line">
+            <span class="label">Budget</span>
+            <span class="value mono" id="sumBudget">—</span>
           </div>
-          <div class="summary-row">
-            <span class="k">Date</span>
-            <span class="v" id="sumDate">—</span>
-          </div>
-
-          <div style="margin-top: 20px; padding: 16px; background: var(--mint-050); border: 1px solid var(--mint-150); border-radius: var(--radius-sm);">
-            <div style="font-size: 0.8rem; font-weight: 600; color: var(--green-700); margin-bottom: 10px;">How payment works</div>
-            <div style="font-size: 0.82rem; color: var(--ink-soft); line-height: 1.6;">
-              Your payment is held in escrow the moment you assign a Tasker. It is not charged before then. Funds release only after you approve the proof of completion.
-            </div>
+          <div class="summary-line">
+            <span class="label">Date</span>
+            <span class="value" id="sumDate">—</span>
           </div>
 
-          <div style="margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 16px;">
-            <div class="summary-row" style="padding: 4px 0;">
-              <span class="k" style="font-size: 0.8rem;">Service fee (10%)</span>
-              <span class="v mono" id="sumFee" style="font-size: 0.8rem; color: var(--muted);">—</span>
+          <div style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-sm); padding:14px 16px; margin:20px 0 16px; font-size:0.85rem; color:var(--ink-soft); line-height:1.5;">
+            <strong style="color:var(--green-900); display:block; margin-bottom:4px;">How payment works</strong>
+            Your payment is held in escrow the moment you assign a Tasker. Funds release only after you review and approve the completed work.
+          </div>
+
+          <div class="summary-total" style="border-top:1px solid var(--line-soft); padding-top:14px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:0.82rem; color:var(--muted);">
+              <span>Taska commission (10% on release)</span>
+              <span class="mono" id="sumFee">—</span>
             </div>
-            <div class="summary-row" style="padding: 6px 0;">
-              <span class="k" style="font-weight: 700;">Total held in escrow</span>
-              <span class="v mono" id="sumTotal" style="color: var(--green-900);">—</span>
+            <div style="display:flex; justify-content:space-between; font-weight:700; color:var(--green-900); font-size:1.05rem;">
+              <span>Secured in Escrow upon hire</span>
+              <span class="mono" id="sumTotal">—</span>
             </div>
           </div>
         </div>
@@ -228,10 +464,10 @@
   </main>
 </div>
 
-<!-- Supabase JS SDK & Cloudinary -->
+<!-- Supabase JS SDK & Cloudinary Upload Helper -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../js/supabase-client.js"></script>
-<script src="../../js/cloudinary-upload.js"></script>
+<script src="../../js/supabase-client.js?v=17"></script>
+<script src="../../js/cloudinary-upload.js?v=17"></script>
 
 <!-- Clerk JS -->
 <script
@@ -240,9 +476,9 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
-<script src="../../js/sidebar-component.js"></script>
-<script src="../../js/auth-guard.js?v=14"></script>
-<script src="../../js/poster/poster-post-task.js?v=14"></script>
+<script src="../../js/sidebar-component.js?v=17"></script>
+<script src="../../js/auth-guard.js?v=17"></script>
+<script src="../../js/poster/poster-post-task.js?v=17"></script>
 
 </body>
 </html>

@@ -911,7 +911,14 @@ document.getElementById('settingsAvatarUpload')?.addEventListener('change', func
 });
 // Delete Account Action
 document.getElementById('settingsDeleteBtn')?.addEventListener('click', async () => {
-  const confirmed = confirm('WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent.');
+  const confirmed = window.showConfirmDialog ? await window.showConfirmDialog({
+    title: 'Delete Taska Account?',
+    message: 'WARNING: Are you absolutely sure you want to delete your Taska account? This action is permanent and cannot be undone.',
+    confirmText: 'Permanently Delete',
+    cancelText: 'Keep Account',
+    isDanger: true
+  }) : confirm('WARNING: Are you absolutely sure you want to delete your Taska account?');
+
   if (!confirmed) return;
 
   const profile = await window.ensureTaskaProfile();
@@ -1130,14 +1137,19 @@ async function loadChatMessages() {
     } else {
       bodyEl.innerHTML = msgs.map(m => {
         const isMine = m.senderId === profile.id;
-        const msgText = m.content || m.body || '';
+        const msgText = window.escapeHtml ? window.escapeHtml(m.content || m.body || '') : (m.content || m.body || '');
         let mediaHTML = '';
-        if (m.mediaUrl) {
-          const urlLower = m.mediaUrl.toLowerCase();
-          if (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.mov') || urlLower.includes('video/upload')) {
-            mediaHTML = `<video src="${m.mediaUrl}" controls style="max-width:100%; max-height:240px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
-          } else {
-            mediaHTML = `<a href="${m.mediaUrl}" target="_blank"><img src="${m.mediaUrl}" style="max-width:100%; max-height:240px; border-radius:8px; object-fit:cover; margin-bottom:6px; display:block;"></a>`;
+        if (m.mediaUrl && typeof m.mediaUrl === 'string') {
+          const trimmedUrl = m.mediaUrl.trim();
+          const isSafeProtocol = /^https:\/\//i.test(trimmedUrl) || /^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(trimmedUrl);
+          if (isSafeProtocol) {
+            const safeUrl = window.escapeHtml ? window.escapeHtml(trimmedUrl) : encodeURI(trimmedUrl);
+            const urlLower = trimmedUrl.toLowerCase();
+            if (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.mov') || urlLower.includes('video/upload')) {
+              mediaHTML = `<video src="${safeUrl}" controls style="max-width:100%; max-height:240px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
+            } else {
+              mediaHTML = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer"><img src="${safeUrl}" alt="Attachment" style="max-width:100%; max-height:240px; border-radius:8px; object-fit:cover; margin-bottom:6px; display:block;"></a>`;
+            }
           }
         }
         return `
@@ -1168,8 +1180,11 @@ if (chatFileInput) {
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       const msg = 'Maximum size for media is 5MB.';
-      if (window.showToast) window.showToast(msg);
-      else alert(msg);
+      if (window.showToast) {
+        window.showToast(msg);
+      } else if (window.showAlertDialog) {
+        window.showAlertDialog({ title: 'File Too Large', message: msg });
+      }
       chatFileInput.value = '';
       pendingChatFile = null;
       if (chatMediaPreviewWrap) chatMediaPreviewWrap.style.display = 'none';

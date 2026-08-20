@@ -173,7 +173,15 @@ function renderMyTasksList() {
 }
 
 async function acceptTasker(taskId, applicationId, taskerId, taskerName) {
-  if (!confirm(`Are you sure you want to hire ${taskerName} for this task?`)) return;
+  const confirmed = window.showConfirmDialog ? await window.showConfirmDialog({
+    title: `Hire ${taskerName}?`,
+    message: `Are you sure you want to hire ${taskerName} for this task? Escrow will be secured.`,
+    confirmText: 'Confirm Hiring',
+    cancelText: 'Cancel',
+    icon: 'check',
+  }) : confirm(`Are you sure you want to hire ${taskerName} for this task?`);
+
+  if (!confirmed) return;
 
   try {
     // 1. Update Application isSelected = true

@@ -126,19 +126,38 @@
     try {
       await window.Clerk.load();
       
-      function getPostLoginRedirect() {
-        const cached = localStorage.getItem('taska_cached_profile');
-        if (cached) {
-          try {
+      async function getPostLoginRedirect() {
+        try {
+          let stored = localStorage.getItem('taska_active_role');
+          if (stored === 'TASKER') return '../Tasker/Dashboard/index.html';
+          if (stored === 'POSTER') return '../Poster/Dashboard/index.html';
+
+          const cached = localStorage.getItem('taska_cached_profile');
+          if (cached) {
             const p = JSON.parse(cached);
             if (p.activeRole === 'TASKER' || p.role === 'TASKER') return '../Tasker/Dashboard/index.html';
-          } catch (_) {}
-        }
+            if (p.activeRole === 'POSTER' || p.role === 'POSTER') return '../Poster/Dashboard/index.html';
+          }
+
+          if (window.Clerk?.user && window.supabaseClient) {
+            const { data: p } = await window.supabaseClient
+              .from('Profile')
+              .select('role, activeRole')
+              .eq('userId', window.Clerk.user.id)
+              .maybeSingle();
+
+            if (p) {
+              const role = (p.activeRole || p.role || 'POSTER').toUpperCase();
+              localStorage.setItem('taska_active_role', role);
+              return role === 'TASKER' ? '../Tasker/Dashboard/index.html' : '../Poster/Dashboard/index.html';
+            }
+          }
+        } catch (_) {}
         return '../Poster/Dashboard/index.html';
       }
 
       if (window.Clerk.session) {
-        window.location.replace(getPostLoginRedirect());
+        getPostLoginRedirect().then(url => window.location.replace(url));
         return;
       }
 
@@ -176,7 +195,8 @@
             try {
               await window.Clerk.setActive({ session: activeSignInAttempt.createdSessionId });
             } catch (_) {}
-            window.location.replace(getPostLoginRedirect());
+            const targetUrl = await getPostLoginRedirect();
+            window.location.replace(targetUrl);
             return;
           }
 
@@ -187,7 +207,8 @@
               const res = await activeSignInAttempt.attemptFirstFactor({ strategy: 'password', password });
               if (res.status === 'complete') {
                 await window.Clerk.setActive({ session: res.createdSessionId });
-                window.location.replace(getPostLoginRedirect());
+                const targetUrl = await getPostLoginRedirect();
+                window.location.replace(targetUrl);
                 return;
               }
             }

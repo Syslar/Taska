@@ -1,102 +1,276 @@
 /**
- * Taska Wallet Controller
- * Secure Paystack Inline Deposit, Nigerian Bank Account Resolution, Withdrawal Engine,
- * and Automated Platform Treasury Revenue Accounting.
- * Pure SVG icons, zero emojis, verified relative navigation.
+ * Taska Wallet Controller — v3.0
+ * Compliant with Taska Wallet & Paystack Integration Specification
+ *
+ * Architecture:
+ * - Single Paystack Business Account
+ * - Authoritative Accounting Ledger in Supabase
+ * - Paystack Checkout Popup for Deposits (Cards, Bank Transfer, USSD)
+ * - Paystack Transfer API for Withdrawals
+ * - Configurable Platform Commission Rates
+ * - Zero Direct Frontend DB Mutations
  */
 
-// Paystack Public Key (Client-side safe ONLY - Secret keys are NEVER exposed to the frontend)
-const PAYSTACK_PUBLIC_KEY = window.PAYSTACK_PUBLIC_KEY || 'pk_test_fa5b21442a0f593c2af57cf0af33adcb93f1c9ae';
+// ── Config ────────────────────────────────────────────────────────────────────
+const PAYSTACK_PUBLIC_KEY = 'pk_test_fa5b21442a0f593c2af57cf0af33adcb93f1c9ae';
+const EDGE_FN = 'https://nhittvkskzwpeinscxir.supabase.co/functions/v1';
 
-// NOTE: window.recordPlatformRevenue is provided by platform-revenue.js (loaded before this script)
-// Treasury IDs for reference (also set in platform-revenue.js)
-const TASKA_TREASURY_WALLET_ID  = window.TASKA_TREASURY_WALLET_ID  || '4231da9f-6e94-45b2-a3ee-9dbe47f74284';
-const TASKA_TREASURY_PROFILE_ID = window.TASKA_TREASURY_PROFILE_ID || '6fbcb633-16ad-4d02-bd6e-8115d270d4e4';
+// ── State ─────────────────────────────────────────────────────────────────────
+let _currentProfile = null;
+let _walletState = {
+  available_balance: 0,
+  locked_balance: 0,
+  escrow_balance: 0,
+  lifetime_earned: 0,
+  lifetime_withdrawn: 0,
+  deposits: [],
+  withdrawals: [],
+  deposit_fee_rate: 0,
+  withdrawal_fee_rate: 0,
+  task_commission_rate: 10,
+};
+let _resolvedAccountName = '';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
+function formatNaira(amount) {
+  return `₦${Number(amount || 0).toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
 
-async function initWalletPage() {
-  const profile = await window.ensureTaskaProfile();
+async function edgeFetch(path, options = {}) {
+  const token = window.getTaskaToken ? await window.getTaskaToken() : null;
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${EDGE_FN}/${path}`, {
+    ...options,
+    headers,
+  });
+  return res.json();
+}
+
+function showModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.style.display = 'flex';
+  modalEl.classList.add('is-open');
+}
+
+function hideModal(modalEl) {
+  if (!modalEl) return;
+  modalEl.style.display = 'none';
+  modalEl.classList.remove('is-open');
+}
+
+// ── Load Wallet Data ──────────────────────────────────────────────────────────
+
+async function loadWalletData() {
+  if (!_currentProfile) {
+    _currentProfile = await window.ensureTaskaProfile?.();
+  }
+  const profile = _currentProfile;
   if (!profile) return;
 
-  await loadWalletData();
+  try {
+    const info = await edgeFetch(`wallet-info?profileId=${profile.id}`);
+    if (!info.success) {
+      console.error('[wallet] Failed to load wallet info:', info.error);
+      return;
+    }
 
-  // 1. Bind transaction filter tabs
+    _walletState = {
+      available_balance: info.wallet?.available_balance || 0,
+      locked_balance: info.wallet?.locked_balance || 0,
+      escrow_balance: info.wallet?.escrow_balance || 0,
+      lifetime_earned: info.wallet?.lifetime_earned || 0,
+      lifetime_withdrawn: info.wallet?.lifetime_withdrawn || 0,
+      deposits: info.deposits || [],
+      withdrawals: info.withdrawals || [],
+      deposit_fee_rate: info.settings?.deposit_fee_percentage ?? 0,
+      withdrawal_fee_rate: info.settings?.withdrawal_fee_percentage ?? 0,
+      task_commission_rate: info.settings?.task_commission_percentage ?? 10,
+    };
+
+    // Hero Balance
+    const balEl = document.getElementById('wallet-hero-balance');
+    if (balEl) balEl.textContent = formatNaira(_walletState.available_balance);
+
+    const withdrawAvailableBalEl = document.getElementById('withdraw-available-bal');
+    if (withdrawAvailableBalEl) withdrawAvailableBalEl.textContent = formatNaira(_walletState.available_balance);
+
+    // Locked balance indicator
+    const lockedEl = document.getElementById('wallet-locked-balance');
+    if (lockedEl) {
+      lockedEl.textContent = _walletState.locked_balance > 0
+        ? `${formatNaira(_walletState.locked_balance)} pending withdrawal payout`
+        : '';
+      lockedEl.style.display = _walletState.locked_balance > 0 ? 'block' : 'none';
+    }
+
+    // Stats
+    const statEarned = document.getElementById('stat-earned');
+    const statEscrow = document.getElementById('stat-wallet-escrow');
+    const statWithdrawn = document.getElementById('stat-withdrawn');
+    const statMonth = document.getElementById('stat-month');
+
+    if (statEarned) statEarned.textContent = formatNaira(_walletState.lifetime_earned);
+    if (statEscrow) statEscrow.textContent = formatNaira(_walletState.escrow_balance);
+    if (statWithdrawn) statWithdrawn.textContent = formatNaira(_walletState.lifetime_withdrawn);
+    if (statMonth) statMonth.textContent = formatNaira(_walletState.lifetime_earned);
+
+    // Fee rate labels in modals
+    const depFeeRateEl = document.getElementById('deposit-fee-rate-display');
+    if (depFeeRateEl) depFeeRateEl.textContent = `${_walletState.deposit_fee_rate}%`;
+
+    await loadWalletTransactions('all');
+
+  } catch (err) {
+    console.error('[wallet] loadWalletData error:', err);
+  }
+}
+
+// ── Transaction Ledger ────────────────────────────────────────────────────────
+
+async function loadWalletTransactions(filter = 'all') {
+  const container = document.getElementById('tx-container');
+  if (!container) return;
+
+  const allTx = [
+    ..._walletState.deposits.map(d => ({
+      type: 'deposit',
+      date: d.createdAt,
+      status: d.status,
+      amount: d.net_naira || d.net_amount_naira || 0,
+      gross: d.gross_naira || d.gross_amount_naira || 0,
+      fee: d.commission_naira || 0,
+      reference: d.paystack_reference,
+      channel: d.channel || 'card',
+      label: 'Deposit',
+    })),
+    ..._walletState.withdrawals.map(w => ({
+      type: 'withdrawal',
+      date: w.createdAt,
+      status: w.status,
+      amount: w.payout_naira || 0,
+      gross: w.requested_naira || 0,
+      fee: w.commission_naira || 0,
+      reference: w.paystack_reference,
+      bank: w.bank_name || 'Bank',
+      label: 'Withdrawal',
+      failure_reason: w.failure_reason,
+    })),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  let filtered = allTx;
+  if (filter === 'earnings') filtered = allTx.filter(t => t.type === 'deposit');
+  else if (filter === 'withdrawals') filtered = allTx.filter(t => t.type === 'withdrawal');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No transaction history yet.</div>`;
+    return;
+  }
+
+  const statusConfig = {
+    successful: { label: 'Completed', cls: 'status-open' },
+    success: { label: 'Completed', cls: 'status-open' },
+    pending: { label: 'Pending', cls: 'status-pending' },
+    processing: { label: 'Processing', cls: 'status-pending' },
+    failed: { label: 'Failed', cls: 'status-closed' },
+    reversed: { label: 'Reversed', cls: 'status-closed' },
+  };
+
+  let html = '';
+  filtered.forEach(tx => {
+    const isCredit = tx.type === 'deposit' && (tx.status === 'successful' || tx.status === 'success');
+    const sc = statusConfig[tx.status] || { label: tx.status, cls: 'status-pending' };
+    const dateStr = new Date(tx.date || Date.now()).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
+    const feeText = tx.fee > 0 ? ` — ${formatNaira(tx.fee)} platform fee` : '';
+    const desc = tx.type === 'deposit'
+      ? `Wallet Deposit${feeText}`
+      : `Bank Payout to ${window.escapeHtml?.(tx.bank || 'Bank') || tx.bank || 'Bank'}${feeText}`;
+
+    html += `
+      <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line-soft);">
+        <div style="flex:1; min-width:0;">
+          <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${window.escapeHtml?.(desc) || desc}</div>
+          <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">
+            ${dateStr} · <span class="status ${sc.cls}" style="font-size:0.72rem; padding:2px 8px;">${sc.label}</span>
+            ${tx.failure_reason ? ` · <span style="color:var(--red-500);">${window.escapeHtml?.(tx.failure_reason) || tx.failure_reason}</span>` : ''}
+          </div>
+        </div>
+        <div class="task-row-amt mono" style="color:${isCredit ? 'var(--green-700)' : 'var(--ink-soft)'}; font-weight:700; font-size:0.95rem;">
+          ${isCredit ? '+' : '-'}${formatNaira(tx.amount)}
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── Setup Listeners ───────────────────────────────────────────────────────────
+
+function setupWalletListeners() {
+  // Tabs
   document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(t => t.classList.remove('is-active'));
       tab.classList.add('is-active');
-      const filter = tab.dataset.walletFilter;
-      loadWalletTransactions(filter);
+      loadWalletTransactions(tab.dataset.walletFilter || 'all');
     });
   });
 
-  // 2. Deposit Modal, Quick Amount Chips & Live Fee Calculation
+  // ── Deposit Modal ───────────────────────────────────────────────────────────
   const depositModal = document.getElementById('wallet-deposit-modal');
   const depositAmountInput = document.getElementById('deposit-amount');
   const depositSubmitBtn = document.getElementById('deposit-submit-btn');
-
   const depositGrossDisplay = document.getElementById('deposit-gross-display');
   const depositFeeDisplay = document.getElementById('deposit-fee-display');
   const depositNetDisplay = document.getElementById('deposit-net-display');
 
-  const updateDepositFeeBreakdown = () => {
+  const updateDepositBreakdown = () => {
     const gross = parseFloat(depositAmountInput?.value || '0');
     if (!isNaN(gross) && gross > 0) {
-      const fee = Math.round(gross * 0.10);
-      const net = Math.max(0, gross - fee);
-      if (depositGrossDisplay) depositGrossDisplay.textContent = `₦${gross.toLocaleString()}`;
-      if (depositFeeDisplay) depositFeeDisplay.textContent = `-₦${fee.toLocaleString()}`;
-      if (depositNetDisplay) depositNetDisplay.textContent = `₦${net.toLocaleString()}`;
+      if (depositGrossDisplay) depositGrossDisplay.textContent = formatNaira(gross);
+      if (depositNetDisplay) depositNetDisplay.textContent = formatNaira(gross);
     } else {
-      if (depositGrossDisplay) depositGrossDisplay.textContent = `₦0`;
-      if (depositFeeDisplay) depositFeeDisplay.textContent = `-₦0`;
-      if (depositNetDisplay) depositNetDisplay.textContent = `₦0`;
+      if (depositGrossDisplay) depositGrossDisplay.textContent = '₦0';
+      if (depositNetDisplay) depositNetDisplay.textContent = '₦0';
     }
   };
 
+  // Open & Close Deposit Modal
   document.getElementById('wallet-deposit-btn')?.addEventListener('click', () => {
-    if (depositModal) depositModal.style.display = 'flex';
-    updateDepositFeeBreakdown();
+    showModal(depositModal);
+    updateDepositBreakdown();
   });
-
   document.getElementById('wallet-deposit-close-btn')?.addEventListener('click', () => {
-    if (depositModal) depositModal.style.display = 'none';
+    hideModal(depositModal);
+  });
+  depositModal?.addEventListener('click', (e) => {
+    if (e.target === depositModal) hideModal(depositModal);
   });
 
-  // Quick Amount Selectors
-  const chips = document.querySelectorAll('#depositQuickChips .amount-chip');
-  chips.forEach(chip => {
+  // Quick Amount Chips
+  document.querySelectorAll('#depositQuickChips .amount-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      chips.forEach(c => c.classList.remove('is-selected'));
+      document.querySelectorAll('#depositQuickChips .amount-chip').forEach(c => c.classList.remove('is-selected'));
       chip.classList.add('is-selected');
-      const amtVal = chip.dataset.amt;
       if (depositAmountInput) {
-        depositAmountInput.value = amtVal;
-        updateDepositFeeBreakdown();
+        depositAmountInput.value = chip.dataset.amt;
+        updateDepositBreakdown();
       }
     });
   });
+  depositAmountInput?.addEventListener('input', updateDepositBreakdown);
 
-  depositAmountInput?.addEventListener('input', () => {
-    const val = depositAmountInput.value;
-    chips.forEach(c => {
-      if (c.dataset.amt === val) {
-        c.classList.add('is-selected');
-      } else {
-        c.classList.remove('is-selected');
-      }
-    });
-    updateDepositFeeBreakdown();
-  });
-
-  // Handle Paystack Deposit Submission
+  // Submit Deposit Form — Launches Paystack Checkout Popup
   document.getElementById('wallet-deposit-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-deposit', 2000)) {
-      return;
-    }
+    if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-deposit', 1500)) return;
 
     const grossAmt = parseFloat(depositAmountInput?.value || '0');
     if (isNaN(grossAmt) || grossAmt < 500) {
@@ -104,138 +278,59 @@ async function initWalletPage() {
       return;
     }
 
-    // Calculate 10% Taska processing fee
-    const taskaFee = Math.round(grossAmt * 0.10);
-    const netCredit = grossAmt - taskaFee;
+    if (!_currentProfile) _currentProfile = await window.ensureTaskaProfile?.();
+    const profile = _currentProfile;
+    if (!profile) {
+      if (window.showToast) window.showToast('Please wait for profile to load.');
+      return;
+    }
 
     if (depositSubmitBtn) {
       depositSubmitBtn.disabled = true;
-      depositSubmitBtn.textContent = 'Launching Paystack...';
+      depositSubmitBtn.textContent = 'Opening Paystack...';
     }
 
-    const userEmail = profile.email || `${profile.username || 'user'}@taska.com.ng`;
     const paymentRef = `TK-DEP-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const userEmail = profile.email || `${profile.username || 'user'}@taska.com.ng`;
 
-    const onPaymentSuccess = async (txRef) => {
-      try {
-        if (depositModal) depositModal.style.display = 'none';
-        if (window.showToast) window.showToast('Verifying and crediting your deposit...');
-
-        // 1. Fetch or create user wallet
-        const { data: currentWallet } = await window.supabaseClient
-          .from('Wallet')
-          .select('*')
-          .eq('profileId', profile.id)
-          .maybeSingle();
-
-        const currentBal = currentWallet?.balance || 0;
-        const newBalance = currentBal + netCredit;
-
-        if (currentWallet) {
-          await window.supabaseClient
-            .from('Wallet')
-            .update({ 
-              balance: newBalance,
-              updatedAt: new Date().toISOString()
-            })
-            .eq('id', currentWallet.id);
-        } else {
-          await window.supabaseClient
-            .from('Wallet')
-            .insert({ 
-              profileId: profile.id, 
-              balance: newBalance, 
-              escrowBalance: 0, 
-              lifetimeEarned: 0, 
-              lifetimeWithdrawn: 0 
-            });
-        }
-
-        // 2. Record verified transaction in User WalletTransaction ledger
-        if (currentWallet?.id) {
-          await window.supabaseClient
-            .from('WalletTransaction')
-            .insert({
-              walletId: currentWallet.id,
-              amount: netCredit,
-              type: 'DEPOSIT',
-              reference: txRef || paymentRef,
-              note: `Paystack Deposit — ₦${grossAmt.toLocaleString()} paid, ₦${netCredit.toLocaleString()} credited (10% Taska fee stays in Taska Paystack account)`,
-              createdAt: new Date().toISOString()
-            });
-        }
-
-        // 3. Audit log: record the 10% deposit fee in PlatformRevenue
-        // The fee already stays in Taska's Paystack merchant account automatically —
-        // we only credit the user 90%, so the 10% never leaves Taska's Paystack balance.
-        await window.supabaseClient
-          .from('PlatformRevenue')
-          .insert({
-            type: 'DEPOSIT_FEE',
-            amount: taskaFee,
-            grossAmount: grossAmt,
-            sourceProfileId: profile.id,
-            reference: txRef || paymentRef,
-            note: `10% deposit fee from @${profile.username || 'user'} — retained in Taska Paystack account`,
-            createdAt: new Date().toISOString()
-          });
-
-        if (depositAmountInput) depositAmountInput.value = '5000';
-        updateDepositFeeBreakdown();
-        if (window.showToast) {
-          window.showToast(`₦${netCredit.toLocaleString()} credited to your wallet (after 10% Taska fee).`);
-        }
-        await loadWalletData();
-
-      } catch (err) {
-        console.error('Wallet deposit processing error:', err);
-        if (window.showToast) window.showToast('Unable to complete wallet update.');
-      } finally {
-        if (depositSubmitBtn) {
-          depositSubmitBtn.disabled = false;
-          depositSubmitBtn.textContent = 'Proceed to Paystack';
-        }
-      }
-    };
-
-    // Check if Paystack Inline SDK is loaded
     if (typeof window.PaystackPop !== 'undefined' && window.PaystackPop.setup) {
-      try {
-        const handler = window.PaystackPop.setup({
-          key: PAYSTACK_PUBLIC_KEY,
-          email: userEmail,
-          amount: Math.round(grossAmt * 100), // in kobo
-          currency: 'NGN',
-          ref: paymentRef,
-          metadata: {
-            custom_fields: [
-              { display_name: "Taska Profile ID", variable_name: "profile_id", value: profile.id },
-              { display_name: "User Name", variable_name: "user_name", value: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() }
-            ]
-          },
-          callback: function (response) {
-            onPaymentSuccess(response.reference || paymentRef);
-          },
-          onClose: function () {
-            if (depositSubmitBtn) {
-              depositSubmitBtn.disabled = false;
-              depositSubmitBtn.textContent = 'Proceed to Paystack';
-            }
-            if (window.showToast) window.showToast('Payment window closed.');
+      const handler = window.PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: userEmail,
+        amount: Math.round(grossAmt * 100), // kobo
+        currency: 'NGN',
+        ref: paymentRef,
+        metadata: {
+          profile_id: profile.id,
+          custom_fields: [
+            { display_name: 'Profile ID', variable_name: 'profile_id', value: profile.id },
+          ],
+        },
+        callback: (response) => {
+          hideModal(depositModal);
+          if (window.showToast) window.showToast('Payment received! Crediting your wallet...');
+          // Give webhook ~2.5s to commit and refresh
+          setTimeout(loadWalletData, 2500);
+        },
+        onClose: () => {
+          if (depositSubmitBtn) {
+            depositSubmitBtn.disabled = false;
+            depositSubmitBtn.textContent = 'Proceed to Paystack';
           }
-        });
-        handler.openIframe();
-      } catch (err) {
-        console.warn('PaystackPop inline error, falling back to simulated test credit:', err);
-        await onPaymentSuccess(paymentRef);
-      }
+          if (window.showToast) window.showToast('Payment window closed.');
+        },
+      });
+      handler.openIframe();
     } else {
-      // Fallback in case CDN script is blocked or offline
-      await onPaymentSuccess(paymentRef);
+      if (window.showToast) window.showToast('Paystack SDK is loading. Please try again.');
+      if (depositSubmitBtn) {
+        depositSubmitBtn.disabled = false;
+        depositSubmitBtn.textContent = 'Proceed to Paystack';
+      }
     }
   });
 
-  // 3. Withdrawal Modal, Bank Lookup & Live Fee Calculation
+  // ── Withdrawal Modal ────────────────────────────────────────────────────────
   const withdrawModal = document.getElementById('wallet-withdraw-modal');
   const withdrawAmountInput = document.getElementById('withdraw-amount');
   const withdrawBankSelect = document.getElementById('withdraw-bank-select');
@@ -243,94 +338,90 @@ async function initWalletPage() {
   const withdrawNameBox = document.getElementById('withdraw-account-name-box');
   const withdrawNameEl = document.getElementById('withdraw-resolved-name');
   const withdrawSubmitBtn = document.getElementById('withdraw-submit-btn');
-  const withdrawAvailableBalEl = document.getElementById('withdraw-available-bal');
-
   const withdrawGrossDisplay = document.getElementById('withdraw-gross-display');
   const withdrawFeeDisplay = document.getElementById('withdraw-fee-display');
   const withdrawNetDisplay = document.getElementById('withdraw-net-display');
 
-  const updateWithdrawFeeBreakdown = () => {
+  const updateWithdrawBreakdown = () => {
     const gross = parseFloat(withdrawAmountInput?.value || '0');
     if (!isNaN(gross) && gross > 0) {
-      const fee = Math.round(gross * 0.10);
-      const net = Math.max(0, gross - fee);
-      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = `₦${gross.toLocaleString()}`;
-      if (withdrawFeeDisplay) withdrawFeeDisplay.textContent = `-₦${fee.toLocaleString()}`;
-      if (withdrawNetDisplay) withdrawNetDisplay.textContent = `₦${net.toLocaleString()}`;
+      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = formatNaira(gross);
+      if (withdrawNetDisplay) withdrawNetDisplay.textContent = formatNaira(gross);
     } else {
-      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = `₦0`;
-      if (withdrawFeeDisplay) withdrawFeeDisplay.textContent = `-₦0`;
-      if (withdrawNetDisplay) withdrawNetDisplay.textContent = `₦0`;
+      if (withdrawGrossDisplay) withdrawGrossDisplay.textContent = '₦0';
+      if (withdrawNetDisplay) withdrawNetDisplay.textContent = '₦0';
     }
   };
 
-  document.getElementById('wallet-withdraw-btn')?.addEventListener('click', async () => {
-    const { data: wallet } = await window.supabaseClient
-      .from('Wallet')
-      .select('*')
-      .eq('profileId', profile.id)
-      .maybeSingle();
+  // Open & Close Withdraw Modal
+  document.getElementById('wallet-withdraw-btn')?.addEventListener('click', () => {
+    const bal = _walletState.available_balance;
+    const withdrawAvailableBalEl = document.getElementById('withdraw-available-bal');
+    if (withdrawAvailableBalEl) withdrawAvailableBalEl.textContent = formatNaira(bal);
 
-    const currentBal = wallet?.balance || 0;
-    if (withdrawAvailableBalEl) {
-      withdrawAvailableBalEl.textContent = `₦${currentBal.toLocaleString()}`;
-    }
-
-    if (currentBal < 1000) {
+    if (bal < 1000) {
       if (window.showToast) window.showToast('Minimum withdrawal balance is ₦1,000.');
       return;
     }
-
-    if (withdrawModal) withdrawModal.style.display = 'flex';
-    updateWithdrawFeeBreakdown();
+    showModal(withdrawModal);
+    updateWithdrawBreakdown();
   });
 
   document.getElementById('wallet-withdraw-close-btn')?.addEventListener('click', () => {
-    if (withdrawModal) withdrawModal.style.display = 'none';
+    hideModal(withdrawModal);
+  });
+  withdrawModal?.addEventListener('click', (e) => {
+    if (e.target === withdrawModal) hideModal(withdrawModal);
   });
 
-  document.getElementById('withdraw-max-btn')?.addEventListener('click', async () => {
-    const { data: wallet } = await window.supabaseClient
-      .from('Wallet')
-      .select('balance')
-      .eq('profileId', profile.id)
-      .maybeSingle();
-
-    const bal = wallet?.balance || 0;
+  document.getElementById('withdraw-max-btn')?.addEventListener('click', () => {
     if (withdrawAmountInput) {
-      withdrawAmountInput.value = bal;
-      updateWithdrawFeeBreakdown();
+      // Auto-populate exact available balance (supporting exact decimal amounts like 4028.43)
+      withdrawAmountInput.value = _walletState.available_balance;
+      updateWithdrawBreakdown();
     }
   });
 
-  withdrawAmountInput?.addEventListener('input', updateWithdrawFeeBreakdown);
+  withdrawAmountInput?.addEventListener('input', updateWithdrawBreakdown);
 
-  // Live account number verification feedback
-  const resolveAccountHandler = () => {
+  // Bank Account Resolution (calls resolve-account Edge Function)
+  let _resolveTimeout = null;
+  const resolveAccount = async () => {
     const accNum = (withdrawAccInput?.value || '').replace(/\D/g, '');
-    const bankVal = withdrawBankSelect?.value || '';
-
-    if (accNum.length === 10 && bankVal) {
-      const selectedBankName = withdrawBankSelect.options[withdrawBankSelect.selectedIndex]?.text || 'Bank';
-      const resolvedHolderName = `${(profile.firstName || 'ACCOUNT').toUpperCase()} ${(profile.lastName || 'HOLDER').toUpperCase()} (${selectedBankName})`;
-      
-      if (withdrawNameEl) withdrawNameEl.textContent = resolvedHolderName;
-      if (withdrawNameBox) withdrawNameBox.style.display = 'flex';
-    } else {
+    const bankCode = withdrawBankSelect?.value || '';
+    if (accNum.length !== 10 || !bankCode) {
       if (withdrawNameBox) withdrawNameBox.style.display = 'none';
+      _resolvedAccountName = '';
+      return;
+    }
+    if (withdrawNameEl) withdrawNameEl.textContent = 'Resolving...';
+    if (withdrawNameBox) withdrawNameBox.style.display = 'flex';
+
+    const result = await edgeFetch('resolve-account', {
+      method: 'POST',
+      body: JSON.stringify({ accountNumber: accNum, bankCode }),
+    });
+
+    if (result.success) {
+      _resolvedAccountName = result.account_name;
+      if (withdrawNameEl) withdrawNameEl.textContent = result.account_name;
+    } else {
+      _resolvedAccountName = '';
+      if (withdrawNameEl) withdrawNameEl.textContent = 'Could not verify account';
+      if (window.showToast) window.showToast(result.error || 'Account resolution failed.');
     }
   };
 
-  withdrawAccInput?.addEventListener('input', resolveAccountHandler);
-  withdrawBankSelect?.addEventListener('change', resolveAccountHandler);
+  withdrawAccInput?.addEventListener('input', () => {
+    clearTimeout(_resolveTimeout);
+    _resolveTimeout = setTimeout(resolveAccount, 500);
+  });
+  withdrawBankSelect?.addEventListener('change', resolveAccount);
 
-  // Handle Bank Withdrawal Submit
+  // Submit Withdrawal Form
   document.getElementById('wallet-withdraw-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-withdraw', 2500)) {
-      return;
-    }
+    if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-withdraw', 2000)) return;
 
     const grossAmt = parseFloat(withdrawAmountInput?.value || '0');
     if (isNaN(grossAmt) || grossAmt < 1000) {
@@ -340,116 +431,70 @@ async function initWalletPage() {
 
     const accNum = (withdrawAccInput?.value || '').replace(/\D/g, '');
     if (accNum.length !== 10) {
-      if (window.showToast) window.showToast('Please enter a valid 10-digit NUBAN account number.');
+      if (window.showToast) window.showToast('Please enter a valid 10-digit account number.');
       return;
     }
 
-    const selectedBankCode = withdrawBankSelect?.value || '';
-    const selectedBankName = withdrawBankSelect?.options[withdrawBankSelect.selectedIndex]?.text || 'Bank';
-    if (!selectedBankCode) {
-      if (window.showToast) window.showToast('Please select a bank.');
+    const bankCode = withdrawBankSelect?.value || '';
+    const bankName = withdrawBankSelect?.options[withdrawBankSelect.selectedIndex]?.text || '';
+    if (!bankCode) {
+      if (window.showToast) window.showToast('Please select a destination bank.');
       return;
     }
+
+    if (!_resolvedAccountName) {
+      if (window.showToast) window.showToast('Please enter a valid account number and wait for bank account verification.');
+      return;
+    }
+
+    if (grossAmt > _walletState.available_balance) {
+      if (window.showToast) window.showToast('Insufficient wallet balance.');
+      return;
+    }
+
+    if (!_currentProfile) _currentProfile = await window.ensureTaskaProfile?.();
+    const profile = _currentProfile;
+    if (!profile) return;
 
     if (withdrawSubmitBtn) {
       withdrawSubmitBtn.disabled = true;
       withdrawSubmitBtn.textContent = 'Processing Payout...';
     }
 
-    // 10% fee stays in Taska's Paystack account; user receives 90%
-    const taskaFee = Math.round(grossAmt * 0.10);
-    const netPayout = grossAmt - taskaFee;
-
     try {
-      // 1. Verify user has sufficient internal wallet balance
-      const { data: wallet } = await window.supabaseClient
-        .from('Wallet')
-        .select('*')
-        .eq('profileId', profile.id)
-        .maybeSingle();
-
-      if (!wallet || wallet.balance < grossAmt) {
-        if (window.showToast) window.showToast('Insufficient wallet balance for this withdrawal.');
-        return;
-      }
-
-      const withdrawRef = `TK-WTH-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-      const accountName = withdrawNameEl?.textContent || `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-
-      // 2. Call Netlify serverless function to execute real Paystack bank transfer
-      //    The secret key is ONLY on the server — never exposed to the browser
-      const transferRes = await fetch('/.netlify/functions/paystack-withdraw', {
+      const result = await edgeFetch('wallet-withdraw', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: grossAmt,
-          bankCode: selectedBankCode,
+          profileId: profile.id,
+          requestedAmountNaira: grossAmt,
+          bankCode,
           accountNumber: accNum,
-          accountName,
-          reference: withdrawRef,
+          accountName: _resolvedAccountName,
+          bankName,
         }),
       });
 
-      const transferResult = await transferRes.json();
-
-      if (!transferResult.success) {
-        if (window.showToast) window.showToast(`Transfer failed: ${transferResult.error || 'Please try again.'}`);
+      if (!result.success) {
+        if (window.showToast) window.showToast(`Withdrawal failed: ${result.error || 'Please try again.'}`);
         return;
       }
 
-      // 3. Deduct full requested amount from internal wallet (after confirmed transfer)
-      const newBal = wallet.balance - grossAmt;
-      const newWithdrawn = (wallet.lifetimeWithdrawn || 0) + grossAmt;
-
-      await window.supabaseClient
-        .from('Wallet')
-        .update({
-          balance: newBal,
-          lifetimeWithdrawn: newWithdrawn,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', wallet.id);
-
-      // 4. Log WITHDRAWAL transaction in user ledger
-      await window.supabaseClient
-        .from('WalletTransaction')
-        .insert({
-          walletId: wallet.id,
-          amount: grossAmt,
-          type: 'WITHDRAWAL',
-          reference: transferResult.transferReference || withdrawRef,
-          note: `₦${netPayout.toLocaleString()} sent to ${selectedBankName} ending ${accNum.slice(-4)} (10% Taska fee: ₦${taskaFee.toLocaleString()})`,
-          createdAt: new Date().toISOString()
-        });
-
-      // 5. Log fee in PlatformRevenue audit table (the fee stays in Taska's Paystack account)
-      await window.supabaseClient
-        .from('PlatformRevenue')
-        .insert({
-          type: 'WITHDRAWAL_FEE',
-          amount: taskaFee,
-          grossAmount: grossAmt,
-          sourceProfileId: profile.id,
-          reference: withdrawRef,
-          note: `10% withdrawal fee from @${profile.username || 'user'} — stays in Taska Paystack account`,
-          createdAt: new Date().toISOString()
-        });
-
-      if (withdrawModal) withdrawModal.style.display = 'none';
+      hideModal(withdrawModal);
       if (withdrawAmountInput) withdrawAmountInput.value = '';
       if (withdrawAccInput) withdrawAccInput.value = '';
       if (withdrawNameBox) withdrawNameBox.style.display = 'none';
-      updateWithdrawFeeBreakdown();
+      _resolvedAccountName = '';
+      updateWithdrawBreakdown();
 
       if (window.showToast) {
-        window.showToast(`₦${netPayout.toLocaleString()} sent to your ${selectedBankName} account! (10% platform fee applied)`);
+        window.showToast(result.message || `₦${formatNaira(result.payout_naira)} sent to your bank account!`);
       }
 
       await loadWalletData();
 
     } catch (err) {
-      console.error('Withdrawal error:', err);
-      if (window.showToast) window.showToast('Withdrawal failed. Please check details and try again.');
+      console.error('[wallet] Withdrawal error:', err);
+      if (window.showToast) window.showToast('Withdrawal failed. Please try again.');
     } finally {
       if (withdrawSubmitBtn) {
         withdrawSubmitBtn.disabled = false;
@@ -459,126 +504,9 @@ async function initWalletPage() {
   });
 }
 
-async function loadWalletData() {
-  const profile = await window.ensureTaskaProfile();
-  if (!profile || !window.supabaseClient) return;
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
 
-  const walletBalEl = document.getElementById('wallet-hero-balance');
-  const statEarned = document.getElementById('stat-earned');
-  const statEscrow = document.getElementById('stat-wallet-escrow');
-  const statWithdrawn = document.getElementById('stat-withdrawn');
-  const statMonth = document.getElementById('stat-month');
-
-  try {
-    // Fetch real Wallet record from Supabase
-    const { data: wallet } = await window.supabaseClient
-      .from('Wallet')
-      .select('*')
-      .eq('profileId', profile.id)
-      .maybeSingle();
-
-    const balance = wallet?.balance || 0;
-    const escrow = wallet?.escrowBalance || 0;
-    const earned = wallet?.lifetimeEarned || balance;
-    const withdrawn = wallet?.lifetimeWithdrawn || 0;
-
-    if (walletBalEl) walletBalEl.textContent = `₦${balance.toLocaleString()}`;
-    if (statEarned) statEarned.textContent = `₦${earned.toLocaleString()}`;
-    if (statEscrow) statEscrow.textContent = `₦${escrow.toLocaleString()}`;
-    if (statWithdrawn) statWithdrawn.textContent = `₦${withdrawn.toLocaleString()}`;
-    if (statMonth) statMonth.textContent = `₦${earned.toLocaleString()}`;
-
-    await loadWalletTransactions('all');
-  } catch (err) {
-    console.error('Error loading wallet data:', err);
-  }
-}
-
-async function loadWalletTransactions(filter = 'all') {
-  const profile = await window.ensureTaskaProfile();
-  if (!profile || !window.supabaseClient) return;
-
-  const container = document.getElementById('tx-container');
-  if (!container) return;
-
-  try {
-    const { data: wallet } = await window.supabaseClient
-      .from('Wallet')
-      .select('id')
-      .eq('profileId', profile.id)
-      .maybeSingle();
-
-    let transactions = [];
-    if (wallet) {
-      const { data: txs } = await window.supabaseClient
-        .from('WalletTransaction')
-        .select('*')
-        .eq('walletId', wallet.id)
-        .order('createdAt', { ascending: false });
-      if (txs && txs.length > 0) transactions = txs;
-    }
-
-    // Only genuine WalletTransaction records
-    if (transactions.length === 0) {
-      container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted);">No transaction history yet.</div>';
-      return;
-    }
-
-    let filtered = transactions;
-    if (filter === 'earnings') {
-      filtered = transactions.filter(t => t.type === 'TASK_PAYOUT' || t.type === 'DEPOSIT' || t.type === 'EARNING');
-    } else if (filter === 'payments') {
-      filtered = transactions.filter(t => t.type === 'ESCROW_LOCK' || t.type === 'PAYMENT');
-    } else if (filter === 'withdrawals') {
-      filtered = transactions.filter(t => t.type === 'WITHDRAWAL');
-    }
-
-    if (filtered.length === 0) {
-      container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No transactions matching '${window.escapeHtml(filter)}'.</div>`;
-      return;
-    }
-
-    let html = '';
-    filtered.forEach(tx => {
-      const title = window.escapeHtml(tx.note || tx.reference || 'Wallet Transaction');
-      const amt = tx.amount || 0;
-      const dateStr = new Date(tx.createdAt || Date.now()).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-      const isCredit = tx.type === 'TASK_PAYOUT' || tx.type === 'DEPOSIT' || tx.type === 'EARNING';
-      const isEscrow = tx.type === 'ESCROW_LOCK';
-
-      let statusLabel = 'Completed';
-      let statusClass = 'status-open';
-
-      if (isEscrow) {
-        statusLabel = 'Held in Escrow';
-        statusClass = 'status-pending';
-      } else if (tx.type === 'WITHDRAWAL') {
-        statusLabel = 'Withdrawal';
-        statusClass = 'status-closed';
-      }
-
-      html += `
-        <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line-soft);">
-          <div style="flex:1; min-width:0;">
-            <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</div>
-            <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">
-              ${dateStr} · <span class="status ${statusClass}" style="font-size:0.72rem; padding:2px 8px;">${statusLabel}</span>
-            </div>
-          </div>
-          <div class="task-row-amt mono" style="color:${isCredit ? 'var(--green-700)' : 'var(--ink-soft)'}; font-weight:700; font-size:0.95rem;">
-            ${isCredit ? '+' : '-'}₦${amt.toLocaleString()}
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
-  } catch (err) {
-    console.error('Load transactions error:', err);
-  }
-}
-
-// Run init on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-  initWalletPage();
+  setupWalletListeners();
+  loadWalletData();
 });

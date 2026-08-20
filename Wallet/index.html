@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Wallet | Taska</title>
-  <link rel="stylesheet" href="../css/styles.css?v=16">
+  <link rel="stylesheet" href="../css/styles.css?v=20">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
     .amount-chip {
@@ -70,6 +70,8 @@
           </button>
         </div>
       </div>
+      <!-- Locked balance indicator -->
+      <div id="wallet-locked-balance" style="display:none; font-size:0.82rem; color:var(--orange-600, #d97706); padding:6px 16px 0; font-weight:500;"></div>
     </div>
 
     <!-- Quick Stat Strip -->
@@ -112,13 +114,13 @@
   </main>
 </div>
 
-<!-- ======================== DEPOSIT MODAL ======================== -->
-<div class="modal-backdrop" id="wallet-deposit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px);">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:440px; width:100%; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative;">
+<!-- ======================== DEPOSIT / ADD FUNDS MODAL ======================== -->
+<div class="modal-backdrop" id="wallet-deposit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
+  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:440px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
       <div>
-        <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);">Add Funds to Wallet</h3>
-        <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Instant top-up via Paystack (Cards, Transfer, USSD)</div>
+        <h3 style="font-size:1.18rem; margin:0; color:var(--green-900);">Add Funds to Wallet</h3>
+        <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Instant top-up via Paystack (Cards, Bank Transfer, USSD)</div>
       </div>
       <button type="button" id="wallet-deposit-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
     </div>
@@ -132,29 +134,25 @@
         <button type="button" class="amount-chip" data-amt="10000">₦10,000</button>
         <button type="button" class="amount-chip" data-amt="25000">₦25,000</button>
         <button type="button" class="amount-chip" data-amt="50000">₦50,000</button>
+        <button type="button" class="amount-chip" data-amt="100000">₦100,000</button>
       </div>
     </div>
 
     <form id="wallet-deposit-form">
       <div class="field-group" style="margin-bottom:14px;">
         <label class="field-label" for="deposit-amount">Custom Amount (NGN)</label>
-        <input class="text-input mono" type="number" id="deposit-amount" min="500" max="2000000" step="100" value="5000" placeholder="e.g. 5000" required style="font-size:1.05rem; font-weight:600;">
+        <input class="text-input mono" type="number" id="deposit-amount" min="500" max="2000000" step="any" value="5000" placeholder="e.g. 5000" required style="font-size:1.05rem; font-weight:600;">
         <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Minimum deposit is ₦500.</div>
       </div>
 
       <!-- Live Deposit Fee Breakdown -->
-      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--ink-soft); margin-bottom:4px;">
-          <span>Gross Deposit:</span>
-          <span class="mono" id="deposit-gross-display">₦5,000</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--muted); margin-bottom:6px;">
-          <span>Taska Fee (10%):</span>
-          <span class="mono" id="deposit-fee-display">-₦500</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:700; color:var(--green-900); padding-top:6px; border-top:1px solid var(--line-soft);">
+      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
           <span>Net Credited to Wallet:</span>
-          <span class="mono" id="deposit-net-display">₦4,500</span>
+          <span class="mono" id="deposit-net-display">₦5,000</span>
+        </div>
+        <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
+          Taska does not collect funding charges. Extra payment gateway / bank charges may apply on the checkout screen.
         </div>
       </div>
 
@@ -171,8 +169,8 @@
 </div>
 
 <!-- ======================== WITHDRAWAL MODAL ======================== -->
-<div class="modal-backdrop" id="wallet-withdraw-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px);">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:460px; width:100%; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative;">
+<div class="modal-backdrop" id="wallet-withdraw-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
+  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:460px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
       <div>
         <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);">Withdraw Funds to Bank</h3>
@@ -187,29 +185,24 @@
         <div style="font-size:0.75rem; color:var(--green-700); font-weight:600; text-transform:uppercase;">Available for Withdrawal</div>
         <div class="mono" id="withdraw-available-bal" style="font-size:1.15rem; font-weight:700; color:var(--green-900);">₦0</div>
       </div>
-      <button type="button" id="withdraw-max-btn" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px; border-radius:12px;">Withdraw Max</button>
+      <button type="button" id="withdraw-max-btn" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px; border-radius:12px;">Withdraw All</button>
     </div>
 
     <form id="wallet-withdraw-form">
       <div class="field-group" style="margin-bottom:14px;">
         <label class="field-label" for="withdraw-amount">Amount (NGN)</label>
-        <input class="text-input mono" type="number" id="withdraw-amount" min="1000" step="100" placeholder="e.g. 5000" required style="font-size:1.02rem; font-weight:600;">
+        <input class="text-input mono" type="number" id="withdraw-amount" min="1000" step="any" placeholder="e.g. 5000" required style="font-size:1.02rem; font-weight:600;">
         <div style="font-size:0.74rem; color:var(--muted); margin-top:3px;">Minimum withdrawal is ₦1,000.</div>
       </div>
 
       <!-- Live Withdrawal Fee Breakdown -->
-      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--ink-soft); margin-bottom:4px;">
-          <span>Withdrawal Amount:</span>
-          <span class="mono" id="withdraw-gross-display">₦0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.82rem; color:var(--muted); margin-bottom:6px;">
-          <span>Taska Fee (10%):</span>
-          <span class="mono" id="withdraw-fee-display">-₦0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:700; color:var(--green-900); padding-top:6px; border-top:1px solid var(--line-soft);">
+      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
           <span>Net Disbursed to Bank:</span>
           <span class="mono" id="withdraw-net-display">₦0</span>
+        </div>
+        <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
+          Taska does not collect withdrawal charges. Standard bank transfer settlements apply.
         </div>
       </div>
 
@@ -273,10 +266,9 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
-<script src="../js/sidebar-component.js?v=16"></script>
-<script src="../js/auth-guard.js?v=16"></script>
-<script src="../js/platform-revenue.js?v=1"></script>
-<script src="../js/wallet.js?v=17"></script>
+<script src="../js/sidebar-component.js?v=20"></script>
+<script src="../js/auth-guard.js?v=20"></script>
+<script src="../js/wallet.js?v=21"></script>
 
 </body>
 </html>

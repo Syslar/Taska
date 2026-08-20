@@ -277,11 +277,16 @@ async function loadChatMessages(peerId, silent = false) {
       const safeText = window.escapeHtml ? window.escapeHtml(rawText) : rawText;
 
       let mediaHTML = '';
-      if (m.mediaUrl) {
-        if (m.mediaUrl.match(/\.(mp4|webm|mov)$/i)) {
-          mediaHTML = `<video src="${m.mediaUrl}" controls style="max-width:240px; max-height:180px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
-        } else {
-          mediaHTML = `<a href="${m.mediaUrl}" target="_blank"><img src="${m.mediaUrl}" style="max-width:240px; max-height:180px; border-radius:8px; margin-bottom:6px; object-fit:cover; display:block;"></a>`;
+      if (m.mediaUrl && typeof m.mediaUrl === 'string') {
+        const trimmedUrl = m.mediaUrl.trim();
+        const isSafeProtocol = /^https:\/\//i.test(trimmedUrl) || /^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(trimmedUrl);
+        if (isSafeProtocol) {
+          const safeUrl = window.escapeHtml ? window.escapeHtml(trimmedUrl) : encodeURI(trimmedUrl);
+          if (trimmedUrl.match(/\.(mp4|webm|mov)(\?.*)?$/i)) {
+            mediaHTML = `<video src="${safeUrl}" controls style="max-width:240px; max-height:180px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
+          } else {
+            mediaHTML = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer"><img src="${safeUrl}" alt="Attachment" style="max-width:240px; max-height:180px; border-radius:8px; margin-bottom:6px; object-fit:cover; display:block;"></a>`;
+          }
         }
       }
 

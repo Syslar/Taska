@@ -19,8 +19,8 @@ window.uploadTaskaMedia = async function (file) {
     const errorMsg = 'Maximum size for media is 5MB.';
     if (window.showToast) {
       window.showToast(errorMsg);
-    } else {
-      alert(errorMsg);
+    } else if (window.showAlertDialog) {
+      window.showAlertDialog({ title: 'File Too Large', message: errorMsg });
     }
     return null;
   }

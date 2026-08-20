@@ -235,6 +235,25 @@
             <span class="field-error">Please select your location.</span>
           </div>
 
+          <!-- Gender & Date of Birth (Age) -->
+          <div class="input-row">
+            <div class="field-group">
+              <label class="field-label" for="suGender">Gender</label>
+              <select class="text-input" id="suGender" required style="width: 100%;">
+                <option value="" disabled selected>Select gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+              <span class="field-error">Please select your gender.</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="suDob">Date of birth (Age)</label>
+              <input class="text-input" type="date" id="suDob" required max="2012-12-31">
+              <span class="field-error">Please select your date of birth.</span>
+            </div>
+          </div>
+
           <div class="field-group">
             <label class="field-label" for="suEmail">Email address</label>
             <input class="text-input" type="email" id="suEmail" placeholder="ada@email.com" required>
@@ -428,6 +447,17 @@
       let userRole = 'poster';
       let currentVerificationType = 'email'; // 'email' or 'phone'
 
+      // Check URL ?role= parameter on load
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialRole = urlParams.get('role');
+      if (initialRole && initialRole.toLowerCase() === 'tasker') {
+        userRole = 'tasker';
+        document.querySelectorAll('.toggle-option').forEach(el => {
+          if (el.dataset.role === 'tasker') el.classList.add('is-active');
+          else el.classList.remove('is-active');
+        });
+      }
+
       // Capture role selection
       document.querySelectorAll('.toggle-option').forEach(el => {
         el.addEventListener('click', () => {
@@ -442,6 +472,12 @@
         const rawPhone   = document.getElementById('suPhone').value.trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
         const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
+        const normalizedRole = (userRole || 'poster').toUpperCase();
+
+        const genderVal = document.getElementById('suGender')?.value || null;
+        const dobVal = document.getElementById('suDob')?.value || null;
+
+        localStorage.setItem('taska_active_role', normalizedRole);
 
         // Save profile directly into Supabase
         if (window.supabaseClient && window.Clerk.user) {
@@ -455,13 +491,17 @@
                 lastName: document.getElementById('lname').value.trim(),
                 phone: fullPhone,
                 email: document.getElementById('suEmail').value.trim(),
-                role: userRole.toUpperCase(),
+                role: normalizedRole,
+                activeRole: normalizedRole,
+                gender: genderVal,
+                dateOfBirth: dobVal,
                 location: document.getElementById('suLocation').value.trim()
               }, { onConflict: 'userId' })
               .select()
               .single();
 
             if (profile) {
+              localStorage.setItem('taska_cached_profile', JSON.stringify({ ...profile, activeRole: normalizedRole }));
               await window.supabaseClient
                 .from('Wallet')
                 .insert({
@@ -478,7 +518,7 @@
           }
         }
 
-        if (userRole.toUpperCase() === 'TASKER') {
+        if (normalizedRole === 'TASKER') {
           window.location.replace('../Tasker/Dashboard/index.html');
         } else {
           window.location.replace('../Poster/Dashboard/index.html');
