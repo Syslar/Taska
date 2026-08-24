@@ -25,6 +25,7 @@
     const settingsRoot = inSettings ? ''    : (inPoster || inTasker ? '../../Settings/' : '../Settings/');
     const chatsRoot    = inChats    ? ''    : (inPoster || inTasker ? '../../Chats/' : '../Chats/');
     const walletRoot   = inWallet   ? ''    : (inPoster || inTasker ? '../../Wallet/' : '../Wallet/');
+    const assetsRoot   = (inPoster || inTasker) ? '../../Assets/' : (inSettings || inChats || inWallet ? '../Assets/' : 'Assets/');
 
     const profileLink = isTaskerMode ? `${taskerRoot}Profile/index.html` : `${posterRoot}Profile/index.html`;
 
@@ -69,10 +70,10 @@
       const myTasksUrl = isTaskerMode ? `${taskerRoot}MyApplications/index.html` : `${posterRoot}MyPostedTasks/index.html`;
 
       sidebarEl.innerHTML = `
-        <div class="sidebar-logo">
-          <span class="logo-mark" style="width:32px; height:32px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; font-weight:bold;">T</span>
-          Taska
-        </div>
+        <a href="${dashUrl}" class="sidebar-logo" style="text-decoration:none;">
+          <img src="${assetsRoot}icon.png" alt="Taska" style="width:32px; height:32px; border-radius:8px; object-fit:contain; display:block;">
+          <span style="font-weight:700; font-size:1.18rem; color:#fff; letter-spacing:-0.01em;">Taska</span>
+        </a>
 
         <nav class="sidebar-nav">
           <a href="${dashUrl}" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
@@ -234,10 +235,14 @@
       layout.insertBefore(mobileTopbar, layout.firstChild);
     }
     mobileTopbar.innerHTML = `
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
         <button class="hamburger-btn" id="mobile-hamburger-btn" aria-label="Toggle navigation" style="background:none; border:none; color:var(--body); cursor:pointer; padding:4px;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
+        <a href="${dashUrl}" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
+          <img src="${assetsRoot}icon.png" alt="Taska" style="width:24px; height:24px; border-radius:6px; object-fit:contain;">
+          <span style="font-weight:700; font-size:1.05rem; color:var(--green-900);">Taska</span>
+        </a>
       </div>
       <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">${pAvatarHTML}</div>
     `;

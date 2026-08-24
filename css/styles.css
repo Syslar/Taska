@@ -254,6 +254,14 @@ button { cursor: pointer; }
   font-weight: 700;
   font-size: 1.25rem;
   color: var(--green-900);
+  text-decoration: none;
+}
+.logo img, .site-logo {
+  height: 38px;
+  max-height: 44px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 .logo-mark {
   width: 30px; height: 30px;
