@@ -71,16 +71,37 @@ Deno.serve(async (req) => {
         await handleChargeSuccess(supabase, data);
         break;
 
-      case 'transfer.success':
+      case 'transfer.success': {
         await supabase.rpc('finalize_withdrawal', {
           p_paystack_reference: data.reference,
           p_transfer_code: data.transfer_code,
           p_outcome: 'success',
         });
         console.log('[webhook] transfer.success finalized:', data.reference);
-        break;
 
-      case 'transfer.failed':
+        // Fetch withdrawal record to notify user
+        const { data: wRecord } = await supabase
+          .from('withdrawals')
+          .select('profileId, requestedAmountKobo, payoutKobo, bankName, accountNumber')
+          .eq('paystackReference', data.reference)
+          .maybeSingle();
+
+        if (wRecord) {
+          await dispatchNotification(supabase, {
+            type: 'WITHDRAWAL_SUCCESS',
+            profileId: wRecord.profileId,
+            data: {
+              amountKobo: wRecord.requestedAmountKobo || wRecord.payoutKobo,
+              reference: data.reference,
+              bankName: wRecord.bankName,
+              accountNumber: wRecord.accountNumber,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'transfer.failed': {
         await supabase.rpc('finalize_withdrawal', {
           p_paystack_reference: data.reference,
           p_transfer_code: data.transfer_code || '',
@@ -88,9 +109,28 @@ Deno.serve(async (req) => {
           p_failure_reason: data.reason || 'Transfer failed',
         });
         console.log('[webhook] transfer.failed — funds unlocked:', data.reference);
-        break;
 
-      case 'transfer.reversed':
+        const { data: wRecord } = await supabase
+          .from('withdrawals')
+          .select('profileId, requestedAmountKobo, payoutKobo')
+          .eq('paystackReference', data.reference)
+          .maybeSingle();
+
+        if (wRecord) {
+          await dispatchNotification(supabase, {
+            type: 'WITHDRAWAL_FAILED',
+            profileId: wRecord.profileId,
+            data: {
+              amountKobo: wRecord.requestedAmountKobo || wRecord.payoutKobo,
+              reference: data.reference,
+              failureReason: data.reason || 'Transfer failed by bank network',
+            },
+          });
+        }
+        break;
+      }
+
+      case 'transfer.reversed': {
         await supabase.rpc('finalize_withdrawal', {
           p_paystack_reference: data.reference,
           p_transfer_code: data.transfer_code || '',
@@ -98,7 +138,26 @@ Deno.serve(async (req) => {
           p_failure_reason: 'Transfer reversed by Paystack',
         });
         console.log('[webhook] transfer.reversed — funds unlocked:', data.reference);
+
+        const { data: wRecord } = await supabase
+          .from('withdrawals')
+          .select('profileId, requestedAmountKobo, payoutKobo')
+          .eq('paystackReference', data.reference)
+          .maybeSingle();
+
+        if (wRecord) {
+          await dispatchNotification(supabase, {
+            type: 'WITHDRAWAL_FAILED',
+            profileId: wRecord.profileId,
+            data: {
+              amountKobo: wRecord.requestedAmountKobo || wRecord.payoutKobo,
+              reference: data.reference,
+              failureReason: 'Transfer reversed by bank network',
+            },
+          });
+        }
         break;
+      }
 
       default:
         console.log('[webhook] Unhandled event type:', eventType);
@@ -112,35 +171,44 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error('[webhook] Handler error for', eventType, ':', err);
     // Return 200 even on error — prevents Paystack from retrying indefinitely
-    // Event is recorded for manual reconciliation
   }
 
   return new Response('OK', { status: 200 });
 });
 
+async function dispatchNotification(supabase: any, payload: any) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    console.log('[webhook] Dispatched notification result:', json);
+  } catch (err: any) {
+    console.error('[webhook] Error dispatching notification:', err.message || err);
+  }
+}
+
 async function handleChargeSuccess(supabase: any, data: any) {
   const reference = data.reference;
-  // When transaction fees are passed to the customer in Paystack settings,
-  // data.amount includes the Paystack gateway fee (e.g. 10,253.81).
-  // Use data.requested_amount (10,000.00) or net of Paystack fees.
   const amountKobo: number = data.requested_amount || (data.fees ? data.amount - data.fees : data.amount);
   const channel: string = data.channel;
 
-  // Identify which user owns this payment
   let profileId: string | null = null;
 
-  // 1. Direct metadata profile_id
   if (data.metadata?.profile_id) {
     profileId = data.metadata.profile_id;
   }
 
-  // 2. Custom fields metadata
   if (!profileId && Array.isArray(data.metadata?.custom_fields)) {
     const field = data.metadata.custom_fields.find((f: any) => f.variable_name === 'profile_id');
     if (field?.value) profileId = field.value;
   }
 
-  // 3. Fallback: match by email in Profile
   if (!profileId && data.customer?.email) {
     const { data: profile } = await supabase
       .from('Profile')
@@ -155,7 +223,6 @@ async function handleChargeSuccess(supabase: any, data: any) {
     return;
   }
 
-  // Retrieve dynamic fee rate from platform_settings (default 0% fee on deposits)
   const { data: feeSetting } = await supabase
     .from('platform_settings')
     .select('value')
@@ -164,7 +231,6 @@ async function handleChargeSuccess(supabase: any, data: any) {
 
   const commissionRate = Number(feeSetting?.value ?? 0);
 
-  // Call atomic process_deposit Postgres RPC (0% fee credits 100% of funds)
   const { data: result, error } = await supabase.rpc('process_deposit', {
     p_profile_id: profileId,
     p_paystack_reference: reference,
@@ -178,5 +244,16 @@ async function handleChargeSuccess(supabase: any, data: any) {
     console.error('[webhook] process_deposit RPC error:', error);
   } else {
     console.log('[webhook] Deposit processed successfully:', result);
+
+    // Send Deposit Confirmation Email via Resend
+    await dispatchNotification(supabase, {
+      type: 'DEPOSIT_SUCCESS',
+      profileId,
+      data: {
+        amountKobo,
+        channel: channel || 'card',
+        reference,
+      },
+    });
   }
 }

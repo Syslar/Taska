@@ -60,14 +60,17 @@
     const settingsIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l-.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
     const logoutIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>`;
 
-    // Determine setup states for alternate profiles (backed by Supabase columns)
-    const isTaskerSetup = !!(profile && (profile.isTaskerSetup === true || profile.role === 'TASKER' || profile.taskerSkills || profile.taskerBio || (profile.id && localStorage.getItem(`taska_tasker_setup_${profile.id}`) === 'true')));
-    const isPosterSetup = !!(profile && (profile.isPosterSetup === true || profile.role === 'POSTER' || profile.posterName || profile.posterCategories || (profile.id && localStorage.getItem(`taska_poster_setup_${profile.id}`) === 'true')));
+    // Determine setup states for alternate profiles
+    const isTaskerSetup = true;
+    const isPosterSetup = true;
+
+    // Declare all URL vars once, hoisted above all usages
+    const dashUrl    = isTaskerMode ? `${taskerRoot}Dashboard/index.html`       : `${posterRoot}Dashboard/index.html`;
+    const myTasksUrl = isTaskerMode ? `${taskerRoot}MyApplications/index.html`  : `${posterRoot}MyPostedTasks/index.html`;
+    const actionUrl  = isTaskerMode ? `${taskerRoot}BrowseTasks/index.html`     : `${posterRoot}PostTask/index.html`;
 
     const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
     if (sidebarEl) {
-      const dashUrl = isTaskerMode ? `${taskerRoot}Dashboard/index.html` : `${posterRoot}Dashboard/index.html`;
-      const myTasksUrl = isTaskerMode ? `${taskerRoot}MyApplications/index.html` : `${posterRoot}MyPostedTasks/index.html`;
 
       sidebarEl.innerHTML = `
         <a href="${dashUrl}" class="sidebar-logo" style="text-decoration:none;">
@@ -118,8 +121,9 @@
           </a>
         </nav>
 
-        <div class="sidebar-footer" style="position:relative;">
-          <div class="sidebar-user" id="sidebar-user-btn" style="cursor:pointer; padding:10px 12px; border-radius:var(--radius-sm); display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.06); transition:background 0.15s ease;" title="Account & profile options">
+        <div class="sidebar-footer" style="position:relative; margin-top:auto; padding-top:16px;">
+          <!-- User Profile Pill / Mode Switcher Trigger -->
+          <div class="sidebar-user" id="sidebar-user-btn" style="cursor:pointer; padding:10px 12px; border-radius:var(--radius-sm); display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.07); transition:background 0.15s ease;" title="Account & Mode options">
             <div class="sidebar-user-avatar" id="sidebar-avatar">${pAvatarHTML}</div>
             <div style="flex:1; min-width:0;">
               <div class="sidebar-user-name" id="sidebar-name" style="font-weight:600; font-size:0.88rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${pFullName}</div>
@@ -133,14 +137,14 @@
           </div>
 
           <!-- Mode Switcher & Profile Dropdown Popup -->
-          <div class="sidebar-switcher-menu" id="sidebar-switcher-menu" style="display:none; position:absolute; bottom:calc(100% + 8px); left:0; right:0; background:#0A2717; border:1px solid rgba(255,255,255,0.14); border-radius:var(--radius-md); padding:8px; box-shadow:0 12px 32px rgba(0,0,0,0.45); z-index:1000;">
+          <div class="sidebar-switcher-menu" id="sidebar-switcher-menu" style="display:none; position:absolute; bottom:calc(100% + 8px); left:0; right:0; background:#0A2717; border:1px solid rgba(255,255,255,0.16); border-radius:var(--radius-md); padding:8px; box-shadow:0 16px 36px rgba(0,0,0,0.55); z-index:99999;">
             <div style="font-size:0.68rem; font-weight:700; color:#8FB89C; padding:6px 10px; text-transform:uppercase; letter-spacing:0.05em;">Switch Account Mode</div>
             
             ${isTaskerMode ? `
               <!-- Active Tasker Mode -->
-              <div class="switcher-menu-item is-active" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); margin-bottom:4px; background:rgba(34,145,80,0.2);">
-                <div style="display:flex; align-items:flex-start; gap:8px;">
-                  <span style="color:#CDEEDA; margin-top:2px;">${taskerIcon}</span>
+              <div class="switcher-menu-item is-active" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); margin-bottom:4px; background:rgba(34,145,80,0.22);">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="color:#CDEEDA;">${taskerIcon}</span>
                   <div>
                     <div style="font-weight:600; font-size:0.86rem; color:#fff;">Tasker Mode</div>
                     <div style="font-size:0.74rem; color:#A9CBB3;">Browse gigs & earn money</div>
@@ -149,34 +153,22 @@
                 <span style="color:#CDEEDA; font-weight:bold;">${checkIcon}</span>
               </div>
 
-              <!-- Alternate Poster Profile Option: Switch vs Setup -->
-              ${isPosterSetup ? `
-                <div class="switcher-menu-item" id="switch-to-poster-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; transition:background 0.15s; margin-bottom:6px;">
-                  <div style="display:flex; align-items:flex-start; gap:8px;">
-                    <span style="color:#A9CBB3; margin-top:2px;">${posterIcon}</span>
-                    <div>
-                      <div style="font-weight:600; font-size:0.86rem; color:#fff;">Task Poster Mode</div>
-                      <div style="font-size:0.74rem; color:#A9CBB3;">Post tasks & hire professionals</div>
-                    </div>
+              <!-- Switch to Poster Profile -->
+              <div class="switcher-menu-item" id="switch-to-poster-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; transition:background 0.15s; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="color:#A9CBB3;">${posterIcon}</span>
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Task Poster Mode</div>
+                    <div style="font-size:0.74rem; color:#A9CBB3;">Post tasks & hire professionals</div>
                   </div>
                 </div>
-              ` : `
-                <div class="switcher-menu-item" id="setup-poster-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; background:rgba(34,145,80,0.18); border:1px dashed #229150; margin-bottom:6px;">
-                  <div style="display:flex; align-items:flex-start; gap:8px;">
-                    <span style="color:#CDEEDA; margin-top:2px;">${plusIcon}</span>
-                    <div>
-                      <div style="font-weight:600; font-size:0.86rem; color:#CDEEDA;">Set up Poster Profile</div>
-                      <div style="font-size:0.74rem; color:#A9CBB3;">Create profile & hire people</div>
-                    </div>
-                  </div>
-                  <span style="font-size:0.75rem; font-weight:bold; color:#CDEEDA; background:var(--green-700); padding:2px 8px; border-radius:10px;">New</span>
-                </div>
-              `}
+                <span style="font-size:0.75rem; color:#8FB89C; font-weight:600;">Switch &rarr;</span>
+              </div>
             ` : `
               <!-- Active Poster Mode -->
-              <div class="switcher-menu-item is-active" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); margin-bottom:4px; background:rgba(34,145,80,0.2);">
-                <div style="display:flex; align-items:flex-start; gap:8px;">
-                  <span style="color:#CDEEDA; margin-top:2px;">${posterIcon}</span>
+              <div class="switcher-menu-item is-active" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); margin-bottom:4px; background:rgba(34,145,80,0.22);">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="color:#CDEEDA;">${posterIcon}</span>
                   <div>
                     <div style="font-weight:600; font-size:0.86rem; color:#fff;">Task Poster Mode</div>
                     <div style="font-size:0.74rem; color:#A9CBB3;">Post tasks & hire professionals</div>
@@ -185,29 +177,17 @@
                 <span style="color:#CDEEDA; font-weight:bold;">${checkIcon}</span>
               </div>
 
-              <!-- Alternate Tasker Profile Option: Switch vs Setup -->
-              ${isTaskerSetup ? `
-                <div class="switcher-menu-item" id="switch-to-tasker-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; transition:background 0.15s; margin-bottom:6px;">
-                  <div style="display:flex; align-items:flex-start; gap:8px;">
-                    <span style="color:#A9CBB3; margin-top:2px;">${taskerIcon}</span>
-                    <div>
-                      <div style="font-weight:600; font-size:0.86rem; color:#fff;">Tasker Mode</div>
-                      <div style="font-size:0.74rem; color:#A9CBB3;">Browse gigs & earn money</div>
-                    </div>
+              <!-- Switch to Tasker Profile -->
+              <div class="switcher-menu-item" id="switch-to-tasker-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; transition:background 0.15s; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="color:#A9CBB3;">${taskerIcon}</span>
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Tasker Mode</div>
+                    <div style="font-size:0.74rem; color:#A9CBB3;">Browse gigs & earn money</div>
                   </div>
                 </div>
-              ` : `
-                <div class="switcher-menu-item" id="setup-tasker-btn" style="display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:var(--radius-sm); cursor:pointer; background:rgba(34,145,80,0.18); border:1px dashed #229150; margin-bottom:6px;">
-                  <div style="display:flex; align-items:flex-start; gap:8px;">
-                    <span style="color:#CDEEDA; margin-top:2px;">${plusIcon}</span>
-                    <div>
-                      <div style="font-weight:600; font-size:0.86rem; color:#CDEEDA;">Set up Tasker Profile</div>
-                      <div style="font-size:0.74rem; color:#A9CBB3;">Create profile & start earning</div>
-                    </div>
-                  </div>
-                  <span style="font-size:0.75rem; font-weight:bold; color:#CDEEDA; background:var(--green-700); padding:2px 8px; border-radius:10px;">New</span>
-                </div>
-              `}
+                <span style="font-size:0.75rem; color:#8FB89C; font-weight:600;">Switch &rarr;</span>
+              </div>
             `}
 
             <div style="height:1px; background:rgba(255,255,255,0.08); margin:4px 0;"></div>
@@ -226,22 +206,26 @@
       `;
     }
 
-    // Ensure mobile topbar exists
+    // Ensure mobile topbar exists outside the dashboard layout
     let mobileTopbar = document.querySelector('.mobile-topbar');
     if (!mobileTopbar) {
       mobileTopbar = document.createElement('div');
       mobileTopbar.className = 'mobile-topbar';
-      const layout = document.querySelector('.dashboard-layout') || document.body;
-      layout.insertBefore(mobileTopbar, layout.firstChild);
+      const layout = document.querySelector('.dashboard-layout') || document.querySelector('.app-shell') || document.body;
+      if (layout && layout.parentNode) {
+        layout.parentNode.insertBefore(mobileTopbar, layout);
+      } else {
+        document.body.insertBefore(mobileTopbar, document.body.firstChild);
+      }
     }
     mobileTopbar.innerHTML = `
-      <div style="display:flex; align-items:center; gap:10px;">
-        <button class="hamburger-btn" id="mobile-hamburger-btn" aria-label="Toggle navigation" style="background:none; border:none; color:var(--body); cursor:pointer; padding:4px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button class="hamburger-btn" id="mobile-hamburger-btn" aria-label="Toggle navigation" style="background:none; border:none; color:#fff; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
         <a href="${dashUrl}" style="display:flex; align-items:center; gap:8px; text-decoration:none;">
-          <img src="${assetsRoot}icon.png" alt="Taska" style="width:24px; height:24px; border-radius:6px; object-fit:contain;">
-          <span style="font-weight:700; font-size:1.05rem; color:var(--green-900);">Taska</span>
+          <img src="${assetsRoot}icon.png" alt="Taska" style="width:26px; height:26px; border-radius:6px; object-fit:contain;">
+          <span style="font-weight:700; font-size:1.1rem; color:#fff;">Taska</span>
         </a>
       </div>
       <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">${pAvatarHTML}</div>
@@ -254,9 +238,6 @@
       tabBar.className = 'tab-bar mobile-only';
       document.body.appendChild(tabBar);
     }
-    const dashUrl = isTaskerMode ? `${taskerRoot}Dashboard/index.html` : `${posterRoot}Dashboard/index.html`;
-    const actionUrl = isTaskerMode ? `${taskerRoot}BrowseTasks/index.html` : `${posterRoot}PostTask/index.html`;
-    const myTasksUrl = isTaskerMode ? `${taskerRoot}MyApplications/index.html` : `${posterRoot}MyPostedTasks/index.html`;
 
     tabBar.innerHTML = `
       <div class="tab-bar-inner">
@@ -307,25 +288,32 @@
 
     if (userBtn && switcherMenu) {
       userBtn.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
-        const isHidden = switcherMenu.style.display === 'none';
-        switcherMenu.style.display = isHidden ? 'block' : 'none';
+        const isOpen = switcherMenu.style.display === 'block';
+        switcherMenu.style.display = isOpen ? 'none' : 'block';
       };
     }
 
-    // Close dropdown menu and mobile sidebar when clicking outside
-    document.addEventListener('click', (e) => {
-      if (switcherMenu && switcherMenu.style.display !== 'none') {
-        if (!switcherMenu.contains(e.target) && !userBtn?.contains(e.target)) {
-          switcherMenu.style.display = 'none';
+    // Close dropdown menu and mobile sidebar when clicking outside (registered once globally)
+    if (!window._sidebarDocClickBound) {
+      window._sidebarDocClickBound = true;
+      document.addEventListener('click', (e) => {
+        const menu = document.getElementById('sidebar-switcher-menu');
+        const btn = document.getElementById('sidebar-user-btn');
+        if (menu && menu.style.display === 'block') {
+          if (!menu.contains(e.target) && !btn?.contains(e.target)) {
+            menu.style.display = 'none';
+          }
         }
-      }
-      if (sidebarEl && (sidebarEl.classList.contains('is-open') || sidebarEl.classList.contains('is-mobile-open'))) {
-        if (!sidebarEl.contains(e.target) && !e.target.closest('#mobile-hamburger-btn')) {
-          sidebarEl.classList.remove('is-open', 'is-mobile-open');
+        const sidebar = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
+        if (sidebar && (sidebar.classList.contains('is-open') || sidebar.classList.contains('is-mobile-open'))) {
+          if (!sidebar.contains(e.target) && !e.target.closest('#mobile-hamburger-btn')) {
+            sidebar.classList.remove('is-open', 'is-mobile-open');
+          }
         }
-      }
-    });
+      });
+    }
 
     // Account Mode Switching & Setup handlers
     const posterOpt = document.getElementById('switch-to-poster-btn');
@@ -335,6 +323,7 @@
 
     if (posterOpt) {
       posterOpt.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
         if (window.switchTaskaRole) window.switchTaskaRole('POSTER');
@@ -343,6 +332,7 @@
 
     if (taskerOpt) {
       taskerOpt.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
         if (window.switchTaskaRole) window.switchTaskaRole('TASKER');
@@ -351,23 +341,34 @@
 
     if (setupTaskerOpt) {
       setupTaskerOpt.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
-        openProfileSetupModal('TASKER');
+        if (window.switchTaskaRole) {
+          window.switchTaskaRole('TASKER');
+        } else {
+          openProfileSetupModal('TASKER');
+        }
       };
     }
 
     if (setupPosterOpt) {
       setupPosterOpt.onclick = (e) => {
+        e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
-        openProfileSetupModal('POSTER');
+        if (window.switchTaskaRole) {
+          window.switchTaskaRole('POSTER');
+        } else {
+          openProfileSetupModal('POSTER');
+        }
       };
     }
 
     // Navigation links in dropdown
-    const goToProfile = () => {
-      const p = window.__taskaProfile;
+    const goToProfile = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
       if (p && p.id) {
         window.location.href = profileLink.includes('?') ? `${profileLink}&id=${p.id}` : `${profileLink}?id=${p.id}`;
       } else {
@@ -383,7 +384,8 @@
 
     const dropdownSettingsBtn = document.getElementById('dropdown-settings-btn');
     if (dropdownSettingsBtn) {
-      dropdownSettingsBtn.onclick = () => {
+      dropdownSettingsBtn.onclick = (e) => {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
         const path = window.location.pathname;
         const inPoster = path.includes('/Poster/');
         const inTasker = path.includes('/Tasker/');
@@ -394,7 +396,7 @@
 
     // Logout button handler
     const logoutHandler = async (e) => {
-      e.preventDefault();
+      if (e) { e.preventDefault(); e.stopPropagation(); }
       try {
         try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
         window.__taskaProfile = null;
@@ -542,8 +544,12 @@
     }
   }
 
-  // Auto-init on DOMContentLoaded
+  // Auto-init on DOMContentLoaded and upon profile ready
   document.addEventListener('DOMContentLoaded', () => {
+    window.initSidebar();
+  });
+
+  window.addEventListener('taska:ready', () => {
     window.initSidebar();
   });
 

@@ -970,17 +970,6 @@ document.querySelectorAll('[data-settings-subtab]').forEach(btn => {
 
 // Leave a Review Form Handler
 
-
-
-document.getElementById('sidebar-user-btn')?.addEventListener('click', () => {
-  const profile = window.getTaskaProfile();
-  if (profile) window.location.href = '../Profile/index.html?id=' + profile.id;
-});
-document.getElementById('mobile-avatar')?.addEventListener('click', () => {
-  const profile = window.getTaskaProfile();
-  if (profile) window.location.href = '../Profile/index.html?id=' + profile.id;
-});
-
 document.getElementById('public-profile-close')?.addEventListener('click', () => {
   const modal = document.getElementById('public-profile-modal');
   if (modal) modal.style.display = 'none';

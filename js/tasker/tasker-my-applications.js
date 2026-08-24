@@ -273,6 +273,21 @@ async function handleConfirmSubmitWork() {
 
     if (error) throw error;
 
+    // Send Email & In-App Notification to Poster via Resend
+    const appObj = myApplicationsData.find(a => a.taskId === taskId || a.task?.id === taskId);
+    const posterId = appObj?.task?.posterId || appObj?.task?.poster?.id;
+
+    if (window.sendTaskaNotification && posterId) {
+      window.sendTaskaNotification({
+        type: 'DELIVERABLE_SUBMITTED',
+        profileId: posterId,
+        data: {
+          taskTitle: taskTitle || 'Task',
+          taskerName: profile.firstName || profile.username || 'Your Tasker',
+        },
+      });
+    }
+
     const modal = document.getElementById('submitWorkModal');
     if (modal) {
       modal.classList.remove('is-open');

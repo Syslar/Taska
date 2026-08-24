@@ -147,6 +147,17 @@ window.launchDojahKyc = async function () {
           if (typeof window.renderSettingsPage === 'function') window.renderSettingsPage();
           if (typeof window.renderKycPageStatus === 'function') window.renderKycPageStatus();
           if (typeof window.initSidebar === 'function') window.initSidebar();
+
+          // Send Email & In-App Notification via Resend
+          if (window.sendTaskaNotification) {
+            window.sendTaskaNotification({
+              type: 'KYC_VERIFIED',
+              profileId: profile.id,
+              data: {
+                idType: 'National ID / BVN',
+              },
+            });
+          }
         }
       } catch (err) {
         console.error('Supabase KYC update error:', err);

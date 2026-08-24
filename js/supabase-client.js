@@ -124,3 +124,52 @@ window.TaskaRateLimiter = (function () {
     }
   };
 })();
+
+// ─── Global Email & In-App Notification Dispatcher ───────────────────────────
+window.sendTaskaNotification = async function (payload) {
+  try {
+    if (!payload || !payload.type) {
+      console.warn('[Taska Notification] Missing notification type:', payload);
+      return { error: 'Missing notification type' };
+    }
+
+    // Auto-attach current user profile / session if not specified
+    const currentProfile = window.getTaskaProfile ? window.getTaskaProfile() : null;
+    if (!payload.profileId && !payload.userId && !payload.toEmail && currentProfile) {
+      payload.profileId = currentProfile.id;
+      payload.userId = currentProfile.userId;
+      payload.toEmail = currentProfile.email;
+    }
+
+    let token = '';
+    if (window.Clerk && window.Clerk.session) {
+      try {
+        token = await window.Clerk.session.getToken();
+      } catch (e) {
+        // Token retrieval optional for non-blocking notifications
+      }
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const result = await res.json();
+    console.log('[Taska Notification] Dispatched:', payload.type, result);
+    return result;
+  } catch (err) {
+    console.error('[Taska Notification] Error:', err);
+    return { error: err.message || err };
+  }
+};
+

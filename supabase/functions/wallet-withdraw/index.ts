@@ -225,6 +225,32 @@ Deno.serve(async (req) => {
         p_transfer_code: transferCode,
         p_outcome: 'success',
       });
+
+      // Send Success Notification via Resend
+      dispatchNotification(supabase, {
+        type: 'WITHDRAWAL_SUCCESS',
+        profileId,
+        data: {
+          amountNaira: requestedAmountNaira,
+          payoutNaira,
+          bankName,
+          accountNumber,
+          reference,
+        },
+      });
+    } else {
+      // Send Initiated / Processing Notification
+      dispatchNotification(supabase, {
+        type: 'WITHDRAWAL_INITIATED',
+        profileId,
+        data: {
+          amountNaira: requestedAmountNaira,
+          payoutNaira,
+          bankName,
+          accountNumber,
+          reference,
+        },
+      });
     }
 
     const msg = commissionKobo > 0
@@ -248,3 +274,21 @@ Deno.serve(async (req) => {
     return respond({ error: 'Internal server error' }, 500);
   }
 });
+
+async function dispatchNotification(supabase: any, payload: any) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    console.log('[wallet-withdraw] Dispatched notification result:', json);
+  } catch (err: any) {
+    console.error('[wallet-withdraw] Error dispatching notification:', err.message || err);
+  }
+}
+

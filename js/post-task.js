@@ -578,6 +578,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         localStorage.removeItem('taska_post_task_draft');
 
+        // Send Email Confirmation to Poster via Resend
+        if (window.sendTaskaNotification && posterProfileId) {
+          window.sendTaskaNotification({
+            type: 'TASK_POSTED',
+            profileId: posterProfileId,
+            data: {
+              taskTitle: title,
+              budget: budget ? parseFloat(budget) : 0,
+              category,
+              location: locationString,
+            },
+          });
+        }
+
         if (window.showToast) window.showToast('Task posted successfully!');
         window.location.href = 'Poster/MyPostedTasks/index.html';
       } catch (err) {

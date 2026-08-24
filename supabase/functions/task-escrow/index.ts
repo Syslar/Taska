@@ -127,6 +127,62 @@ Deno.serve(async (req) => {
         return respond({ error: msg || 'Failed to lock escrow' }, 400);
       }
 
+      // Fetch task & parties info to notify them via Resend
+      (async () => {
+        try {
+          const { data: task } = await supabase
+            .from('Task')
+            .select('id, title, budget, agreedBudget, posterId, taskerId')
+            .eq('id', taskId)
+            .maybeSingle();
+
+          const { data: posterProfile } = await supabase
+            .from('Profile')
+            .select('id, userId, firstName, lastName, username, email')
+            .eq('id', posterId)
+            .maybeSingle();
+
+          const taskerProfileId = task?.taskerId;
+          if (taskerProfileId) {
+            const { data: taskerProfile } = await supabase
+              .from('Profile')
+              .select('id, userId, firstName, lastName, username, email')
+              .eq('id', taskerProfileId)
+              .maybeSingle();
+
+            const agreedBudget = task?.agreedBudget || task?.budget;
+            const posterName = posterProfile?.firstName || posterProfile?.username || 'Client';
+            const taskerName = taskerProfile?.firstName || taskerProfile?.username || 'Tasker';
+
+            // Notify Tasker (Hired)
+            await dispatchNotification(supabase, {
+              type: 'HIRED_ESCROW_LOCKED',
+              profileId: taskerProfileId,
+              data: {
+                taskTitle: task?.title,
+                escrowAmount: agreedBudget,
+                posterName,
+                roleTarget: 'TASKER',
+              },
+            });
+
+            // Notify Poster (Receipt)
+            await dispatchNotification(supabase, {
+              type: 'HIRED_ESCROW_LOCKED',
+              profileId: posterId,
+              data: {
+                taskTitle: task?.title,
+                escrowAmount: agreedBudget,
+                taskerName,
+                roleTarget: 'POSTER',
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.error('[task-escrow] Notification error on lock:', notifErr);
+        }
+      })();
+
       return respond({ success: true, result: data });
 
     // 3. Release Escrow on Approval (10% Taska commission taken)
@@ -140,6 +196,62 @@ Deno.serve(async (req) => {
         console.error('[task-escrow] release RPC error:', error);
         return respond({ error: error.message || 'Failed to release payout' }, 400);
       }
+
+      // Fetch task & parties info to notify them via Resend
+      (async () => {
+        try {
+          const { data: task } = await supabase
+            .from('Task')
+            .select('id, title, budget, agreedBudget, posterId, taskerId')
+            .eq('id', taskId)
+            .maybeSingle();
+
+          const { data: posterProfile } = await supabase
+            .from('Profile')
+            .select('id, userId, firstName, lastName, username, email')
+            .eq('id', posterId)
+            .maybeSingle();
+
+          const taskerProfileId = task?.taskerId;
+          if (taskerProfileId) {
+            const { data: taskerProfile } = await supabase
+              .from('Profile')
+              .select('id, userId, firstName, lastName, username, email')
+              .eq('id', taskerProfileId)
+              .maybeSingle();
+
+            const agreedBudget = Number(task?.agreedBudget || task?.budget || 0);
+            const netPayout = agreedBudget * 0.9; // 10% platform commission
+            const posterName = posterProfile?.firstName || posterProfile?.username || 'Client';
+            const taskerName = taskerProfile?.firstName || taskerProfile?.username || 'Tasker';
+
+            // Notify Tasker (Payout released)
+            await dispatchNotification(supabase, {
+              type: 'ESCROW_RELEASED',
+              profileId: taskerProfileId,
+              data: {
+                taskTitle: task?.title,
+                payoutAmount: netPayout,
+                posterName,
+                roleTarget: 'TASKER',
+              },
+            });
+
+            // Notify Poster (Task completed)
+            await dispatchNotification(supabase, {
+              type: 'ESCROW_RELEASED',
+              profileId: posterId,
+              data: {
+                taskTitle: task?.title,
+                taskerName,
+                roleTarget: 'POSTER',
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.error('[task-escrow] Notification error on release:', notifErr);
+        }
+      })();
 
       return respond({ success: true, result: data });
 
@@ -156,6 +268,37 @@ Deno.serve(async (req) => {
         return respond({ error: error.message || 'Failed to request changes' }, 400);
       }
 
+      // Notify Tasker about requested changes
+      (async () => {
+        try {
+          const { data: task } = await supabase
+            .from('Task')
+            .select('id, title, taskerId')
+            .eq('id', taskId)
+            .maybeSingle();
+
+          const { data: posterProfile } = await supabase
+            .from('Profile')
+            .select('firstName, username')
+            .eq('id', posterId)
+            .maybeSingle();
+
+          if (task?.taskerId) {
+            await dispatchNotification(supabase, {
+              type: 'REVISION_REQUESTED',
+              profileId: task.taskerId,
+              data: {
+                taskTitle: task?.title,
+                posterName: posterProfile?.firstName || posterProfile?.username || 'Client',
+                revisionNotes: revisionNotes || '',
+              },
+            });
+          }
+        } catch (notifErr) {
+          console.error('[task-escrow] Notification error on request_changes:', notifErr);
+        }
+      })();
+
       return respond({ success: true, result: data });
 
     } else {
@@ -166,3 +309,21 @@ Deno.serve(async (req) => {
     return respond({ error: 'Internal server error' }, 500);
   }
 });
+
+async function dispatchNotification(supabase: any, payload: any) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-notification`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const json = await res.json();
+    console.log('[task-escrow] Dispatched notification result:', json);
+  } catch (err: any) {
+    console.error('[task-escrow] Error dispatching notification:', err.message || err);
+  }
+}
+

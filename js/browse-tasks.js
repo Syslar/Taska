@@ -465,6 +465,20 @@ async function submitApplication(taskId, defaultBudget) {
       return;
     }
 
+    // Send Email & In-App Notification to the Task Poster via Resend
+    if (window.sendTaskaNotification && task?.posterId) {
+      window.sendTaskaNotification({
+        type: 'NEW_APPLICATION',
+        profileId: task.posterId,
+        data: {
+          taskTitle: task.title || 'Task',
+          taskerName: profile.firstName || profile.username || 'A Verified Tasker',
+          bidAmount: finalBid || defaultBudget || 0,
+          message: coverMsg,
+        },
+      });
+    }
+
     if (window.showToast) window.showToast('Application submitted successfully! The Poster has been notified.');
     closeTaskModal();
     await loadBrowseTasks();

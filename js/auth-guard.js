@@ -88,12 +88,15 @@ window.switchTaskaRole = async function (newRole) {
 
   // Redirect to respective system dashboard
   const path = window.location.pathname;
-  const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
-  if (targetRole === 'TASKER') {
-    window.location.href = inSubSub ? '../../Tasker/Dashboard/index.html' : '../Tasker/Dashboard/index.html';
+  let targetUrl = '';
+  if (path.includes('/Poster/') || path.includes('/Tasker/')) {
+    targetUrl = targetRole === 'TASKER' ? '../../Tasker/Dashboard/index.html' : '../../Poster/Dashboard/index.html';
+  } else if (path.includes('/Settings/') || path.includes('/Chats/') || path.includes('/Wallet/')) {
+    targetUrl = targetRole === 'TASKER' ? '../Tasker/Dashboard/index.html' : '../Poster/Dashboard/index.html';
   } else {
-    window.location.href = inSubSub ? '../../Poster/Dashboard/index.html' : '../Poster/Dashboard/index.html';
+    targetUrl = targetRole === 'TASKER' ? 'Tasker/Dashboard/index.html' : 'Poster/Dashboard/index.html';
   }
+  window.location.href = targetUrl;
 };
 
 window.ensureTaskaProfile = async function () {
@@ -372,6 +375,9 @@ async function runAuthGuard() {
   if (profile) {
     window.__taskaProfile = profile;
     populateSidebar(profile);
+    if (typeof window.initSidebar === 'function') {
+      window.initSidebar();
+    }
     window.checkProfileCompletionPrompt(profile);
   }
 
@@ -705,10 +711,13 @@ window.openImageLightbox = function (imageUrl, caption = 'Attachment Preview') {
 document.addEventListener('click', (e) => {
   const target = e.target;
   if (target && target.tagName === 'IMG') {
-    const isClickable = target.closest('#sidebar-avatar') || 
-                        target.closest('#mobile-avatar') || 
+    // Do not intercept clicks on the sidebar user button / mode switcher
+    if (target.closest('#sidebar-user-btn') || target.closest('.sidebar-user') || target.closest('#sidebar-switcher-menu')) {
+      return;
+    }
+
+    const isClickable = target.closest('#mobile-avatar') || 
                         target.closest('.applicant-avatar') || 
-                        target.closest('.sidebar-user-avatar') || 
                         target.closest('.profile-avatar-large') || 
                         target.closest('.profile-avatar') || 
                         target.closest('#settings-avatar-preview') || 
