@@ -1227,6 +1227,24 @@ button { cursor: pointer; }
   color: #fff !important;
 }
 
+/* Notification Bell Shake Animation */
+@keyframes bellShake {
+  0% { transform: rotate(0); }
+  12% { transform: rotate(14deg); }
+  24% { transform: rotate(-14deg); }
+  36% { transform: rotate(10deg); }
+  48% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); }
+  72% { transform: rotate(-6deg); }
+  84% { transform: rotate(0); }
+  100% { transform: rotate(0); }
+}
+
+.bell-icon-svg.has-unread, .taska-notif-bell-btn.has-unread svg {
+  animation: bellShake 2.2s infinite ease-in-out;
+  transform-origin: top center;
+}
+
 /* Mobile topbar */
 .mobile-topbar {
   display: none;

@@ -73,10 +73,16 @@
     if (sidebarEl) {
 
       sidebarEl.innerHTML = `
-        <a href="${dashUrl}" class="sidebar-logo" style="text-decoration:none;">
-          <img src="${assetsRoot}icon.png" alt="Taska" style="width:32px; height:32px; border-radius:8px; object-fit:contain; display:block;">
-          <span style="font-weight:700; font-size:1.18rem; color:#fff; letter-spacing:-0.01em;">Taska</span>
-        </a>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding:2px 4px 0;">
+          <a href="${dashUrl}" class="sidebar-logo" style="text-decoration:none; padding:0; margin:0;">
+            <img src="${assetsRoot}icon.png" alt="Taska" style="width:32px; height:32px; border-radius:8px; object-fit:contain; display:block;">
+            <span style="font-weight:700; font-size:1.18rem; color:#fff; letter-spacing:-0.01em;">Taska</span>
+          </a>
+          <button class="taska-notif-bell-btn" id="sidebar-notif-bell" aria-label="Notifications" style="position:relative; background:rgba(255,255,255,0.08); border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; transition:background 0.15s ease;" title="Notifications">
+            <svg class="bell-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="taska-notif-badge" id="sidebar-notif-badge" style="display:none; position:absolute; top:-2px; right:-2px; background:#EF4444; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; padding:0 4px; line-height:16px; text-align:center; border:2px solid #0E3A22;">0</span>
+          </button>
+        </div>
 
         <nav class="sidebar-nav">
           <a href="${dashUrl}" class="sidebar-link desktop-only ${activeTab === 'dashboard' ? 'is-active' : ''}" data-tab="dashboard">
@@ -271,24 +277,6 @@
         </a>
       </div>
     `;
-
-    // Inject Desktop Header Notification Bell if header action area exists
-    const appHeader = document.querySelector('.app-header');
-    if (appHeader && !document.getElementById('desktop-notif-bell')) {
-      let actionArea = appHeader.querySelector('div[style*="display:flex"]') || appHeader.querySelector('div:last-child');
-      if (actionArea && actionArea !== appHeader.firstElementChild) {
-        const bellBtn = document.createElement('button');
-        bellBtn.id = 'desktop-notif-bell';
-        bellBtn.className = 'btn btn-secondary btn-sm taska-notif-bell-btn desktop-only';
-        bellBtn.style.cssText = 'position:relative; border-radius:var(--radius-pill); display:inline-flex; align-items:center; gap:6px; margin-right:4px;';
-        bellBtn.innerHTML = `
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          <span>Notifications</span>
-          <span class="taska-notif-badge" id="desktop-notif-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; padding:1px 6px; line-height:1.2;">0</span>
-        `;
-        actionArea.insertBefore(bellBtn, actionArea.firstChild);
-      }
-    }
 
     // Bind event handlers
     bindSidebarEvents(profileLink);
@@ -610,6 +598,15 @@
           badge.style.display = 'inline-flex';
         } else {
           badge.style.display = 'none';
+        }
+      });
+
+      // Toggle bell shake animation whenever there are unread notifications
+      document.querySelectorAll('.taska-notif-bell-btn, .bell-icon-svg').forEach(el => {
+        if (unreadCount > 0) {
+          el.classList.add('has-unread');
+        } else {
+          el.classList.remove('has-unread');
         }
       });
 
