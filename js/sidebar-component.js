@@ -228,7 +228,13 @@
           <span style="font-weight:700; font-size:1.1rem; color:#fff;">Taska</span>
         </a>
       </div>
-      <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">${pAvatarHTML}</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="taska-notif-bell-btn" id="mobile-notif-bell" aria-label="Notifications" style="position:relative; background:rgba(255,255,255,0.12); border:none; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; transition:background 0.15s ease;" title="Notifications">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="taska-notif-badge" id="mobile-notif-badge" style="display:none; position:absolute; top:-2px; right:-2px; background:#EF4444; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; min-width:16px; height:16px; padding:0 4px; line-height:16px; text-align:center; border:2px solid #0E3A22;">0</span>
+        </button>
+        <div class="sidebar-user-avatar" id="mobile-avatar" style="cursor:pointer;" title="View public profile">${pAvatarHTML}</div>
+      </div>
     `;
 
     // Ensure mobile bottom tab bar exists
@@ -266,8 +272,31 @@
       </div>
     `;
 
+    // Inject Desktop Header Notification Bell if header action area exists
+    const appHeader = document.querySelector('.app-header');
+    if (appHeader && !document.getElementById('desktop-notif-bell')) {
+      let actionArea = appHeader.querySelector('div[style*="display:flex"]') || appHeader.querySelector('div:last-child');
+      if (actionArea && actionArea !== appHeader.firstElementChild) {
+        const bellBtn = document.createElement('button');
+        bellBtn.id = 'desktop-notif-bell';
+        bellBtn.className = 'btn btn-secondary btn-sm taska-notif-bell-btn desktop-only';
+        bellBtn.style.cssText = 'position:relative; border-radius:var(--radius-pill); display:inline-flex; align-items:center; gap:6px; margin-right:4px;';
+        bellBtn.innerHTML = `
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span>Notifications</span>
+          <span class="taska-notif-badge" id="desktop-notif-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.68rem; font-weight:700; border-radius:999px; padding:1px 6px; line-height:1.2;">0</span>
+        `;
+        actionArea.insertBefore(bellBtn, actionArea.firstChild);
+      }
+    }
+
     // Bind event handlers
     bindSidebarEvents(profileLink);
+
+    // Initial notification fetch
+    if (window.fetchTaskaNotifications) {
+      window.fetchTaskaNotifications();
+    }
   };
 
   function bindSidebarEvents(profileLink) {
@@ -281,6 +310,15 @@
         sidebarEl.classList.toggle('is-mobile-open');
       };
     }
+
+    // Bind Notification Bell clicks
+    document.querySelectorAll('.taska-notif-bell-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (window.toggleNotificationDrawer) window.toggleNotificationDrawer();
+      };
+    });
 
     // Toggle Mode Switcher Dropdown Menu
     const userBtn = document.getElementById('sidebar-user-btn');
@@ -543,6 +581,193 @@
       };
     }
   }
+
+  // ─── IN-APP NOTIFICATION CENTER & DRAWER ──────────────────────────────────
+  window.fetchTaskaNotifications = async function() {
+    const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+    const userId = profile?.userId || (window.Clerk?.user?.id);
+    if (!userId || !window.supabaseClient) return;
+
+    try {
+      const { data: list, error } = await window.supabaseClient
+        .from('Notification')
+        .select('*')
+        .eq('userId', userId)
+        .order('createdAt', { ascending: false })
+        .limit(30);
+
+      if (error) {
+        console.error('[Notifications] Supabase fetch error:', error);
+        return;
+      }
+
+      window.__taskaNotifications = list || [];
+      const unreadCount = (list || []).filter(n => !n.isRead).length;
+
+      document.querySelectorAll('.taska-notif-badge').forEach(badge => {
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+        }
+      });
+
+      renderNotificationDrawerList(list || []);
+    } catch (err) {
+      console.error('[Notifications] Fetch exception:', err);
+    }
+  };
+
+  window.toggleNotificationDrawer = function() {
+    let container = document.getElementById('taska-notification-drawer');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'taska-notification-drawer';
+      container.style.cssText = `
+        position: fixed; inset: 0; z-index: 999999; display: flex; justify-content: flex-end;
+        background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); opacity: 0; transition: opacity 0.2s ease;
+      `;
+      container.innerHTML = `
+        <div style="background:var(--paper, #fff); width:100%; max-width:420px; height:100%; display:flex; flex-direction:column; box-shadow:-8px 0 32px rgba(0,0,0,0.25); transform:translateX(100%); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div style="padding:18px 20px; border-bottom:1px solid var(--line, #e2e8f0); display:flex; align-items:center; justify-content:space-between; background:var(--surface, #fff);">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="width:34px; height:34px; border-radius:50%; background:var(--mint-100, #E1F5E8); color:var(--green-700, #146C34); display:flex; align-items:center; justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <h3 style="font-size:1.1rem; margin:0; color:var(--green-900);">Notifications</h3>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button id="taska-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 8px; border-radius:6px;">Mark all read</button>
+              <button id="taska-close-notif-drawer" style="background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:4px 8px;" aria-label="Close">✕</button>
+            </div>
+          </div>
+
+          <div id="taska-notif-list-container" style="flex:1; overflow-y:auto; padding:12px 16px;">
+            <div style="padding:32px 16px; text-align:center; color:var(--muted); font-size:0.88rem;">Loading notifications…</div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(container);
+
+      const panel = container.firstElementChild;
+      const close = () => {
+        container.style.opacity = '0';
+        if (panel) panel.style.transform = 'translateX(100%)';
+        setTimeout(() => { container.style.display = 'none'; }, 200);
+      };
+
+      container.querySelector('#taska-close-notif-drawer').onclick = close;
+      container.onclick = (e) => { if (e.target === container) close(); };
+
+      container.querySelector('#taska-mark-all-read-btn').onclick = async () => {
+        const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        const userId = profile?.userId || (window.Clerk?.user?.id);
+        if (!userId || !window.supabaseClient) return;
+
+        try {
+          await window.supabaseClient
+            .from('Notification')
+            .update({ isRead: true })
+            .eq('userId', userId);
+          window.fetchTaskaNotifications();
+          if (window.showToast) window.showToast('All notifications marked as read');
+        } catch (err) {
+          console.error('[Notifications] Mark all read error:', err);
+        }
+      };
+    }
+
+    const panel = container.firstElementChild;
+    if (container.style.display === 'none' || !container.style.display || container.style.opacity === '0') {
+      container.style.display = 'flex';
+      requestAnimationFrame(() => {
+        container.style.opacity = '1';
+        if (panel) panel.style.transform = 'translateX(0)';
+      });
+      window.fetchTaskaNotifications();
+    } else {
+      container.style.opacity = '0';
+      if (panel) panel.style.transform = 'translateX(100%)';
+      setTimeout(() => { container.style.display = 'none'; }, 200);
+    }
+  };
+
+  function renderNotificationDrawerList(list) {
+    const listEl = document.getElementById('taska-notif-list-container');
+    if (!listEl) return;
+
+    if (!list || list.length === 0) {
+      listEl.innerHTML = `
+        <div style="padding:48px 20px; text-align:center; color:var(--muted);">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" style="margin-bottom:12px; opacity:0.5;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <div style="font-weight:600; font-size:0.95rem; color:var(--green-900); margin-bottom:4px;">No notifications yet</div>
+          <div style="font-size:0.8rem;">You will receive alerts here when major account actions happen.</div>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = list.map(item => {
+      const isUnread = !item.isRead;
+      const type = item.type || '';
+      let iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+      let iconBg = 'var(--mint-100, #E1F5E8)';
+      let iconColor = 'var(--green-700, #146C34)';
+
+      if (type.includes('DEPOSIT') || type.includes('WITHDRAWAL') || type.includes('ESCROW')) {
+        iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`;
+        iconBg = '#ECFDF5';
+        iconColor = '#059669';
+      } else if (type.includes('TASK') || type.includes('APPLICATION') || type.includes('HIRED')) {
+        iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+        iconBg = '#EFF6FF';
+        iconColor = '#2563EB';
+      }
+
+      const diffMs = new Date() - new Date(item.createdAt);
+      const diffMins = Math.floor(diffMs / 60000);
+      let timeStr = 'Just now';
+      if (diffMins >= 1 && diffMins < 60) timeStr = `${diffMins}m ago`;
+      else if (diffMins >= 60 && diffMins < 1440) timeStr = `${Math.floor(diffMins/60)}h ago`;
+      else if (diffMins >= 1440) timeStr = `${Math.floor(diffMins/1440)}d ago`;
+
+      return `
+        <div class="taska-notif-item" data-id="${item.id}" data-link="${item.link || ''}" style="padding:14px; border-radius:var(--radius-sm, 10px); margin-bottom:8px; background:${isUnread ? 'rgba(34,145,80,0.06)' : 'var(--surface, #fff)'}; border:1px solid ${isUnread ? 'var(--mint-150, #CDEEDA)' : 'var(--line, #e2e8f0)'}; cursor:pointer; transition:transform 0.12s ease, background 0.12s ease; display:flex; gap:12px; align-items:flex-start; position:relative;">
+          <div style="width:36px; height:36px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+            ${iconSvg}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+              <span style="font-weight:600; font-size:0.86rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px;">${item.title || 'Notification'}</span>
+              <span style="font-size:0.72rem; color:var(--muted); white-space:nowrap;">${timeStr}</span>
+            </div>
+            <div style="font-size:0.8rem; color:var(--ink-soft); line-height:1.4; word-break:break-word;">${item.body || ''}</div>
+          </div>
+          ${isUnread ? `<span style="width:8px; height:8px; border-radius:50%; background:#EF4444; position:absolute; top:12px; right:12px;"></span>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('.taska-notif-item').forEach(item => {
+      item.onclick = async () => {
+        const id = item.getAttribute('data-id');
+        const link = item.getAttribute('data-link');
+        if (id && window.supabaseClient) {
+          try {
+            await window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id);
+            window.fetchTaskaNotifications();
+          } catch (_) {}
+        }
+        if (link) window.location.href = link;
+      };
+    });
+  }
+
+  // Polling interval every 30s to update unread notifications automatically
+  setInterval(() => {
+    if (window.fetchTaskaNotifications) window.fetchTaskaNotifications();
+  }, 30000);
 
   // Auto-init on DOMContentLoaded and upon profile ready
   document.addEventListener('DOMContentLoaded', () => {
