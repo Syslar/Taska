@@ -756,7 +756,11 @@
             window.fetchTaskaNotifications();
           } catch (_) {}
         }
-        if (link) window.location.href = link;
+        if (link) {
+          let targetUrl = link.replace(/https?:\/\/(taska\.(ng|com\.ng)|localhost:\d+|[^\/]+)/i, '');
+          if (!targetUrl.startsWith('/')) targetUrl = '/' + targetUrl;
+          window.location.href = targetUrl;
+        }
       };
     });
   }
