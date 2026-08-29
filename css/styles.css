@@ -1666,4 +1666,64 @@ button { cursor: pointer; }
   }
 }
 
+/* ── Horizontal Scrollable Tabs on Mobile and Desktop ───────────────────── */
+.settings-subnav,
+.settings-inner-tabs,
+.profile-tabs,
+.wallet-tabs,
+.nav-tabs-scroll,
+.horizontal-tabs-scroll,
+#profileInnerTabNav,
+#profileTabNav {
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE/Edge */
+  padding-bottom: 6px !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.settings-subnav::-webkit-scrollbar,
+.settings-inner-tabs::-webkit-scrollbar,
+.profile-tabs::-webkit-scrollbar,
+.wallet-tabs::-webkit-scrollbar,
+.nav-tabs-scroll::-webkit-scrollbar,
+.horizontal-tabs-scroll::-webkit-scrollbar,
+#profileInnerTabNav::-webkit-scrollbar,
+#profileTabNav::-webkit-scrollbar {
+  display: none !important;
+}
+
+.settings-subnav > *,
+.settings-inner-tabs > *,
+.profile-tabs > *,
+.wallet-tabs > *,
+.nav-tabs-scroll > *,
+.horizontal-tabs-scroll > *,
+#profileInnerTabNav > *,
+#profileTabNav > * {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Modal and panel overflow bounds */
+.modal,
+.modal-content,
+.panel,
+.profile-card,
+.profile-content,
+.dash-grid {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+
 
