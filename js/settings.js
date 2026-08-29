@@ -43,7 +43,20 @@ window.renderSettingsPage = async function () {
 
   const rawPhone = profile.phone || '';
   const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
-  if (phone) phone.value = digitsOnly;
+  if (phone) {
+    phone.value = digitsOnly;
+    phone.addEventListener('input', () => {
+      const currentDigits = phone.value.replace(/\D/g, '');
+      const origDigits = (profile.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
+      if (currentDigits !== origDigits && profile.isPhoneVerified) {
+        renderPhoneVerificationBadge({ ...profile, isPhoneVerified: false });
+      } else {
+        renderPhoneVerificationBadge(profile);
+      }
+    });
+  }
+
+  renderPhoneVerificationBadge(profile);
 
   if (loc) loc.value = profile.location || '';
   if (bio) bio.value = profile.bio || profile.taskerBio || profile.posterBio || '';
@@ -386,6 +399,58 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
     }
   }
 });
+
+// Helper: Render Phone Verification Badge & Trigger Modal
+function renderPhoneVerificationBadge(profile) {
+  const statusEl = document.getElementById('phoneVerifyStatus');
+  if (!statusEl) return;
+
+  const isVerified = Boolean(profile.isPhoneVerified);
+  if (isVerified) {
+    statusEl.innerHTML = `
+      <span style="font-size:0.75rem; font-weight:700; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Verified
+      </span>
+    `;
+  } else {
+    statusEl.innerHTML = `
+      <button type="button" id="btnVerifyPhoneTrigger" style="background:#E1F5E8; border:1px solid #CDEEDA; color:#146C34; font-size:0.75rem; font-weight:700; cursor:pointer; padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px; transition:background 0.15s ease;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Verify via SMS
+      </button>
+    `;
+
+    document.getElementById('btnVerifyPhoneTrigger')?.addEventListener('click', () => {
+      const phoneInput = document.getElementById('settingsPhone');
+      const enteredPhone = phoneInput?.value.trim().replace(/\D/g, '');
+      if (!enteredPhone || enteredPhone.length < 10) {
+        if (window.showToast) window.showToast('Please enter a valid 10-11 digit Nigerian phone number first', 'error');
+        if (phoneInput) phoneInput.focus();
+        return;
+      }
+
+      const fullPhone = '+234' + (enteredPhone.startsWith('0') ? enteredPhone.substring(1) : enteredPhone);
+
+      if (typeof window.openPhoneOtpModal === 'function') {
+        window.openPhoneOtpModal({
+          phone: fullPhone,
+          userId: profile.userId,
+          profileId: profile.id,
+          onVerified: (res) => {
+            profile.isPhoneVerified = true;
+            profile.phone = res.phone;
+            try {
+              localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+            } catch (_) {}
+            renderPhoneVerificationBadge(profile);
+            if (window.renderSettingsPage) window.renderSettingsPage();
+          },
+        });
+      }
+    });
+  }
+}
 
 // Run render on load
 document.addEventListener('DOMContentLoaded', () => {

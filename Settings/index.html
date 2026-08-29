@@ -105,7 +105,10 @@
             
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
               <div class="field-group">
-                <label class="field-label" for="settingsPhone">Phone number</label>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="field-label" for="settingsPhone" style="margin-bottom:0;">Phone number</label>
+                  <div id="phoneVerifyStatus" style="display:inline-flex; align-items:center; gap:6px;"></div>
+                </div>
                 <div class="phone-input-wrap">
                   <span class="phone-prefix">+234</span>
                   <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
@@ -197,6 +200,7 @@
 </script>
 <script src="../js/sidebar-component.js"></script>
 <script src="../js/auth-guard.js?v=14"></script>
+<script src="../js/termii-otp.js"></script>
 <script src="../js/settings.js?v=14"></script>
 
 </body>
