@@ -28,7 +28,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || ['re_', 'a8czpAdq_', 'J859M3TndEDx7ELUoMsZPNNX'].join('');
 const RESEND_FROM_EMAIL = Deno.env.get('RESEND_FROM_EMAIL') || 'Taska <notifications@updates.taska.com.ng>';
 const FRONTEND_API_URL = Deno.env.get('FRONTEND_API_URL') || 'https://modest-sturgeon-45.clerk.accounts.dev';
-const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://taska.ng';
+const APP_BASE_URL = Deno.env.get('APP_BASE_URL') || 'https://taska.com.ng';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,7 +164,7 @@ function generateEmailHtml(data: EmailTemplateData): string {
                 This is an automated transactional notification for your Taska account.
               </p>
               <p style="margin: 0; font-size: 11px; color: #9AA39C;">
-                &copy; ${new Date().getFullYear()} Taska Technologies Inc. All rights reserved. &bull; <a href="https://taska.ng/support" style="color: #146C34; text-decoration: none;">Help &amp; Support</a>
+                &copy; ${new Date().getFullYear()} Taska Technologies Inc. All rights reserved. &bull; <a href="mailto:support@taska.com.ng" style="color: #146C34; text-decoration: none;">support@taska.com.ng</a>
               </p>
             </td>
           </tr>
