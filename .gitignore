@@ -1,15 +1,37 @@
-TASKA_AGENTS.md
+# ── Markdown Documentation & Notes ──────────────────────────────────────────
+*.md
+*.markdown
+
+# ── Environment & Secrets ──────────────────────────────────────────────────
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 *.cert
-# Backend (decoupled for direct Supabase architecture)
-Backend/
+*.crt
+*.pfx
+*.p12
+secrets/
 
-# Local Netlify folder
-.netlify
-
-# Reference folder (do not push to github)
+# ── Reference & Private Documents ──────────────────────────────────────────
 Reference folder (do not push to github)/
+Backend/
+scratch/
+
+# ── Temporary & Build Artifacts ────────────────────────────────────────────
+.netlify/
+railway.json
+supabase/.temp/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── System & IDE Files ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.vscode/
+.idea/
