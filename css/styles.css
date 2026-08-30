@@ -1674,17 +1674,20 @@ button { cursor: pointer; }
 .nav-tabs-scroll,
 .horizontal-tabs-scroll,
 #profileInnerTabNav,
-#profileTabNav {
+#profileTabNav,
+#wallet-tabs-bar {
   display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 8px !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
   white-space: nowrap !important;
-  flex-wrap: nowrap !important;
   -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x !important;
   scrollbar-width: none !important; /* Firefox */
   -ms-overflow-style: none !important; /* IE/Edge */
-  padding-bottom: 6px !important;
+  padding-bottom: 8px !important;
   margin-bottom: 20px !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -1698,8 +1701,11 @@ button { cursor: pointer; }
 .nav-tabs-scroll::-webkit-scrollbar,
 .horizontal-tabs-scroll::-webkit-scrollbar,
 #profileInnerTabNav::-webkit-scrollbar,
-#profileTabNav::-webkit-scrollbar {
+#profileTabNav::-webkit-scrollbar,
+#wallet-tabs-bar::-webkit-scrollbar {
   display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .settings-subnav > *,
@@ -1709,9 +1715,17 @@ button { cursor: pointer; }
 .nav-tabs-scroll > *,
 .horizontal-tabs-scroll > *,
 #profileInnerTabNav > *,
-#profileTabNav > * {
+#profileTabNav > *,
+#wallet-tabs-bar > * {
+  flex: 0 0 auto !important;
   flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  width: auto !important;
+  min-width: max-content !important;
   white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Modal and panel overflow bounds */

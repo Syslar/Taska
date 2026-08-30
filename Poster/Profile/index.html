@@ -10,8 +10,8 @@
   <link rel="icon" type="image/png" sizes="16x16" href="../../Assets/favicon-16x16.png">
   <link rel="manifest" href="../../Assets/site.webmanifest">
   <link rel="shortcut icon" href="../../Assets/favicon.ico">
-  <link rel="stylesheet" href="../../css/styles.css?v=14">
-  <link rel="stylesheet" href="../../css/poster/poster-profile.css?v=14">
+  <link rel="stylesheet" href="../../css/styles.css?v=18">
+  <link rel="stylesheet" href="../../css/poster/poster-profile.css?v=18">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   </style>
@@ -131,10 +131,10 @@
       <div class="profile-content">
         
         <!-- Tab bar -->
-        <div class="profile-tabs" id="profileTabNav">
-          <button type="button" class="profile-tab is-active" data-tab="reviews">Reviews</button>
-          <button type="button" class="profile-tab" data-tab="about">About</button>
-          <button type="button" class="profile-tab" data-tab="history">Posted Tasks</button>
+        <div class="profile-tabs" id="profileTabNav" style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:6px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:6px; margin-bottom:18px; width:100%; box-sizing:border-box;">
+          <button type="button" class="profile-tab is-active" data-tab="reviews" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Reviews</button>
+          <button type="button" class="profile-tab" data-tab="about" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">About</button>
+          <button type="button" class="profile-tab" data-tab="history" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Posted Tasks</button>
         </div>
 
         <!-- REVIEWS TAB -->

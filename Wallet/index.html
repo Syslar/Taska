@@ -105,11 +105,11 @@
         <h2 style="font-size: 1.1rem;">Transaction history</h2>
       </div>
 
-      <div class="wallet-tabs" id="wallet-tabs-bar">
-        <button class="wallet-tab is-active" data-wallet-filter="all">All</button>
-        <button class="wallet-tab" data-wallet-filter="earnings">Earnings</button>
-        <button class="wallet-tab" data-wallet-filter="payments">Payments</button>
-        <button class="wallet-tab" data-wallet-filter="withdrawals">Withdrawals</button>
+      <div class="wallet-tabs" id="wallet-tabs-bar" style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:6px; margin-bottom:16px; width:100%; box-sizing:border-box;">
+        <button class="wallet-tab is-active" data-wallet-filter="all" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">All</button>
+        <button class="wallet-tab" data-wallet-filter="earnings" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Earnings</button>
+        <button class="wallet-tab" data-wallet-filter="payments" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Payments</button>
+        <button class="wallet-tab" data-wallet-filter="withdrawals" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Withdrawals</button>
       </div>
 
       <div id="tx-container" style="margin-top: 12px;">
