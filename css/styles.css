@@ -817,7 +817,7 @@ button { cursor: pointer; }
   position: fixed;
   inset: 0;
   background: rgba(14, 26, 20, 0.65);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -1471,6 +1471,46 @@ button { cursor: pointer; }
   background: transparent !important;
   outline: none;
 }
+.phone-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  padding: 0 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+.phone-action-btn:hover {
+  color: var(--green-700);
+  background: var(--mint-050);
+}
+.phone-action-btn.is-cancel:hover {
+  color: #DC2626;
+  background: #FEF2F2;
+}
+.phone-input-wrap.is-verified-wrap {
+  background: var(--paper);
+  border-color: #A7F3D0;
+}
+.phone-input-wrap.is-verified-wrap .phone-prefix {
+  background: #ECFDF5;
+  color: #059669;
+  border-right-color: #A7F3D0;
+}
+.phone-input-wrap.is-verified-wrap input[readonly] {
+  cursor: default;
+  color: var(--green-900);
+  font-weight: 600;
+}
+.phone-input-wrap.is-editing-wrap {
+  border-color: var(--green-600);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(20, 108, 52, 0.08);
+}
 
 /* Wallet Components */
 .wallet-hero {
@@ -1728,14 +1768,21 @@ button { cursor: pointer; }
   justify-content: center !important;
 }
 
-/* Modal and panel overflow bounds */
-.modal,
-.modal-content,
+/* Panel and grid overflow bounds */
 .panel,
 .profile-card,
 .profile-content,
 .dash-grid {
   max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.modal,
+.modal-overlay > .modal,
+.modal-backdrop > div {
+  width: 100% !important;
+  max-width: 520px;
+  margin: auto;
   box-sizing: border-box !important;
 }
 

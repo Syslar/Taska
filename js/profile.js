@@ -357,7 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Action listeners
   document.getElementById('btnMessage')?.addEventListener('click', () => {
     if (window.currentViewingProfile) {
-      window.location.href = `../../Chats/index.html?user=${window.currentViewingProfile.id}`;
+      window.location.href = `/chats?user=${window.currentViewingProfile.id}`;
     }
   });
 

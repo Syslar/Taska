@@ -79,19 +79,20 @@ function getStatusClass(status) {
 
 window.switchTab = function switchTab(tabName) {
   if (tabName === 'wallet') {
-    window.location.href = '../Wallet/index.html';
+    window.location.href = '/wallet';
     return;
   }
   if (tabName === 'settings') {
-    window.location.href = '../Settings/index.html';
+    window.location.href = '/settings';
     return;
   }
   if (tabName === 'messages') {
-    window.location.href = '../Chats/index.html';
+    window.location.href = '/chats';
     return;
   }
   if (tabName === 'profile') {
-    window.location.href = '../Profile/index.html';
+    const role = window.getTaskaRole ? window.getTaskaRole() : 'TASKER';
+    window.location.href = role === 'TASKER' ? '/tasker/profile' : '/poster/profile';
     return;
   }
 
@@ -324,7 +325,7 @@ async function loadBrowseGigsData(append = false) {
           const posterArea = e.target.closest('.gig-poster-area');
           if (posterArea) {
             e.stopPropagation();
-            window.location.href = '../Profile/index.html?id=' + posterArea.dataset.posterId;
+            window.location.href = '/poster/profile?id=' + posterArea.dataset.posterId;
           } else {
             openTaskModal(card.dataset.taskId, cachedTasks);
           }
@@ -672,7 +673,7 @@ async function openTaskModal(taskId, tasks) {
       posterEl.style.color = 'var(--green-700)';
       posterEl.style.textDecoration = 'underline';
       posterEl.onclick = () => {
-        window.location.href = `../Profile/index.html?id=${task.posterId}`;
+        window.location.href = `/poster/profile?id=${task.posterId}`;
       };
     }
   }
@@ -942,7 +943,7 @@ document.getElementById('settingsDeleteBtn')?.addEventListener('click', async ()
 
     if (window.showToast) window.showToast('Account deleted. Signing out...');
     await window.Clerk.signOut();
-    window.location.replace('../Auth/login.html');
+    window.location.replace('/login');
   } catch (err) {
     console.error('Delete account error:', err);
     if (window.showToast) window.showToast('Failed to delete account.');
@@ -1098,7 +1099,7 @@ async function selectChatThread(peer) {
     headerContainer.style.cursor = 'pointer';
     headerContainer.title = 'Click to view user profile';
     headerContainer.onclick = () => {
-      window.location.href = `../Profile/index.html?id=${peer.id}`;
+      window.location.href = `/poster/profile?id=${peer.id}`;
     };
   }
 
@@ -1254,7 +1255,7 @@ document.getElementById('chat-send-form')?.addEventListener('submit', async (e) 
 document.getElementById('settings-logout-btn')?.addEventListener('click', async () => {
   if (window.showToast) window.showToast('Signing out...');
   await window.Clerk.signOut();
-  window.location.replace('../Auth/login.html');
+  window.location.replace('/login');
 });
 
 // Boot SPA

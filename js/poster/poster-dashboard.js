@@ -120,7 +120,7 @@ function renderActiveTasksList(tasks) {
   if (!el) return;
   
   if (!tasks || tasks.length === 0) {
-    el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No active tasks yet. <a href="../PostTask/index.html" style="color:var(--green-700); font-weight:600;">Post a task now.</a></div>';
+    el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No active tasks yet. <a href="/post-task" style="color:var(--green-700); font-weight:600;">Post a task now.</a></div>';
     return;
   }
 

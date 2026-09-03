@@ -305,7 +305,7 @@ window.openTaskModal = async function (taskId) {
   const posterLink = document.getElementById('modal-poster-link');
   const checkIcon = window.TaskaIcons?.verified || '';
   if (posterLink) {
-    posterLink.href = `../../Poster/Profile/index.html?id=${poster?.id || ''}`;
+    posterLink.href = `/poster/profile?id=${poster?.id || ''}`;
     posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:2px;">${checkIcon} Verified</span>` : ''}`;
   }
 
@@ -314,7 +314,7 @@ window.openTaskModal = async function (taskId) {
     if (task.allowDirectMessages === true && poster?.id) {
       msgBtn.style.display = 'inline-flex';
       msgBtn.onclick = () => {
-        window.location.href = `Chats/index.html?user=${poster.id}`;
+        window.location.href = `/chats?user=${poster.id}`;
       };
     } else {
       msgBtn.style.display = 'none';
@@ -539,7 +539,7 @@ window.showKycRequiredModal = function (task) {
     if (typeof window.launchDojahKyc === 'function') {
       window.launchDojahKyc();
     } else {
-      window.location.href = '../../Settings/kyc.html';
+      window.location.href = '/settings/kyc';
     }
   };
   backdrop.onclick = (e) => {

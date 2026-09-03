@@ -73,7 +73,7 @@ function renderMyTasksList() {
         <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No tasks found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't posted any tasks matching this filter.</p>
-        <a href="../PostTask/index.html" class="btn btn-primary">+ Post a Task Now</a>
+        <a href="/post-task" class="btn btn-primary">+ Post a Task Now</a>
       </div>`;
     return;
   }
@@ -106,7 +106,7 @@ function renderMyTasksList() {
 
       return `
         <div class="applicant-card">
-          <div class="applicant-info" onclick="window.location.href='../../Tasker/Profile/index.html?id=${tasker.id}'">
+          <div class="applicant-info" onclick="window.location.href='/tasker/profile?id=${tasker.id}'">
             <div class="applicant-avatar">${avHTML}</div>
             <div>
               <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
@@ -126,8 +126,8 @@ function renderMyTasksList() {
                 data-tasker-id="${tasker.id}" 
                 data-tasker-name="${tName}">Accept / Hire</button>
             ` : '')}
-            <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${tasker.id}'">Message</button>
-            <a href="../../Tasker/Profile/index.html?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
+            <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}'">Message</button>
+            <a href="/tasker/profile?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
           </div>
         </div>
       `;

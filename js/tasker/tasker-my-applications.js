@@ -77,7 +77,7 @@ function renderApplicationsList() {
         <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No applications found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't submitted any bids matching this filter.</p>
-        <a href="../BrowseTasks/index.html" class="btn btn-primary">Browse Open Tasks</a>
+        <a href="/browse-tasks" class="btn btn-primary">Browse Open Tasks</a>
       </div>`;
     return;
   }
@@ -208,8 +208,8 @@ function renderApplicationsList() {
               ` : ''}
 
               ${poster.id ? `
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${poster.id}'">Message Poster</button>
-                <a href="../../Poster/Profile/index.html?id=${poster.id}" class="btn btn-ghost btn-sm">View Poster</a>
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${poster.id}'">Message Poster</button>
+                <a href="/poster/profile?id=${poster.id}" class="btn btn-ghost btn-sm">View Poster</a>
               ` : ''}
             </div>
           </div>

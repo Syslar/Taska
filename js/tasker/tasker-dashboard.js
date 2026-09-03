@@ -103,7 +103,7 @@ function renderOpenTasksList(openTasks, activeJobs) {
   const locIcon = window.TaskaIcons?.location || '';
 
   if ((!openTasks || openTasks.length === 0) && (!activeJobs || activeJobs.length === 0)) {
-    el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No tasks available right now. <a href="../BrowseTasks/index.html" style="color:var(--green-700); font-weight:600;">Check Browse Tasks.</a></div>';
+    el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No tasks available right now. <a href="/browse-tasks" style="color:var(--green-700); font-weight:600;">Check Browse Tasks.</a></div>';
     return;
   }
 
@@ -115,7 +115,7 @@ function renderOpenTasksList(openTasks, activeJobs) {
     const safeLocation = window.escapeHtml(task.location || 'Remote / Anywhere');
 
     return `
-      <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line-soft); cursor:pointer;" onclick="window.location.href='../BrowseTasks/index.html'">
+      <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line-soft); cursor:pointer;" onclick="window.location.href='/browse-tasks'">
         <div style="flex:1; min-width:0;">
           <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeTitle}</div>
           <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px; display:flex; align-items:center; gap:8px;">

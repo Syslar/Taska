@@ -1,0 +1,342 @@
+[build]
+  publish = "."
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true
+
+# ==============================================================================
+# 301 Permanent Redirects for Notifications, Legacy Folders & Extensions
+# ==============================================================================
+[[redirects]]
+  from = "/Wallet/wallet.html"
+  to = "/wallet"
+  status = 301
+
+[[redirects]]
+  from = "/wallet/wallet.html"
+  to = "/wallet"
+  status = 301
+
+[[redirects]]
+  from = "/Wallet/wallet"
+  to = "/wallet"
+  status = 301
+
+[[redirects]]
+  from = "/wallet/wallet"
+  to = "/wallet"
+  status = 301
+
+[[redirects]]
+  from = "/Wallet/index.html"
+  to = "/wallet"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/MyTasks/index.html"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/MyTasks/*"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/MyTasks"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/poster/mytasks/index.html"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/poster/mytasks/*"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/poster/mytasks"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/poster/my-tasks/*"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/poster/my-tasks"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/MyPostedTasks/*"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/MyPostedTasks"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/mypostedtasks/*"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/mypostedtasks"
+  to = "/my-posted-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Tasker/MyApplications/*"
+  to = "/my-applications"
+  status = 301
+
+[[redirects]]
+  from = "/Tasker/MyApplications"
+  to = "/my-applications"
+  status = 301
+
+[[redirects]]
+  from = "/myapplications/*"
+  to = "/my-applications"
+  status = 301
+
+[[redirects]]
+  from = "/myapplications"
+  to = "/my-applications"
+  status = 301
+
+[[redirects]]
+  from = "/Tasker/BrowseTasks/*"
+  to = "/browse-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Tasker/BrowseTasks"
+  to = "/browse-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/browsetasks/*"
+  to = "/browse-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/browsetasks"
+  to = "/browse-tasks"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/PostTask/*"
+  to = "/post-task"
+  status = 301
+
+[[redirects]]
+  from = "/Poster/PostTask"
+  to = "/post-task"
+  status = 301
+
+[[redirects]]
+  from = "/posttask/*"
+  to = "/post-task"
+  status = 301
+
+[[redirects]]
+  from = "/posttask"
+  to = "/post-task"
+  status = 301
+
+[[redirects]]
+  from = "/Dashboard/index.html"
+  to = "/tasker/dashboard"
+  status = 301
+
+[[redirects]]
+  from = "/dashboard/index.html"
+  to = "/tasker/dashboard"
+  status = 301
+
+# ==============================================================================
+# Clean URL Internal Rewrites (200) - mapped to lowercase directories
+# ==============================================================================
+[[redirects]]
+  from = "/browse-tasks"
+  to = "/tasker/browse-tasks/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/post-task"
+  to = "/poster/post-task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/my-applications"
+  to = "/tasker/my-applications/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/my-posted-tasks"
+  to = "/poster/my-posted-tasks/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasker/browse-tasks"
+  to = "/tasker/browse-tasks/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/post-task"
+  to = "/poster/post-task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasker/my-applications"
+  to = "/tasker/my-applications/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/my-posted-tasks"
+  to = "/poster/my-posted-tasks/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/dashboard"
+  to = "/tasker/dashboard/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasker/dashboard"
+  to = "/tasker/dashboard/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/dashboard"
+  to = "/poster/dashboard/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasker/profile"
+  to = "/tasker/profile/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/profile"
+  to = "/poster/profile/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/wallet"
+  to = "/wallet/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/chats"
+  to = "/chats/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/settings"
+  to = "/settings/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/settings/account"
+  to = "/settings/account.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/settings/kyc"
+  to = "/settings/kyc.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/login"
+  to = "/auth/login.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/signup"
+  to = "/auth/signup.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/forgot-password"
+  to = "/auth/forgot-password.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth/login"
+  to = "/auth/login.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth/signup"
+  to = "/auth/signup.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth/forgot-password"
+  to = "/auth/forgot-password.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/auth.css"
+  to = "/auth/auth.css"
+  status = 200
+  force = true
+
+# Fallback headers for security & caching
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, must-revalidate"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, must-revalidate"

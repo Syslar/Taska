@@ -12,8 +12,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Termii Credentials
 const TERMII_API_KEY = Deno.env.get('TERMII_API_KEY') || 'tlv_f_udRBaDruqa0gmOD2BKdg550ejbvYfK-MK4ifYACYA';
-const TERMII_BASE_URL = (Deno.env.get('TERMII_BASE_URL') || 'https://api.ng.termii.com/').replace(/\/$/, '');
-const TERMII_SENDER_ID = Deno.env.get('TERMII_SENDER_ID') || 'Termii';
+const TERMII_BASE_URL = (Deno.env.get('TERMII_BASE_URL') || 'https://v4.api.termii.com/').replace(/\/$/, '');
+const TERMII_SENDER_ID = Deno.env.get('TERMII_SENDER_ID') || 'OE Alert';
+const TERMII_CHANNEL = Deno.env.get('TERMII_CHANNEL') || 'dnd';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,9 +88,10 @@ Deno.serve(async (req) => {
       const termiiPayload = {
         api_key: TERMII_API_KEY,
         message_type: 'NUMERIC',
+        pin_type: 'NUMERIC',
         to: formatted,
         from: TERMII_SENDER_ID,
-        channel: 'generic',
+        channel: TERMII_CHANNEL,
         pin_attempts: 3,
         pin_time_to_live: 10,
         pin_length: 6,
@@ -210,7 +212,7 @@ Deno.serve(async (req) => {
               title: 'Phone Number Verified',
               body: `Your phone number (${display || formatted || 'Mobile'}) has been successfully verified on Taska.`,
               isRead: false,
-              link: '/Settings/index.html',
+              link: '/settings',
               createdAt: new Date().toISOString(),
             });
           } catch (_) {}

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /supabase/
+Disallow: /.git/
+Disallow: /.netlify/
+
+Sitemap: https://taska.com.ng/sitemap.xml

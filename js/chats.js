@@ -231,7 +231,7 @@ async function selectChatConversation(peerId, taskId = null) {
       }
 
       const isTasker = peer.role === 'TASKER';
-      const profilePath = isTasker ? `../Tasker/Profile/index.html?id=${peer.id}` : `../Poster/Profile/index.html?id=${peer.id}`;
+      const profilePath = isTasker ? `/tasker/profile?id=${peer.id}` : `/poster/profile?id=${peer.id}`;
       const checkIcon = window.TaskaIcons?.verified || '';
 
       if (peerNameEl) {

@@ -4,14 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign up | Taska</title>
-<link rel="apple-touch-icon" sizes="180x180" href="../Assets/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../Assets/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="../Assets/favicon-16x16.png">
-<link rel="manifest" href="../Assets/site.webmanifest">
-<link rel="shortcut icon" href="../Assets/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+<link rel="shortcut icon" href="/assets/favicon.ico">
+<link rel="canonical" href="https://taska.com.ng/signup">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../js/supabase-client.js"></script>
-<link rel="stylesheet" href="auth.css">
+<script src="/js/supabase-client.js"></script>
+<link rel="stylesheet" href="/auth/auth.css">
 <style>
   /* ── Phone prefix wrapper ─────────────────────────────────── */
   .phone-input-wrap {
@@ -128,8 +129,8 @@
   <!-- LEFT: brand panel -->
   <div class="auth-side">
     <div class="auth-side-content">
-      <a href="../index.html" class="logo" style="display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-size:1.35rem; font-weight:700;">
-        <img src="../Assets/icon.png" alt="Taska" style="width:36px; height:36px; border-radius:8px; object-fit:contain;">
+      <a href="/" class="logo" style="display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-size:1.35rem; font-weight:700;">
+        <img src="/assets/icon.png" alt="Taska" style="width:36px; height:36px; border-radius:8px; object-fit:contain;">
         <span>Taska</span>
       </a>
       <h2>Escrow-protected tasks, verified people, real accountability.</h2>
@@ -160,14 +161,14 @@
     <div class="auth-form-wrap">
 
       <div class="mobile-logo-wrap mobile-only" style="margin-bottom: 24px; text-align: center;">
-        <a href="../index.html" class="logo" style="justify-content: center; display:inline-flex;">
-          <img src="../Assets/logo.png" alt="Taska" style="height: 38px; width: auto; object-fit: contain;">
+        <a href="/" class="logo" style="justify-content: center; display:inline-flex;">
+          <img src="/assets/logo.png" alt="Taska" style="height: 38px; width: auto; object-fit: contain;">
         </a>
       </div>
 
       <div class="auth-tabs" role="tablist">
-        <a href="login.html" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
-        <a href="signup.html" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
+        <a href="/login" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
+        <a href="/signup" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
       </div>
 
       <!-- SIGNUP PANEL -->
@@ -285,7 +286,7 @@
         </form>
 
         <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
-          Already have an account? <a href="login.html" style="color:var(--green-700); font-weight:600;">Log in</a>
+          Already have an account? <a href="/login" style="color:var(--green-700); font-weight:600;">Log in</a>
         </p>
       </div>
 
@@ -313,7 +314,7 @@
   </div>
 </div>
 
-<script src="../../js/main.js"></script>
+<script src="/js/main.js"></script>
 
 <!-- Clerk JS Integration -->
 <script
@@ -379,6 +380,8 @@
 
     setUsernameStatus('checking', '⟳ Checking…');
 
+    const normalizedVal = val.toLowerCase();
+
     usernameCheckTimer = setTimeout(async function () {
       try {
         if (!window.supabaseClient) {
@@ -390,7 +393,7 @@
         const { data: existing, error } = await window.supabaseClient
           .from('Profile')
           .select('id')
-          .eq('username', val)
+          .ilike('username', normalizedVal)
           .maybeSingle();
 
         if (error) {
@@ -425,10 +428,10 @@
         if (cached) {
           try {
             const p = JSON.parse(cached);
-            if (p.activeRole === 'TASKER' || p.role === 'TASKER') return '../Tasker/Dashboard/index.html';
+            if (p.activeRole === 'TASKER' || p.role === 'TASKER') return '/tasker/dashboard';
           } catch (_) {}
         }
-        return '../Poster/Dashboard/index.html';
+        return '/poster/dashboard';
       }
 
       if (window.Clerk.session) {
@@ -527,9 +530,9 @@
         }
 
         if (normalizedRole === 'TASKER') {
-          window.location.replace('../Tasker/Dashboard/index.html');
+          window.location.replace('/tasker/dashboard');
         } else {
-          window.location.replace('../Poster/Dashboard/index.html');
+          window.location.replace('/poster/dashboard');
         }
       }
 
@@ -538,7 +541,7 @@
         e.preventDefault();
 
         // Validate username availability
-        const usernameVal = usernameEl.value.trim();
+        const usernameVal = usernameEl.value.trim().toLowerCase();
         if (!usernameVal || usernameVal.length < 3) {
           document.getElementById('username-error').textContent = 'Username must be at least 3 characters.';
           document.getElementById('username-error').style.display = 'block';
@@ -561,8 +564,24 @@
         const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
         const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
 
-        // Enforce strict phone & email uniqueness check against Supabase
+        // Enforce strict username, phone & email uniqueness check against Supabase
         if (window.supabaseClient) {
+          const { data: usernameMatch } = await window.supabaseClient
+            .from('Profile')
+            .select('id')
+            .ilike('username', usernameVal)
+            .maybeSingle();
+
+          if (usernameMatch) {
+            setUsernameStatus('taken', '✗ Username already taken');
+            usernameAvailable = false;
+            document.getElementById('username-error').textContent = 'This username is already taken. Please choose another.';
+            document.getElementById('username-error').style.display = 'block';
+            usernameEl.focus();
+            setLoading(signupBtn, false);
+            return;
+          }
+
           if (fullPhone) {
             const { data: phoneMatch } = await window.supabaseClient
               .from('Profile')
@@ -625,7 +644,7 @@
             const msg = firstErr.longMessage || firstErr.message;
 
             if (code === 'form_identifier_exists' || msg.includes('taken') || msg.includes('exists')) {
-              errorMsg = `${msg} If you already created an account, please <a href="login.html" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Log in here</a>.`;
+              errorMsg = `${msg} If you already created an account, please <a href="/login" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Log in here</a>.`;
             } else if (msg.includes('captcha') || msg.includes('Turnstile') || msg.includes('bot')) {
               errorMsg = 'Security verification timed out. <a href="#" id="clerk-modal-signup" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Click here to use standard Clerk Sign Up</a>.';
             } else {
@@ -644,7 +663,7 @@
               e.preventDefault();
               if (window.Clerk?.openSignUp) {
                 window.Clerk.openSignUp({
-                  redirectUrl: '../Dashboard/index.html'
+                  redirectUrl: '/tasker/dashboard'
                 });
               }
             });

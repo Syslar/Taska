@@ -1,0 +1,97 @@
+# ==============================================================================
+# Taska Apache / LiteSpeed .htaccess Configuration (cPanel Production)
+# ==============================================================================
+
+Options -Indexes
+RewriteEngine On
+RewriteBase /
+
+# ------------------------------------------------------------------------------
+# 1. 301 Permanent Redirects for Notifications & Legacy URLs
+# ------------------------------------------------------------------------------
+RewriteRule ^Wallet/wallet(\.html)?$ /wallet [R=301,L,NC]
+RewriteRule ^wallet/wallet(\.html)?$ /wallet [R=301,L,NC]
+RewriteRule ^Wallet/index\.html$ /wallet [R=301,L,NC]
+
+RewriteRule ^Poster/MyTasks(/.*)?$ /my-posted-tasks [R=301,L,NC]
+RewriteRule ^poster/mytasks(/.*)?$ /my-posted-tasks [R=301,L,NC]
+RewriteRule ^poster/my-tasks(/.*)?$ /my-posted-tasks [R=301,L,NC]
+RewriteRule ^Poster/MyPostedTasks(/.*)?$ /my-posted-tasks [R=301,L,NC]
+RewriteRule ^mypostedtasks(/.*)?$ /my-posted-tasks [R=301,L,NC]
+
+RewriteRule ^Tasker/MyApplications(/.*)?$ /my-applications [R=301,L,NC]
+RewriteRule ^tasker/myapplications(/.*)?$ /my-applications [R=301,L,NC]
+RewriteRule ^myapplications(/.*)?$ /my-applications [R=301,L,NC]
+
+RewriteRule ^Tasker/BrowseTasks(/.*)?$ /browse-tasks [R=301,L,NC]
+RewriteRule ^tasker/browsetasks(/.*)?$ /browse-tasks [R=301,L,NC]
+RewriteRule ^browsetasks(/.*)?$ /browse-tasks [R=301,L,NC]
+
+RewriteRule ^Poster/PostTask(/.*)?$ /post-task [R=301,L,NC]
+RewriteRule ^poster/posttask(/.*)?$ /post-task [R=301,L,NC]
+RewriteRule ^posttask(/.*)?$ /post-task [R=301,L,NC]
+
+RewriteRule ^Dashboard/index\.html$ /tasker/dashboard [R=301,L,NC]
+RewriteRule ^dashboard/index\.html$ /tasker/dashboard [R=301,L,NC]
+
+# ------------------------------------------------------------------------------
+# 2. 301 Permanent Redirects to Remove /index.html and .html Extensions
+# ------------------------------------------------------------------------------
+# Redirect direct /index.html to root or directory
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s(.*)/index\.html[\s?] [NC]
+RewriteRule ^(.*)index\.html$ /$1 [R=301,L,NC]
+
+# Redirect direct request to .html to clean URL (exclude existing directories)
+RewriteCond %{THE_REQUEST} ^[A-Z]{3,}\s([^.]+)\.html[\s?] [NC]
+RewriteRule ^ %1 [R=301,L]
+
+# ------------------------------------------------------------------------------
+# 3. Clean URL Internal Rewrites (Mapped to lowercase filesystem)
+# ------------------------------------------------------------------------------
+RewriteRule ^browse-tasks/?$ tasker/browse-tasks/index.html [L,NC]
+RewriteRule ^post-task/?$ poster/post-task/index.html [L,NC]
+RewriteRule ^my-applications/?$ tasker/my-applications/index.html [L,NC]
+RewriteRule ^my-posted-tasks/?$ poster/my-posted-tasks/index.html [L,NC]
+
+RewriteRule ^tasker/browse-tasks/?$ tasker/browse-tasks/index.html [L,NC]
+RewriteRule ^poster/post-task/?$ poster/post-task/index.html [L,NC]
+RewriteRule ^tasker/my-applications/?$ tasker/my-applications/index.html [L,NC]
+RewriteRule ^poster/my-posted-tasks/?$ poster/my-posted-tasks/index.html [L,NC]
+
+RewriteRule ^dashboard/?$ tasker/dashboard/index.html [L,NC]
+RewriteRule ^tasker/dashboard/?$ tasker/dashboard/index.html [L,NC]
+RewriteRule ^poster/dashboard/?$ poster/dashboard/index.html [L,NC]
+
+RewriteRule ^tasker/profile/?$ tasker/profile/index.html [L,NC]
+RewriteRule ^poster/profile/?$ poster/profile/index.html [L,NC]
+
+RewriteRule ^wallet/?$ wallet/index.html [L,NC]
+RewriteRule ^chats/?$ chats/index.html [L,NC]
+RewriteRule ^settings/?$ settings/index.html [L,NC]
+RewriteRule ^settings/account/?$ settings/account.html [L,NC]
+RewriteRule ^settings/kyc/?$ settings/kyc.html [L,NC]
+
+RewriteRule ^login/?$ auth/login.html [L,NC]
+RewriteRule ^signup/?$ auth/signup.html [L,NC]
+RewriteRule ^forgot-password/?$ auth/forgot-password.html [L,NC]
+RewriteRule ^auth/login/?$ auth/login.html [L,NC]
+RewriteRule ^auth/signup/?$ auth/signup.html [L,NC]
+RewriteRule ^auth/forgot-password/?$ auth/forgot-password.html [L,NC]
+RewriteRule ^auth\.css$ auth/auth.css [L,NC]
+
+# ------------------------------------------------------------------------------
+# 4. Security & Performance Headers
+# ------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  
+  <FilesMatch "\.(ico|png|jpe?g|gif|svg|webp|woff2?|ttf|eot)$">
+    Header set Cache-Control "max-age=31536000, public, immutable"
+  </FilesMatch>
+  
+  <FilesMatch "\.(css|js)$">
+    Header set Cache-Control "max-age=604800, public, must-revalidate"
+  </FilesMatch>
+</IfModule>

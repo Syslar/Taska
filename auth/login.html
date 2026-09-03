@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Log in | Taska</title>
-<link rel="apple-touch-icon" sizes="180x180" href="../Assets/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../Assets/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="../Assets/favicon-16x16.png">
-<link rel="manifest" href="../Assets/site.webmanifest">
-<link rel="shortcut icon" href="../Assets/favicon.ico">
-<link rel="stylesheet" href="auth.css">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+<link rel="manifest" href="/assets/site.webmanifest">
+<link rel="shortcut icon" href="/assets/favicon.ico">
+<link rel="canonical" href="https://taska.com.ng/login">
+<link rel="stylesheet" href="/auth/auth.css">
 </head>
 <body>
 
@@ -18,8 +19,8 @@
   <!-- LEFT: brand panel -->
   <div class="auth-side">
     <div class="auth-side-content">
-      <a href="../index.html" class="logo" style="display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-size:1.35rem; font-weight:700;">
-        <img src="../Assets/icon.png" alt="Taska" style="width:36px; height:36px; border-radius:8px; object-fit:contain;">
+      <a href="/" class="logo" style="display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; font-size:1.35rem; font-weight:700;">
+        <img src="/assets/icon.png" alt="Taska" style="width:36px; height:36px; border-radius:8px; object-fit:contain;">
         <span>Taska</span>
       </a>
       <h2>Escrow-protected tasks, verified people, real accountability.</h2>
@@ -50,14 +51,14 @@
     <div class="auth-form-wrap">
 
       <div class="mobile-logo-wrap mobile-only" style="margin-bottom: 24px; text-align: center;">
-        <a href="../index.html" class="logo" style="justify-content: center; display:inline-flex;">
-          <img src="../Assets/logo.png" alt="Taska" style="height: 38px; width: auto; object-fit: contain;">
+        <a href="/" class="logo" style="justify-content: center; display:inline-flex;">
+          <img src="/assets/logo.png" alt="Taska" style="height: 38px; width: auto; object-fit: contain;">
         </a>
       </div>
 
       <div class="auth-tabs" role="tablist">
-        <a href="login.html" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
-        <a href="signup.html" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
+        <a href="/login" class="auth-tab is-active" style="text-decoration:none; display:inline-block; text-align:center;">Log in</a>
+        <a href="/signup" class="auth-tab" style="text-decoration:none; display:inline-block; text-align:center;">Sign up</a>
       </div>
 
       <!-- LOGIN PANEL -->
@@ -80,7 +81,7 @@
             <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:var(--ink-soft);">
               <input type="checkbox" style="accent-color:var(--green-700);"> Keep me logged in
             </label>
-            <a href="forgot-password.html" style="font-size:0.85rem; font-weight:600; color:var(--green-700);">Forgot password?</a>
+            <a href="/forgot-password" style="font-size:0.85rem; font-weight:600; color:var(--green-700);">Forgot password?</a>
           </div>
           <div id="clerk-captcha" style="margin-bottom: 16px;"></div>
           <button type="submit" class="btn btn-primary btn-block">Log in</button>
@@ -109,7 +110,7 @@
         </div>
 
         <p style="text-align:center; margin-top:24px; font-size:0.85rem; color:var(--muted);">
-          Don't have an account? <a href="signup.html" style="color:var(--green-700); font-weight:600;">Sign up</a>
+          Don't have an account? <a href="/signup" style="color:var(--green-700); font-weight:600;">Sign up</a>
         </p>
       </div>
 
@@ -117,7 +118,7 @@
   </div>
 </div>
 
-<script src="../js/main.js"></script>
+<script src="/js/main.js"></script>
 
 <!-- Clerk JS Integration -->
 <script
@@ -137,14 +138,14 @@
       async function getPostLoginRedirect() {
         try {
           let stored = localStorage.getItem('taska_active_role');
-          if (stored === 'TASKER') return '../Tasker/Dashboard/index.html';
-          if (stored === 'POSTER') return '../Poster/Dashboard/index.html';
+          if (stored === 'TASKER') return '/tasker/dashboard';
+          if (stored === 'POSTER') return '/poster/dashboard';
 
           const cached = localStorage.getItem('taska_cached_profile');
           if (cached) {
             const p = JSON.parse(cached);
-            if (p.activeRole === 'TASKER' || p.role === 'TASKER') return '../Tasker/Dashboard/index.html';
-            if (p.activeRole === 'POSTER' || p.role === 'POSTER') return '../Poster/Dashboard/index.html';
+            if (p.activeRole === 'TASKER' || p.role === 'TASKER') return '/tasker/dashboard';
+            if (p.activeRole === 'POSTER' || p.role === 'POSTER') return '/poster/dashboard';
           }
 
           if (window.Clerk?.user && window.supabaseClient) {
@@ -157,11 +158,11 @@
             if (p) {
               const role = (p.activeRole || p.role || 'POSTER').toUpperCase();
               localStorage.setItem('taska_active_role', role);
-              return role === 'TASKER' ? '../Tasker/Dashboard/index.html' : '../Poster/Dashboard/index.html';
+              return role === 'TASKER' ? '/tasker/dashboard' : '/poster/dashboard';
             }
           }
         } catch (_) {}
-        return '../Poster/Dashboard/index.html';
+        return '/poster/dashboard';
       }
 
       if (window.Clerk.session) {

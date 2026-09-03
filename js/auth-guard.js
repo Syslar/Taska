@@ -87,15 +87,7 @@ window.switchTaskaRole = async function (newRole) {
   }
 
   // Redirect to respective system dashboard
-  const path = window.location.pathname;
-  let targetUrl = '';
-  if (path.includes('/Poster/') || path.includes('/Tasker/')) {
-    targetUrl = targetRole === 'TASKER' ? '../../Tasker/Dashboard/index.html' : '../../Poster/Dashboard/index.html';
-  } else if (path.includes('/Settings/') || path.includes('/Chats/') || path.includes('/Wallet/')) {
-    targetUrl = targetRole === 'TASKER' ? '../Tasker/Dashboard/index.html' : '../Poster/Dashboard/index.html';
-  } else {
-    targetUrl = targetRole === 'TASKER' ? 'Tasker/Dashboard/index.html' : 'Poster/Dashboard/index.html';
-  }
+  const targetUrl = targetRole === 'TASKER' ? '/tasker/dashboard' : '/poster/dashboard';
   window.location.href = targetUrl;
 };
 
@@ -148,15 +140,7 @@ function populateSidebar(profile) {
   }
   
   const getProfileTarget = () => {
-    const path = window.location.pathname;
-    const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
-    const isProfileSubfolder = path.toLowerCase().includes('/profile');
-    if (isProfileSubfolder) return `index.html?id=${profile.id}`;
-    if (isTaskerMode) {
-      return inSubSub ? `../../Tasker/Profile/index.html?id=${profile.id}` : `../Tasker/Profile/index.html?id=${profile.id}`;
-    } else {
-      return inSubSub ? `../../Poster/Profile/index.html?id=${profile.id}` : `../Poster/Profile/index.html?id=${profile.id}`;
-    }
+    return isTaskerMode ? `/tasker/profile?id=${profile.id}` : `/poster/profile?id=${profile.id}`;
   };
 
   if (mobileAv) {
@@ -363,10 +347,7 @@ async function runAuthGuard() {
   if (!window.Clerk.session || !window.Clerk.user) {
     try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
     window.__taskaProfile = null;
-    const path = window.location.pathname;
-    const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
-    const loginUrl = inSubSub ? '../../Auth/login.html' : '../Auth/login.html';
-    window.location.replace(loginUrl);
+    window.location.replace('/login');
     return;
   }
 
@@ -390,10 +371,7 @@ async function runAuthGuard() {
         try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
         window.__taskaProfile = null;
         await window.Clerk.signOut();
-        const path = window.location.pathname;
-        const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
-        const loginUrl = inSubSub ? '../../Auth/login.html' : '../Auth/login.html';
-        window.location.replace(loginUrl);
+        window.location.replace('/login');
       } catch (err) {
         console.error('Logout error:', err);
       }
@@ -409,7 +387,7 @@ async function runAuthGuard() {
 window.checkProfileCompletionPrompt = function (profile) {
   if (!profile) return;
   const path = window.location.pathname.toLowerCase();
-  const isDashboard = path.includes('/dashboard/') || path.endsWith('dashboard.html') || (path.endsWith('index.html') && (path.includes('/poster/') || path.includes('/tasker/')));
+  const isDashboard = path.includes('/dashboard') || path.endsWith('dashboard.html') || (path.endsWith('index.html') && (path.includes('/poster/') || path.includes('/tasker/')));
   if (!isDashboard) return;
 
   if (sessionStorage.getItem('taska_profile_prompt_dismissed')) return;
@@ -432,9 +410,8 @@ window.checkProfileCompletionPrompt = function (profile) {
     backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.25s ease;
   `;
 
-  const inSubSub = path.includes('/poster/') || path.includes('/tasker/');
-  const settingsUrl = inSubSub ? '../../Settings/index.html' : '../Settings/index.html';
-  const kycUrl = inSubSub ? '../../Settings/kyc.html' : '../Settings/kyc.html';
+  const settingsUrl = '/settings';
+  const kycUrl = '/settings/kyc';
 
   backdrop.innerHTML = `
     <div style="background: var(--paper, #fff); border: 1px solid var(--line, #e2e8f0); border-radius: 18px; max-width: 460px; width: 100%; padding: 28px; box-shadow: 0 24px 54px rgba(0,0,0,0.3); transform: scale(0.92); transition: transform 0.25s ease;">
@@ -612,8 +589,16 @@ window.showAlertDialog = function ({
       backdrop-filter: blur(3px); opacity: 0; transition: opacity 0.2s ease;
     `;
 
-    const iconColor = '#059669';
-    const iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+    const isDanger = icon === 'danger' || icon === 'error';
+    const isCheck = icon === 'check' || icon === 'success';
+    const iconBg = isDanger ? '#FEE2E2' : '#E6F4EA';
+    const iconColor = isDanger ? '#DC2626' : '#059669';
+    let iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+    if (isDanger) {
+      iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+    } else if (isCheck) {
+      iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    }
 
     const card = document.createElement('div');
     card.className = 'taska-dialog-card';
@@ -625,12 +610,12 @@ window.showAlertDialog = function ({
     `;
 
     card.innerHTML = `
-      <div style="width: 52px; height: 52px; border-radius: 50%; background: #E6F4EA; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+      <div style="width: 52px; height: 52px; border-radius: 50%; background: ${iconBg}; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
         ${iconSvg}
       </div>
       <h3 style="font-size: 1.25rem; color: var(--green-900, #064E3B); margin: 0 0 8px 0; font-weight: 700;">${window.escapeHtml ? window.escapeHtml(title) : title}</h3>
       <p style="font-size: 0.92rem; color: var(--ink-soft, #4B5563); line-height: 1.55; margin: 0 0 24px 0;">${window.escapeHtml ? window.escapeHtml(message).replace(/\\n/g, '<br>') : message}</p>
-      <button type="button" class="btn btn-primary taska-ok-btn" style="min-width: 140px;">${window.escapeHtml ? window.escapeHtml(btnText) : btnText}</button>
+      <button type="button" class="btn ${isDanger ? 'btn-danger' : 'btn-primary'} taska-ok-btn" style="min-width: 140px; ${isDanger ? 'background:#DC2626; border-color:#DC2626;' : ''}">${window.escapeHtml ? window.escapeHtml(btnText) : btnText}</button>
     `;
 
     backdrop.appendChild(card);

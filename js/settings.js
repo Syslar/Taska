@@ -41,22 +41,7 @@ window.renderSettingsPage = async function () {
     }
   }
 
-  const rawPhone = profile.phone || '';
-  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
-  if (phone) {
-    phone.value = digitsOnly;
-    phone.addEventListener('input', () => {
-      const currentDigits = phone.value.replace(/\D/g, '');
-      const origDigits = (profile.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
-      if (currentDigits !== origDigits && profile.isPhoneVerified) {
-        renderPhoneVerificationBadge({ ...profile, isPhoneVerified: false });
-      } else {
-        renderPhoneVerificationBadge(profile);
-      }
-    });
-  }
-
-  renderPhoneVerificationBadge(profile);
+  setupPhoneVerificationAndEditing(profile);
 
   if (loc) loc.value = profile.location || '';
   if (bio) bio.value = profile.bio || profile.taskerBio || profile.posterBio || '';
@@ -68,6 +53,7 @@ window.renderSettingsPage = async function () {
   const roleEl = document.getElementById('profile-role-badge');
   const verifiedEl = document.getElementById('profile-verified-val');
   const emailEl = document.getElementById('profile-email-val');
+  const phoneValEl = document.getElementById('profile-phone-val');
 
   if (avatarEl) {
     if (profile.avatarUrl) {
@@ -78,12 +64,22 @@ window.renderSettingsPage = async function () {
     }
   }
 
-  const checkIcon = window.TaskaIcons?.verified || '';
+  const checkIcon = window.TaskaIcons?.verified || `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
 
   if (nameEl) nameEl.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
   if (usernameEl) usernameEl.textContent = `@${profile.username || 'user'}`;
   if (roleEl) roleEl.textContent = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
   if (emailEl) emailEl.textContent = profile.email || '—';
+
+  if (phoneValEl) {
+    if (profile.phone && profile.isPhoneVerified) {
+      phoneValEl.innerHTML = `<span style="color:var(--green-700); font-weight:600; display:inline-flex; align-items:center; gap:3px;">${checkIcon} ${profile.phone}</span>`;
+    } else if (profile.phone) {
+      phoneValEl.textContent = profile.phone;
+    } else {
+      phoneValEl.textContent = '—';
+    }
+  }
 
   if (verifiedEl) {
     const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
@@ -94,7 +90,7 @@ window.renderSettingsPage = async function () {
   const btnViewLive = document.getElementById('btnViewLiveProfile');
   if (btnViewLive) {
     const isTasker = profile.role === 'TASKER';
-    btnViewLive.href = isTasker ? `../Tasker/Profile/index.html?id=${profile.id}` : `../Poster/Profile/index.html?id=${profile.id}`;
+    btnViewLive.href = isTasker ? `/tasker/profile?id=${profile.id}` : `/poster/profile?id=${profile.id}`;
   }
 
   // Real-time input updates for Live Preview
@@ -159,7 +155,7 @@ window.renderSettingsPage = async function () {
             <div style="font-weight:700; font-size:0.98rem; color:var(--green-900);">Verify Your Identity</div>
             <div style="font-size:0.84rem; color:var(--muted); margin-top:2px; max-width:480px;">Complete quick identity verification using NIN, Voter's Card, or Driver's License.</div>
           </div>
-          <a href="kyc.html" class="btn btn-primary btn-sm" style="border-radius:20px; text-decoration:none;">Verify Identity Now</a>
+          <a href="/settings/kyc" class="btn btn-primary btn-sm" style="border-radius:20px; text-decoration:none;">Verify Identity Now</a>
         </div>
       `;
     }
@@ -341,15 +337,28 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   const profile = await window.ensureTaskaProfile();
   if (!profile || !window.supabaseClient) return;
 
+  const phoneInput = document.getElementById('settingsPhone');
+  const rawEntered = phoneInput ? phoneInput.value.trim().replace(/\D/g, '') : '';
+  const origDigits = (profile.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
+
+  // CRITICAL APP RULE:
+  // If the user changed the phone number, they MUST verify they own it via SMS OTP first!
+  if (rawEntered !== origDigits) {
+    if (window.showToast) {
+      window.showToast('You entered a new phone number. Please verify it via SMS first before saving.', 'error');
+    }
+    const verifyBtn = document.getElementById('btnVerifyPhoneTrigger');
+    if (verifyBtn) {
+      verifyBtn.click();
+    }
+    return; // Block saving with an unverified phone number
+  }
+
   const btn = document.getElementById('settingsSaveBtn');
   if (btn) {
     btn.disabled = true;
     btn.textContent = 'Saving...';
   }
-
-  const rawPhone = document.getElementById('settingsPhone')?.value.trim() || '';
-  const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-  const fullPhone = digitsOnly ? '+234' + digitsOnly : '';
 
   const firstName = document.getElementById('settingsFname')?.value.trim() || '';
   const lastName = document.getElementById('settingsLname')?.value.trim() || '';
@@ -370,7 +379,10 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   const dateOfBirth = document.getElementById('settingsDob')?.value || null;
 
   try {
-    const updatePayload = { firstName, lastName, phone: fullPhone, location, bio, gender, dateOfBirth };
+    // Security & Data Integrity:
+    // Phone number and phone verification status are NEVER modified directly by client-side form updates.
+    // They are updated exclusively by the verified Termii OTP Edge Function upon successful code check.
+    const updatePayload = { firstName, lastName, location, bio, gender, dateOfBirth };
     if (newAvatarUrl) updatePayload.avatarUrl = newAvatarUrl;
 
     const { error } = await window.supabaseClient
@@ -400,37 +412,146 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   }
 });
 
-// Helper: Render Phone Verification Badge & Trigger Modal
-function renderPhoneVerificationBadge(profile) {
+// Helper: Setup Phone Verification, Locked State, and Pencil Edit Button
+function setupPhoneVerificationAndEditing(profile) {
+  const phoneInput = document.getElementById('settingsPhone');
+  const phoneWrap = document.getElementById('settingsPhoneWrap');
+  const btnEdit = document.getElementById('btnEditPhone');
   const statusEl = document.getElementById('phoneVerifyStatus');
-  if (!statusEl) return;
+  const hintEl = document.getElementById('phoneHelperHint');
 
-  const isVerified = Boolean(profile.isPhoneVerified);
-  if (isVerified) {
-    statusEl.innerHTML = `
-      <span style="font-size:0.75rem; font-weight:700; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        Verified
-      </span>
-    `;
-  } else {
-    statusEl.innerHTML = `
-      <button type="button" id="btnVerifyPhoneTrigger" style="background:#E1F5E8; border:1px solid #CDEEDA; color:#146C34; font-size:0.75rem; font-weight:700; cursor:pointer; padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px; transition:background 0.15s ease;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Verify via SMS
-      </button>
-    `;
+  if (!phoneInput) return;
 
-    document.getElementById('btnVerifyPhoneTrigger')?.addEventListener('click', () => {
-      const phoneInput = document.getElementById('settingsPhone');
-      const enteredPhone = phoneInput?.value.trim().replace(/\D/g, '');
-      if (!enteredPhone || enteredPhone.length < 10) {
-        if (window.showToast) window.showToast('Please enter a valid 10-11 digit Nigerian phone number first', 'error');
-        if (phoneInput) phoneInput.focus();
-        return;
+  const isVerified = Boolean(profile.isPhoneVerified && profile.phone);
+  const origDigits = (profile.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^\+234/, '');
+
+  let isEditing = false;
+
+  function renderState() {
+    const currentDigits = phoneInput.value.replace(/\D/g, '');
+    const isDifferent = currentDigits !== origDigits;
+
+    if (isVerified && !isEditing) {
+      // ── LOCKED VERIFIED STATE ──
+      phoneInput.value = origDigits;
+      phoneInput.readOnly = true;
+      if (phoneWrap) {
+        phoneWrap.classList.add('is-verified-wrap');
+        phoneWrap.classList.remove('is-editing-wrap');
       }
 
-      const fullPhone = '+234' + (enteredPhone.startsWith('0') ? enteredPhone.substring(1) : enteredPhone);
+      if (statusEl) {
+        statusEl.innerHTML = `
+          <span style="font-size:0.75rem; font-weight:700; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Verified
+          </span>
+        `;
+      }
+
+      if (btnEdit) {
+        btnEdit.style.display = 'inline-flex';
+        btnEdit.classList.remove('is-cancel');
+        btnEdit.title = 'Change phone number';
+        btnEdit.setAttribute('aria-label', 'Change phone number');
+        btnEdit.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+        `;
+      }
+
+      if (hintEl) {
+        hintEl.innerHTML = `<span style="color:var(--muted);">Phone number is verified. Click the pencil icon to change it.</span>`;
+      }
+
+    } else if (isVerified && isEditing) {
+      // ── EDITING CURRENTLY VERIFIED NUMBER ──
+      phoneInput.readOnly = false;
+      if (phoneWrap) {
+        phoneWrap.classList.remove('is-verified-wrap');
+        phoneWrap.classList.add('is-editing-wrap');
+      }
+
+      if (btnEdit) {
+        btnEdit.style.display = 'inline-flex';
+        btnEdit.classList.add('is-cancel');
+        btnEdit.title = 'Cancel change';
+        btnEdit.setAttribute('aria-label', 'Cancel change');
+        btnEdit.innerHTML = `
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        `;
+      }
+
+      if (!isDifferent) {
+        if (statusEl) {
+          statusEl.innerHTML = `
+            <span style="font-size:0.75rem; font-weight:700; color:#059669; background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Verified
+            </span>
+          `;
+        }
+        if (hintEl) {
+          hintEl.innerHTML = `<span style="color:var(--muted);">Type your new mobile number to change it, or click ✕ to cancel.</span>`;
+        }
+      } else {
+        // Different number: Must verify ownership via SMS OTP before saving
+        if (statusEl) {
+          statusEl.innerHTML = `
+            <span style="font-size:0.75rem; font-weight:700; color:#D97706; background:#FFFBEB; border:1px solid #FDE68A; padding:2px 8px; border-radius:12px; display:inline-flex; align-items:center; gap:4px;">
+              Unverified
+            </span>
+            <button type="button" id="btnVerifyPhoneTrigger" style="background:#E1F5E8; border:1px solid #CDEEDA; color:#146C34; font-size:0.75rem; font-weight:700; cursor:pointer; padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px; transition:background 0.15s ease;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              Verify via SMS
+            </button>
+          `;
+          attachVerifyButtonListener();
+        }
+        if (hintEl) {
+          hintEl.innerHTML = `<span style="color:#B45309; font-weight:600;">⚠️ You must verify this new number via SMS OTP before it will be saved to your account.</span>`;
+        }
+      }
+
+    } else {
+      // ── NEVER VERIFIED STATE ──
+      phoneInput.readOnly = false;
+      if (phoneWrap) {
+        phoneWrap.classList.remove('is-verified-wrap');
+        phoneWrap.classList.remove('is-editing-wrap');
+      }
+      if (btnEdit) btnEdit.style.display = 'none';
+
+      if (statusEl) {
+        statusEl.innerHTML = `
+          <button type="button" id="btnVerifyPhoneTrigger" style="background:#E1F5E8; border:1px solid #CDEEDA; color:#146C34; font-size:0.75rem; font-weight:700; cursor:pointer; padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:4px; transition:background 0.15s ease;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Verify via SMS
+          </button>
+        `;
+        attachVerifyButtonListener();
+      }
+
+      if (hintEl) {
+        hintEl.innerHTML = `<span style="color:var(--muted);">Verify your mobile number to receive real-time task notifications.</span>`;
+      }
+    }
+  }
+
+  function attachVerifyButtonListener() {
+    const trigger = document.getElementById('btnVerifyPhoneTrigger');
+    if (!trigger) return;
+    trigger.onclick = () => {
+      const entered = phoneInput.value.trim().replace(/\D/g, '');
+      if (!entered || entered.length < 10) {
+        if (window.showToast) window.showToast('Please enter a valid 10 or 11-digit Nigerian mobile number first', 'error');
+        phoneInput.focus();
+        return;
+      }
+      const fullPhone = '+234' + (entered.startsWith('0') ? entered.substring(1) : entered);
 
       if (typeof window.openPhoneOtpModal === 'function') {
         window.openPhoneOtpModal({
@@ -443,16 +564,44 @@ function renderPhoneVerificationBadge(profile) {
             try {
               localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
             } catch (_) {}
-            renderPhoneVerificationBadge(profile);
-            if (window.renderSettingsPage) window.renderSettingsPage();
+            isEditing = false;
+            if (window.showToast) window.showToast('Phone number verified and updated successfully!', 'success');
+            window.renderSettingsPage();
           },
         });
       }
+    };
+  }
+
+  if (btnEdit && !btnEdit._hasClickListener) {
+    btnEdit._hasClickListener = true;
+    btnEdit.addEventListener('click', () => {
+      if (!isEditing) {
+        isEditing = true;
+        renderState();
+        phoneInput.focus();
+        phoneInput.select();
+      } else {
+        isEditing = false;
+        phoneInput.value = origDigits;
+        renderState();
+      }
     });
   }
+
+  if (!phoneInput._hasInputListener) {
+    phoneInput._hasInputListener = true;
+    phoneInput.addEventListener('input', () => {
+      renderState();
+    });
+  }
+
+  // Initial render
+  renderState();
 }
 
 // Run render on load
 document.addEventListener('DOMContentLoaded', () => {
   window.renderSettingsPage();
 });
+

@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Identity Verification (KYC) | Settings | Taska</title>
-  <link rel="apple-touch-icon" sizes="180x180" href="../Assets/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="../Assets/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../Assets/favicon-16x16.png">
-  <link rel="manifest" href="../Assets/site.webmanifest">
-  <link rel="shortcut icon" href="../Assets/favicon.ico">
-  <link rel="stylesheet" href="../css/styles.css?v=18">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="manifest" href="/assets/site.webmanifest">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+  <link rel="canonical" href="https://taska.com.ng/settings/kyc">
+  <link rel="stylesheet" href="/css/styles.css?v=18">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   </style>
@@ -29,9 +30,9 @@
 
     <!-- Settings Sub-Navigation Bar -->
     <div class="settings-subnav" style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:10px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:8px; margin-bottom:20px; border-bottom:1px solid var(--line); width:100%; box-sizing:border-box;">
-      <a href="index.html" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Profile Details</a>
-      <a href="account.html" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Account & Security</a>
-      <a href="kyc.html" class="btn btn-sm btn-secondary is-active" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Identity Verification (KYC)</a>
+      <a href="/settings" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Profile Details</a>
+      <a href="/settings/account" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Account & Security</a>
+      <a href="/settings/kyc" class="btn btn-sm btn-secondary is-active" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Identity Verification (KYC)</a>
     </div>
 
     <!-- Main KYC Status Card Container -->
@@ -63,10 +64,10 @@
 
 <!-- Supabase JS SDK & Dojah Widget & Termii OTP -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../js/supabase-client.js"></script>
+<script src="/js/supabase-client.js"></script>
 <script src="https://widget.dojah.io/widget.js"></script>
-<script src="../js/dojah-kyc.js"></script>
-<script src="../js/termii-otp.js"></script>
+<script src="/js/dojah-kyc.js"></script>
+<script src="/js/termii-otp.js"></script>
 
 <!-- Clerk JS -->
 <script
@@ -75,8 +76,8 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
-<script src="../js/sidebar-component.js"></script>
-<script src="../js/auth-guard.js?v=14"></script>
+<script src="/js/sidebar-component.js"></script>
+<script src="/js/auth-guard.js?v=14"></script>
 
 <script>
   async function renderKycPageStatus() {
@@ -164,7 +165,7 @@
       const rawPhone = profile.phone || '';
       if (!rawPhone || rawPhone.replace(/\D/g, '').length < 10) {
         if (window.showToast) window.showToast('Please add a valid phone number in Profile Details first', 'error');
-        window.location.href = 'index.html';
+        window.location.href = '/settings';
         return;
       }
 

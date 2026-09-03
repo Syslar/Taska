@@ -205,7 +205,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
   let badgeColor = '#0E3A22';
   let details: Array<{ label: string; value: string }> = [];
   let ctaText = 'View in App';
-  let ctaUrl = `${appUrl}/Dashboard/index.html`;
+  let ctaUrl = `${appUrl}/tasker/dashboard`;
   let notice = '';
   let inAppTitle = '';
   let inAppBody = '';
@@ -226,7 +226,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Date & Time', value: new Date().toLocaleString('en-NG') },
       ];
       ctaText = 'View Wallet Balance';
-      ctaUrl = `${appUrl}/Wallet/wallet.html`;
+      ctaUrl = `${appUrl}/wallet`;
       inAppTitle = 'Wallet Deposit Confirmed';
       inAppBody = `${amountStr} was successfully credited to your wallet.`;
       break;
@@ -247,7 +247,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Reference', value: d.reference || '—' },
       ];
       ctaText = 'Track in Wallet';
-      ctaUrl = `${appUrl}/Wallet/wallet.html`;
+      ctaUrl = `${appUrl}/wallet`;
       inAppTitle = 'Withdrawal Processing';
       inAppBody = `Your withdrawal request of ${amountStr} to ${d.bankName || 'bank'} is in progress.`;
       break;
@@ -267,7 +267,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Date Completed', value: new Date().toLocaleString('en-NG') },
       ];
       ctaText = 'View Wallet History';
-      ctaUrl = `${appUrl}/Wallet/wallet.html`;
+      ctaUrl = `${appUrl}/wallet`;
       inAppTitle = 'Withdrawal Successful';
       inAppBody = `${amountStr} has been transferred to your bank account.`;
       break;
@@ -287,7 +287,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Reference', value: d.reference || '—' },
       ];
       ctaText = 'Check Wallet Balance';
-      ctaUrl = `${appUrl}/Wallet/wallet.html`;
+      ctaUrl = `${appUrl}/wallet`;
       notice = 'Please verify your bank account details or try withdrawing to a different commercial bank account.';
       inAppTitle = 'Withdrawal Failed & Refunded';
       inAppBody = `Your withdrawal of ${amountStr} could not be completed and was refunded to your wallet.`;
@@ -310,7 +310,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Location / Mode', value: d.location || 'Remote / Physical' },
       ];
       ctaText = 'View Task Proposals';
-      ctaUrl = `${appUrl}/Poster/MyTasks/index.html`;
+      ctaUrl = `${appUrl}/my-posted-tasks`;
       inAppTitle = 'Task Live';
       inAppBody = `"${taskTitle}" is live. You will receive notifications as Taskers apply.`;
       break;
@@ -332,7 +332,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Proposed Rate', value: bidStr },
       ];
       ctaText = 'Review & Hire';
-      ctaUrl = `${appUrl}/Poster/MyTasks/index.html`;
+      ctaUrl = `${appUrl}/my-posted-tasks`;
       inAppTitle = 'New Proposal Received';
       inAppBody = `${taskerName} applied for "${taskTitle}" with bid ${bidStr}.`;
       break;
@@ -356,7 +356,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
           { label: 'Poster', value: d.posterName || 'Task Poster' },
         ];
         ctaText = 'View Task & Start Work';
-        ctaUrl = `${appUrl}/Tasker/MyApplications/index.html`;
+        ctaUrl = `${appUrl}/my-applications`;
         inAppTitle = 'You Were Hired!';
         inAppBody = `Hired for "${taskTitle}". ${escrowStr} is secured in escrow.`;
       } else {
@@ -372,7 +372,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
           { label: 'Escrow Amount', value: escrowStr },
         ];
         ctaText = 'Track Task Progress';
-        ctaUrl = `${appUrl}/Poster/MyTasks/index.html`;
+        ctaUrl = `${appUrl}/my-posted-tasks`;
         inAppTitle = 'Escrow Locked';
         inAppBody = `${escrowStr} locked in escrow for "${taskTitle}".`;
       }
@@ -394,7 +394,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Review Window', value: '7 Days Auto-Approval' },
       ];
       ctaText = 'Inspect Deliverable';
-      ctaUrl = `${appUrl}/Poster/MyTasks/index.html`;
+      ctaUrl = `${appUrl}/my-posted-tasks`;
       notice = 'If no action is taken within 7 days, escrow will automatically release to the Tasker.';
       inAppTitle = 'Deliverable Submitted';
       inAppBody = `${taskerName} submitted work for "${taskTitle}". Please review.`;
@@ -417,7 +417,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Client', value: d.posterName || 'Client' },
       ];
       ctaText = 'Upload Revised Work';
-      ctaUrl = `${appUrl}/Tasker/MyApplications/index.html`;
+      ctaUrl = `${appUrl}/my-applications`;
       inAppTitle = 'Revision Requested';
       inAppBody = `Changes requested on "${taskTitle}": ${d.revisionNotes || 'See details'}`;
       break;
@@ -441,7 +441,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
           { label: 'Date Released', value: new Date().toLocaleString('en-NG') },
         ];
         ctaText = 'View Wallet & Withdraw';
-        ctaUrl = `${appUrl}/Wallet/wallet.html`;
+        ctaUrl = `${appUrl}/wallet`;
         inAppTitle = 'Payment Released';
         inAppBody = `${payoutStr} credited to your wallet for completing "${taskTitle}".`;
       } else {
@@ -456,7 +456,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
           { label: 'Tasker', value: d.taskerName || 'Verified Tasker' },
         ];
         ctaText = 'Leave a Review';
-        ctaUrl = `${appUrl}/Poster/MyTasks/index.html`;
+        ctaUrl = `${appUrl}/my-posted-tasks`;
         inAppTitle = 'Task Completed';
         inAppBody = `Escrow released for "${taskTitle}". Leave a review for ${d.taskerName || 'your tasker'}.`;
       }
@@ -476,7 +476,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
         { label: 'Date Verified', value: new Date().toLocaleDateString('en-NG') },
       ];
       ctaText = 'View Verified Profile';
-      ctaUrl = `${appUrl}/Tasker/Profile/index.html`;
+      ctaUrl = `${appUrl}/tasker/profile`;
       inAppTitle = 'Identity Verified';
       inAppBody = 'Your profile is now verified with the official Taska badge!';
       break;
@@ -489,7 +489,7 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
       body = req.customBody || d.body || 'You have a new update regarding your Taska account.';
       badgeText = d.badgeText || 'ALERT';
       ctaText = req.customCtaText || d.ctaText || 'View in Taska';
-      ctaUrl = req.customCtaUrl || d.ctaUrl || `${appUrl}/Dashboard/index.html`;
+      ctaUrl = req.customCtaUrl || d.ctaUrl || `${appUrl}/tasker/dashboard`;
       inAppTitle = d.title || subject;
       inAppBody = body.replace(/<[^>]*>?/gm, '');
       break;

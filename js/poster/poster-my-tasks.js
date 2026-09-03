@@ -98,7 +98,7 @@ function renderMyTasksList() {
         <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No tasks found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't posted any tasks matching this filter.</p>
-        <a href="../PostTask/index.html" class="btn btn-primary">+ Post a Task Now</a>
+        <a href="/post-task" class="btn btn-primary">+ Post a Task Now</a>
       </div>`;
     return;
   }
@@ -134,7 +134,7 @@ function renderMyTasksList() {
             <div style="text-align:right; min-width:140px;">
               <div class="mono" style="font-size:1.3rem; font-weight:700; color:var(--green-900); margin-bottom:12px;">${budgetStr}</div>
               <div style="display:flex; flex-direction:column; gap:8px;">
-                <a href="../PostTask/index.html?draftId=${t.id}" class="btn btn-primary btn-sm" style="text-decoration:none;">Resume & Post</a>
+                <a href="/post-task?draftId=${t.id}" class="btn btn-primary btn-sm" style="text-decoration:none;">Resume & Post</a>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="deleteDraftTask('${t.id}')" style="color:var(--red); border-color:var(--red-100);">Delete Draft</button>
               </div>
             </div>
@@ -219,7 +219,7 @@ function renderMyTasksList() {
 
           return `
             <div class="applicant-card">
-              <div class="applicant-info" onclick="window.location.href='../../Tasker/Profile/index.html?id=${tasker.id}'">
+              <div class="applicant-info" onclick="window.location.href='/tasker/profile?id=${tasker.id}'">
                 <div class="applicant-avatar">${avHTML}</div>
                 <div>
                   <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
@@ -240,8 +240,8 @@ function renderMyTasksList() {
                   data-tasker-id="${tasker.id}" 
                   data-tasker-name="${tName}"
                   data-budget="${appBid}">Accept & Lock Escrow</button>
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${tasker.id}'">Message</button>
-                <a href="../../Tasker/Profile/index.html?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}'">Message</button>
+                <a href="/tasker/profile?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
               </div>
             </div>
           `;
@@ -257,7 +257,7 @@ function renderMyTasksList() {
 
         applicantsHTML = `
           <div class="applicant-card" style="border-left: 3px solid var(--green-700); background:var(--mint-050);">
-            <div class="applicant-info" onclick="window.location.href='../../Tasker/Profile/index.html?id=${hiredTasker.id}'">
+            <div class="applicant-info" onclick="window.location.href='/tasker/profile?id=${hiredTasker.id}'">
               <div class="applicant-avatar">${avHTML}</div>
               <div>
                 <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
@@ -294,8 +294,8 @@ function renderMyTasksList() {
                   Approve & Release Payment
                 </button>
               ` : ''}
-              <button class="btn btn-secondary btn-sm" onclick="window.location.href='../../Chats/index.html?user=${hiredTasker.id}'">Message Tasker</button>
-              <a href="../../Tasker/Profile/index.html?id=${hiredTasker.id}" class="btn btn-ghost btn-sm">Profile</a>
+              <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${hiredTasker.id}'">Message Tasker</button>
+              <a href="/tasker/profile?id=${hiredTasker.id}" class="btn btn-ghost btn-sm">Profile</a>
             </div>
           </div>
         `;

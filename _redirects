@@ -1,0 +1,94 @@
+# ==============================================================================
+# Taska Clean URL Routing & 301 Redirect Rules (Netlify)
+# ==============================================================================
+
+# --- 301 Permanent Redirects for Notifications & Legacy URLs ---
+/Wallet/wallet.html            /wallet                      301
+/Wallet/wallet                 /wallet                      301
+/wallet/wallet.html            /wallet                      301
+/wallet/wallet                 /wallet                      301
+/Wallet/index.html             /wallet                      301
+
+/Poster/MyTasks/index.html     /my-posted-tasks             301
+/Poster/MyTasks/*              /my-posted-tasks             301
+/Poster/MyTasks                /my-posted-tasks             301
+/poster/mytasks/index.html     /my-posted-tasks             301
+/poster/mytasks/*              /my-posted-tasks             301
+/poster/mytasks                /my-posted-tasks             301
+/poster/my-tasks/*             /my-posted-tasks             301
+/poster/my-tasks               /my-posted-tasks             301
+/Poster/MyPostedTasks/*        /my-posted-tasks             301
+/Poster/MyPostedTasks          /my-posted-tasks             301
+/poster/mypostedtasks/*        /my-posted-tasks             301
+/poster/mypostedtasks          /my-posted-tasks             301
+/mypostedtasks/*               /my-posted-tasks             301
+/mypostedtasks                 /my-posted-tasks             301
+
+/Tasker/MyApplications/*       /my-applications             301
+/Tasker/MyApplications         /my-applications             301
+/tasker/myapplications/*       /my-applications             301
+/tasker/myapplications         /my-applications             301
+/myapplications/*              /my-applications             301
+/myapplications                /my-applications             301
+
+/Tasker/BrowseTasks/*          /browse-tasks                301
+/Tasker/BrowseTasks            /browse-tasks                301
+/tasker/browsetasks/*          /browse-tasks                301
+/tasker/browsetasks            /browse-tasks                301
+/browsetasks/*                 /browse-tasks                301
+/browsetasks                   /browse-tasks                301
+
+/Poster/PostTask/*             /post-task                   301
+/Poster/PostTask               /post-task                   301
+/poster/posttask/*             /post-task                   301
+/poster/posttask               /post-task                   301
+/posttask/*                    /post-task                   301
+/posttask                      /post-task                   301
+
+/Dashboard/index.html          /tasker/dashboard            301
+/dashboard/index.html          /tasker/dashboard            301
+
+/Settings/index.html           /settings                    301
+/Settings/account.html         /settings/account            301
+/Settings/kyc.html             /settings/kyc                301
+
+/Auth/login.html               /login                       301
+/Auth/signup.html              /signup                      301
+/Auth/forgot-password.html     /forgot-password             301
+/auth/login.html               /login                       301
+/auth/signup.html              /signup                      301
+/auth/forgot-password.html     /forgot-password             301
+
+/Chats/index.html              /chats                       301
+
+# --- 200! Clean URL Internal Rewrites (pointing to lowercase filesystem) ---
+/browse-tasks                  /tasker/browse-tasks/index.html  200!
+/post-task                     /poster/post-task/index.html     200!
+/my-applications               /tasker/my-applications/index.html 200!
+/my-posted-tasks               /poster/my-posted-tasks/index.html 200!
+
+/tasker/browse-tasks           /tasker/browse-tasks/index.html  200!
+/poster/post-task              /poster/post-task/index.html     200!
+/tasker/my-applications        /tasker/my-applications/index.html 200!
+/poster/my-posted-tasks        /poster/my-posted-tasks/index.html 200!
+
+/dashboard                     /tasker/dashboard/index.html     200!
+/tasker/dashboard              /tasker/dashboard/index.html     200!
+/poster/dashboard              /poster/dashboard/index.html     200!
+
+/tasker/profile                /tasker/profile/index.html       200!
+/poster/profile                /poster/profile/index.html       200!
+
+/wallet                        /wallet/index.html               200!
+/chats                         /chats/index.html                200!
+/settings                      /settings/index.html             200!
+/settings/account              /settings/account.html           200!
+/settings/kyc                  /settings/kyc.html               200!
+
+/login                         /auth/login.html                 200!
+/signup                        /auth/signup.html                200!
+/forgot-password               /auth/forgot-password.html       200!
+/auth/login                    /auth/login.html                 200!
+/auth/signup                   /auth/signup.html                200!
+/auth/forgot-password          /auth/forgot-password.html       200!
+/auth.css                      /auth/auth.css                   200!

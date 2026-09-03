@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings | Taska</title>
-  <link rel="apple-touch-icon" sizes="180x180" href="../Assets/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="../Assets/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="../Assets/favicon-16x16.png">
-  <link rel="manifest" href="../Assets/site.webmanifest">
-  <link rel="shortcut icon" href="../Assets/favicon.ico">
-  <link rel="stylesheet" href="../css/styles.css?v=18">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="manifest" href="/assets/site.webmanifest">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+  <link rel="canonical" href="https://taska.com.ng/settings">
+  <link rel="stylesheet" href="/css/styles.css?v=19">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
   </style>
@@ -29,9 +30,9 @@
 
     <!-- Settings Sub-Navigation Bar -->
     <div class="settings-subnav" style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:10px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:8px; margin-bottom:20px; border-bottom:1px solid var(--line); width:100%; box-sizing:border-box;">
-      <a href="index.html" class="btn btn-sm btn-secondary is-active" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Profile Details</a>
-      <a href="account.html" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Account & Security</a>
-      <a href="kyc.html" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Identity Verification (KYC)</a>
+      <a href="/settings" class="btn btn-sm btn-secondary is-active" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Profile Details</a>
+      <a href="/settings/account" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Account & Security</a>
+      <a href="/settings/kyc" class="btn btn-sm btn-secondary" style="border-radius:20px; text-decoration:none; flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Identity Verification (KYC)</a>
     </div>
 
     <!-- SUBTAB 1: PROFILE & IDENTITY -->
@@ -67,6 +68,8 @@
                 <span class="badge" id="profile-role-badge" style="font-size: 0.76rem; padding: 2px 10px; border-radius: var(--radius-pill); background: var(--mint-100); color: var(--green-900); font-weight: 600;">Tasker</span>
                 <span style="color: var(--line);">•</span>
                 <span id="profile-email-val" class="mono" style="font-size: 0.82rem; color: var(--muted);">—</span>
+                <span style="color: var(--line);">•</span>
+                <span id="profile-phone-val" class="mono" style="font-size: 0.82rem; color: var(--muted);">—</span>
               </div>
             </div>
           </div>
@@ -109,10 +112,14 @@
                   <label class="field-label" for="settingsPhone" style="margin-bottom:0;">Phone number</label>
                   <div id="phoneVerifyStatus" style="display:inline-flex; align-items:center; gap:6px;"></div>
                 </div>
-                <div class="phone-input-wrap">
+                <div class="phone-input-wrap" id="settingsPhoneWrap">
                   <span class="phone-prefix">+234</span>
-                  <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567">
+                  <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567" autocomplete="tel">
+                  <button type="button" id="btnEditPhone" class="phone-action-btn" title="Change phone number" aria-label="Change phone number" style="display:none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  </button>
                 </div>
+                <span class="field-hint" id="phoneHelperHint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;"></span>
               </div>
 
               <div class="field-group">
@@ -186,10 +193,10 @@
 
 <!-- Supabase JS SDK & Cloudinary & Dojah Widget -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../js/supabase-client.js"></script>
-<script src="../js/cloudinary-upload.js"></script>
+<script src="/js/supabase-client.js"></script>
+<script src="/js/cloudinary-upload.js"></script>
 <script src="https://widget.dojah.io/widget.js"></script>
-<script src="../js/dojah-kyc.js"></script>
+<script src="/js/dojah-kyc.js"></script>
 
 <!-- Clerk JS -->
 <script
@@ -198,10 +205,10 @@
   src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
   type="text/javascript">
 </script>
-<script src="../js/sidebar-component.js"></script>
-<script src="../js/auth-guard.js?v=14"></script>
-<script src="../js/termii-otp.js"></script>
-<script src="../js/settings.js?v=14"></script>
+<script src="/js/sidebar-component.js"></script>
+<script src="/js/auth-guard.js?v=14"></script>
+<script src="/js/termii-otp.js"></script>
+<script src="/js/settings.js?v=15"></script>
 
 </body>
 </html>

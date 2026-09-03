@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
   if (currentRole === 'TASKER') {
     if (window.showToast) window.showToast('Taskers cannot post tasks. Switch to Poster mode to post.');
-    window.location.href = 'Tasker/BrowseTasks/index.html';
+    window.location.href = '/browse-tasks';
     return;
   }
 
@@ -593,7 +593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (window.showToast) window.showToast('Task posted successfully!');
-        window.location.href = 'Poster/MyPostedTasks/index.html';
+        window.location.href = '/my-posted-tasks';
       } catch (err) {
         console.error('Post task error:', err);
         const msg = err?.message || 'Failed to post task. Please check all fields.';

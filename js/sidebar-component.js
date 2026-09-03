@@ -6,38 +6,39 @@
 
   window.initSidebar = async function() {
     const path = window.location.pathname;
+    const pLower = path.toLowerCase();
     const hash = window.location.hash.replace('#', '') || '';
 
     // Determine subfolder location & calculate relative root links
-    const inPoster   = path.includes('/Poster/');
-    const inTasker   = path.includes('/Tasker/');
-    const inSettings = path.includes('/Settings/');
-    const inChats    = path.includes('/Chats/');
-    const inWallet   = path.includes('/Wallet/');
+    const inPoster   = pLower.includes('/poster') || pLower.includes('/post-task') || pLower.includes('/my-posted-tasks');
+    const inTasker   = pLower.includes('/tasker') || pLower.includes('/browse-tasks') || pLower.includes('/my-applications');
+    const inSettings = pLower.includes('/settings');
+    const inChats    = pLower.includes('/chats');
+    const inWallet   = pLower.includes('/wallet');
 
     let storedRole = null;
     try { storedRole = localStorage.getItem('taska_active_role'); } catch (_) {}
     const currentRole  = inTasker ? 'TASKER' : inPoster ? 'POSTER' : (storedRole || (window.getTaskaRole ? window.getTaskaRole() : 'POSTER'));
     const isTaskerMode = currentRole === 'TASKER';
 
-    const posterRoot   = inPoster   ? '../' : (inTasker ? '../../Poster/' : '../Poster/');
-    const taskerRoot   = inTasker   ? '../' : (inPoster ? '../../Tasker/' : '../Tasker/');
-    const settingsRoot = inSettings ? ''    : (inPoster || inTasker ? '../../Settings/' : '../Settings/');
-    const chatsRoot    = inChats    ? ''    : (inPoster || inTasker ? '../../Chats/' : '../Chats/');
-    const walletRoot   = inWallet   ? ''    : (inPoster || inTasker ? '../../Wallet/' : '../Wallet/');
-    const assetsRoot   = (inPoster || inTasker) ? '../../Assets/' : (inSettings || inChats || inWallet ? '../Assets/' : 'Assets/');
-
-    const profileLink = isTaskerMode ? `${taskerRoot}Profile/index.html` : `${posterRoot}Profile/index.html`;
+    const dashUrl     = isTaskerMode ? '/tasker/dashboard' : '/poster/dashboard';
+    const myTasksUrl  = isTaskerMode ? '/my-applications'  : '/my-posted-tasks';
+    const actionUrl   = isTaskerMode ? '/browse-tasks'     : '/post-task';
+    const profileLink = isTaskerMode ? '/tasker/profile'   : '/poster/profile';
+    const chatsUrl    = '/chats';
+    const walletUrl   = '/wallet';
+    const settingsUrl = '/settings';
+    const assetsRoot  = '/assets/';
 
     // Determine active tab
     let activeTab = 'dashboard';
     if (inSettings) activeTab = 'settings';
     else if (inChats) activeTab = 'messages';
     else if (inWallet) activeTab = 'wallet';
-    else if (path.includes('Profile/')) activeTab = 'profile';
-    else if (path.includes('BrowseTasks/')) activeTab = 'browse';
-    else if (path.includes('PostTask/')) activeTab = 'post';
-    else if (path.includes('MyPostedTasks/') || path.includes('MyApplications/')) activeTab = 'my-tasks';
+    else if (pLower.includes('/profile')) activeTab = 'profile';
+    else if (pLower.includes('/browse-tasks') || pLower.includes('browsetasks')) activeTab = 'browse';
+    else if (pLower.includes('/post-task') || pLower.includes('posttask')) activeTab = 'post';
+    else if (pLower.includes('/my-posted-tasks') || pLower.includes('/my-applications') || pLower.includes('mypostedtasks') || pLower.includes('myapplications')) activeTab = 'my-tasks';
     else if (hash) activeTab = hash;
 
     // Get cached profile or load profile
@@ -64,11 +65,6 @@
     const isTaskerSetup = true;
     const isPosterSetup = true;
 
-    // Declare all URL vars once, hoisted above all usages
-    const dashUrl    = isTaskerMode ? `${taskerRoot}Dashboard/index.html`       : `${posterRoot}Dashboard/index.html`;
-    const myTasksUrl = isTaskerMode ? `${taskerRoot}MyApplications/index.html`  : `${posterRoot}MyPostedTasks/index.html`;
-    const actionUrl  = isTaskerMode ? `${taskerRoot}BrowseTasks/index.html`     : `${posterRoot}PostTask/index.html`;
-
     const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
     if (sidebarEl) {
 
@@ -91,12 +87,12 @@
           </a>
 
           ${isTaskerMode ? `
-            <a href="${taskerRoot}BrowseTasks/index.html" class="sidebar-link desktop-only ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
+            <a href="${actionUrl}" class="sidebar-link desktop-only ${activeTab === 'browse' ? 'is-active' : ''}" data-tab="browse">
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.7"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
               Browse Tasks
             </a>
           ` : `
-            <a href="${posterRoot}PostTask/index.html" class="sidebar-link desktop-only ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
+            <a href="${actionUrl}" class="sidebar-link desktop-only ${activeTab === 'post' ? 'is-active' : ''}" data-tab="post">
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
               Post a Task
             </a>
@@ -106,18 +102,18 @@
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             ${isTaskerMode ? 'My Applications' : 'My Posted Tasks'}
           </a>
-          <a href="${chatsRoot}index.html" class="sidebar-link ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
+          <a href="${chatsUrl}" class="sidebar-link ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
             Chats
           </a>
-          <a href="${walletRoot}index.html" class="sidebar-link desktop-only ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
+          <a href="${walletUrl}" class="sidebar-link desktop-only ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/><path d="M7 15H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
             My Wallet
           </a>
 
           <div class="sidebar-divider"></div>
 
-          <a href="${settingsRoot}index.html" class="sidebar-link ${activeTab === 'settings' ? 'is-active' : ''}" data-tab="settings">
+          <a href="${settingsUrl}" class="sidebar-link ${activeTab === 'settings' ? 'is-active' : ''}" data-tab="settings">
             <span class="sidebar-icon">${settingsIcon}</span>
             Settings
           </a>
@@ -267,11 +263,11 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Tasks
         </a>
-        <a href="${chatsRoot}index.html" class="tab-item ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
+        <a href="${chatsUrl}" class="tab-item ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
           <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg>
           Chats
         </a>
-        <a href="${walletRoot}index.html" class="tab-item ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
+        <a href="${walletUrl}" class="tab-item ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
           <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/></svg>
           Wallet
         </a>
@@ -412,11 +408,7 @@
     if (dropdownSettingsBtn) {
       dropdownSettingsBtn.onclick = (e) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        const path = window.location.pathname;
-        const inPoster = path.includes('/Poster/');
-        const inTasker = path.includes('/Tasker/');
-        const target = (inPoster || inTasker) ? '../../Settings/index.html' : (path.includes('/Settings/') ? 'index.html' : '../Settings/index.html');
-        window.location.href = target;
+        window.location.href = '/settings';
       };
     }
 
@@ -429,9 +421,7 @@
         if (window.Clerk && window.Clerk.signOut) {
           await window.Clerk.signOut();
         }
-        const path = window.location.pathname;
-        const inSubSub = path.includes('/Poster/') || path.includes('/Tasker/');
-        window.location.href = inSubSub ? '../../Auth/login.html' : '../Auth/login.html';
+        window.location.href = '/login';
       } catch (err) {
         console.error('Logout error:', err);
       }
@@ -746,6 +736,35 @@
       `;
     }).join('');
 
+    function normalizeNotificationUrl(rawLink) {
+      if (!rawLink) return '/tasker/dashboard';
+      let url = rawLink.replace(/https?:\/\/(taska\.(ng|com\.ng)|localhost:\d+|[^\/]+)/i, '');
+      if (!url.startsWith('/')) url = '/' + url;
+
+      const match = url.match(/^([^?#]*)(.*)$/);
+      let path = (match ? match[1] : url).toLowerCase();
+      const queryAndHash = match ? match[2] : '';
+
+      path = path.replace(/\/index\.html$/, '').replace(/\.html$/, '');
+      if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
+
+      if (path === '/wallet' || path === '/wallet/wallet') return '/wallet' + queryAndHash;
+      if (path === '/poster/mytasks' || path === '/poster/my-tasks' || path === '/poster/mypostedtasks' || path === '/poster/my-posted-tasks' || path === '/mypostedtasks') return '/my-posted-tasks' + queryAndHash;
+      if (path === '/tasker/myapplications' || path === '/tasker/my-applications' || path === '/myapplications') return '/my-applications' + queryAndHash;
+      if (path === '/tasker/browsetasks' || path === '/tasker/browse-tasks' || path === '/browsetasks') return '/browse-tasks' + queryAndHash;
+      if (path === '/poster/posttask' || path === '/poster/post-task' || path === '/posttask') return '/post-task' + queryAndHash;
+      if (path === '/dashboard') return '/tasker/dashboard' + queryAndHash;
+      if (path === '/settings/account') return '/settings/account' + queryAndHash;
+      if (path === '/settings/kyc') return '/settings/kyc' + queryAndHash;
+      if (path === '/settings' || path === '/settings/index') return '/settings' + queryAndHash;
+      if (path === '/chats') return '/chats' + queryAndHash;
+      if (path === '/auth/login' || path === '/login') return '/login' + queryAndHash;
+      if (path === '/auth/signup' || path === '/signup') return '/signup' + queryAndHash;
+      if (path === '/auth/forgot-password' || path === '/forgot-password') return '/forgot-password' + queryAndHash;
+
+      return path + queryAndHash;
+    }
+
     listEl.querySelectorAll('.taska-notif-item').forEach(item => {
       item.onclick = async () => {
         const id = item.getAttribute('data-id');
@@ -757,9 +776,7 @@
           } catch (_) {}
         }
         if (link) {
-          let targetUrl = link.replace(/https?:\/\/(taska\.(ng|com\.ng)|localhost:\d+|[^\/]+)/i, '');
-          if (!targetUrl.startsWith('/')) targetUrl = '/' + targetUrl;
-          window.location.href = targetUrl;
+          window.location.href = normalizeNotificationUrl(link);
         }
       };
     });
