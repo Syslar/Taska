@@ -165,7 +165,8 @@ function renderTasksGrid() {
     const titleMatch = (task.title || '').toLowerCase().includes(currentSearchQuery);
     const descMatch = (task.description || '').toLowerCase().includes(currentSearchQuery);
     const locMatch = (task.location || '').toLowerCase().includes(currentSearchQuery);
-    const searchMatch = !currentSearchQuery || (titleMatch || descMatch || locMatch);
+    const tagsMatch = Array.isArray(task.tags) && task.tags.some(t => String(t).toLowerCase().includes(currentSearchQuery));
+    const searchMatch = !currentSearchQuery || (titleMatch || descMatch || locMatch || tagsMatch);
 
     // 4. Nigerian State / Location filter
     let stateMatch = true;
@@ -233,6 +234,12 @@ function renderTasksGrid() {
       : task.criteriaMinAge ? `Age ${task.criteriaMinAge}+`
       : task.criteriaMaxAge ? `Age ≤${task.criteriaMaxAge}` : null;
 
+    const tagsHtml = (Array.isArray(task.tags) && task.tags.length > 0)
+      ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 8px;">
+          ${task.tags.map(t => `<span style="font-size:0.72rem; color:var(--green-800); background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 8px; border-radius:12px; font-weight:600;">#${window.escapeHtml(t)}</span>`).join('')}
+         </div>`
+      : '';
+
     html += `
       <div class="gig-card" onclick="openTaskModal('${task.id}')">
         <div class="gig-card-top">
@@ -247,6 +254,7 @@ function renderTasksGrid() {
           <span class="gig-budget">₦${budget}</span>
         </div>
         <h3 style="font-size:1.05rem; margin:6px 0; color:var(--green-900);">${title}</h3>
+        ${tagsHtml}
         <p class="gig-desc">${desc}</p>
         <div class="gig-card-foot">
           <span class="gig-loc" style="display:inline-flex; align-items:center; gap:4px;">${locIcon} ${location}</span>
@@ -285,6 +293,18 @@ window.openTaskModal = async function (taskId) {
   document.getElementById('modal-task-budget').textContent = `₦${(task.budget || 0).toLocaleString()}`;
   document.getElementById('modal-task-location').textContent = task.location || 'Remote / Anywhere';
   document.getElementById('modal-task-desc').textContent = cleanText || 'No detailed description provided.';
+
+  // Render modal tags
+  const modalTagsEl = document.getElementById('modal-task-tags');
+  if (modalTagsEl) {
+    if (Array.isArray(task.tags) && task.tags.length > 0) {
+      modalTagsEl.innerHTML = task.tags.map(t => `<span style="font-size:0.75rem; color:var(--green-800); background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 8px; border-radius:12px; font-weight:600;">#${window.escapeHtml(t)}</span>`).join('');
+      modalTagsEl.style.display = 'flex';
+    } else {
+      modalTagsEl.innerHTML = '';
+      modalTagsEl.style.display = 'none';
+    }
+  }
 
   // Render media attachments inside modal
   const mediaContainer = document.getElementById('modal-task-media');

@@ -117,6 +117,12 @@ function renderMyTasksList() {
     const mediaHTML = window.renderTaskMediaHTML ? window.renderTaskMediaHTML(mediaUrls) : '';
     const safeCategory = window.escapeHtml(t.category || 'General');
 
+    const tagsHTML = (Array.isArray(t.tags) && t.tags.length > 0)
+      ? `<div style="display:flex; flex-wrap:wrap; gap:5px; margin:4px 0 8px;">
+          ${t.tags.map(tag => `<span style="font-size:0.72rem; color:var(--green-800); background:#ECFDF5; border:1px solid #A7F3D0; padding:2px 7px; border-radius:10px; font-weight:600;">#${window.escapeHtml(tag)}</span>`).join('')}
+         </div>`
+      : '';
+
     // Handle Draft status card specially
     if (t.status === 'DRAFT') {
       return `
@@ -128,6 +134,7 @@ function renderMyTasksList() {
                 <span style="font-size:0.8rem; color:var(--muted);">${safeCategory} · Saved ${createdDate}</span>
               </div>
               <h2 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">${safeTitle}</h2>
+              ${tagsHTML}
               <p style="color:var(--ink-soft); font-size:0.9rem; line-height:1.5; margin-bottom:12px;">${safeDesc || 'No description yet.'}</p>
               ${mediaHTML}
             </div>
@@ -311,6 +318,7 @@ function renderMyTasksList() {
               <span style="font-size:0.8rem; color:var(--muted);">${safeCategory} · Posted ${createdDate}</span>
             </div>
             <h2 style="font-size:1.25rem; color:var(--green-900); margin-bottom:6px;">${safeTitle}</h2>
+            ${tagsHTML}
             <p style="color:var(--ink-soft); font-size:0.92rem; line-height:1.5; max-width:680px; margin-bottom:6px;">${safeDesc}</p>
             ${mediaHTML}
           </div>

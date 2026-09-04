@@ -293,12 +293,18 @@ async function loadProfileTaskHistory(profileId) {
       const safeTitle = window.escapeHtml(t.title || 'Task');
       const safeCategory = window.escapeHtml(t.category || 'General');
       const budgetStr = t.budget != null ? (window.formatNaira ? window.formatNaira(t.budget) : `₦${t.budget}`) : 'Open';
+      const tagsHTML = (Array.isArray(t.tags) && t.tags.length > 0)
+        ? `<div style="display:flex; flex-wrap:wrap; gap:4px; margin-top:5px;">
+            ${t.tags.map(tag => `<span style="font-size:0.7rem; color:var(--green-800); background:#ECFDF5; border:1px solid #A7F3D0; padding:1px 7px; border-radius:10px; font-weight:600;">#${window.escapeHtml(tag)}</span>`).join('')}
+           </div>`
+        : '';
 
       return `
         <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--line-soft);">
           <div>
             <div style="font-weight:600; font-size:0.92rem; color:var(--green-900);">${safeTitle}</div>
             <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${safeCategory} · <span class="mono">${budgetStr}</span> · ${taskDateStr}</div>
+            ${tagsHTML}
           </div>
           <span class="status status-open" style="font-size:0.75rem;">
             OPEN

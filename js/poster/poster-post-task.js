@@ -40,6 +40,135 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sumType = document.getElementById('sumType');
   const taskTypeHint = document.getElementById('taskTypeHint');
 
+  // ── TASK TAGS (Max 3 tags per post) ─────────────────────────────────────────
+  let currentTaskTags = [];
+  const tagContainer = document.getElementById('postTaskTagContainer');
+  const tagInput = document.getElementById('postTaskTagInput');
+  const tagCountEl = document.getElementById('postTaskTagCount');
+  const quickTagsWrap = document.getElementById('postTaskQuickTags');
+  const sumTagsRow = document.getElementById('sumTagsRow');
+  const sumTags = document.getElementById('sumTags');
+
+  function updateTagCountDisplay() {
+    if (tagCountEl) {
+      tagCountEl.textContent = `${currentTaskTags.length}/3 tags`;
+      if (currentTaskTags.length >= 3) {
+        tagCountEl.style.color = '#B45309';
+      } else {
+        tagCountEl.style.color = 'var(--muted)';
+      }
+    }
+  }
+
+  function updateSumTags() {
+    if (!sumTagsRow || !sumTags) return;
+    if (currentTaskTags.length > 0) {
+      sumTagsRow.style.display = 'flex';
+      sumTags.innerHTML = currentTaskTags.map(t => {
+        const safe = window.escapeHtml ? window.escapeHtml(t) : t;
+        return `<span style="font-size:0.75rem; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; padding:2px 7px; color:var(--green-800); font-weight:600;">#${safe}</span>`;
+      }).join('');
+    } else {
+      sumTagsRow.style.display = 'none';
+      sumTags.textContent = '—';
+    }
+  }
+
+  function renderTaskTags() {
+    if (!tagContainer) return;
+    // Remove existing pills
+    tagContainer.querySelectorAll('.tag-pill').forEach(el => el.remove());
+
+    // Insert pills before input
+    currentTaskTags.forEach((tag, idx) => {
+      const pill = document.createElement('span');
+      pill.className = 'tag-pill';
+      const safe = window.escapeHtml ? window.escapeHtml(tag) : tag;
+      pill.innerHTML = `#${safe} <button type="button" class="tag-pill-remove" data-idx="${idx}" aria-label="Remove tag">&times;</button>`;
+      
+      const removeBtn = pill.querySelector('.tag-pill-remove');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeTaskTag(idx);
+        });
+      }
+
+      if (tagInput) {
+        tagContainer.insertBefore(pill, tagInput);
+      } else {
+        tagContainer.appendChild(pill);
+      }
+    });
+
+    updateTagCountDisplay();
+    updateSumTags();
+
+    if (tagInput) {
+      if (currentTaskTags.length >= 3) {
+        tagInput.placeholder = 'Max 3 tags reached';
+        tagInput.disabled = true;
+      } else {
+        tagInput.placeholder = '+ Type a tag and press Enter';
+        tagInput.disabled = false;
+      }
+    }
+  }
+
+  function addTaskTag(rawTag) {
+    if (!rawTag) return;
+    const clean = String(rawTag).replace(/^[#\s]+/, '').replace(/[,]+/g, '').trim();
+    if (!clean) return;
+
+    if (currentTaskTags.length >= 3) {
+      if (window.showToast) window.showToast('You can add a maximum of 3 tags per post.');
+      return;
+    }
+
+    if (currentTaskTags.some(t => t.toLowerCase() === clean.toLowerCase())) {
+      if (window.showToast) window.showToast(`Tag "${clean}" is already added.`);
+      return;
+    }
+
+    currentTaskTags.push(clean);
+    renderTaskTags();
+  }
+
+  function removeTaskTag(idx) {
+    if (idx >= 0 && idx < currentTaskTags.length) {
+      currentTaskTags.splice(idx, 1);
+      renderTaskTags();
+    }
+  }
+
+  if (tagInput) {
+    tagInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTaskTag(tagInput.value);
+        tagInput.value = '';
+      } else if (e.key === 'Backspace' && tagInput.value === '' && currentTaskTags.length > 0) {
+        removeTaskTag(currentTaskTags.length - 1);
+      }
+    });
+
+    tagInput.addEventListener('blur', () => {
+      if (tagInput.value.trim()) {
+        addTaskTag(tagInput.value);
+        tagInput.value = '';
+      }
+    });
+  }
+
+  if (quickTagsWrap) {
+    quickTagsWrap.querySelectorAll('.tag-suggest-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.tag;
+        if (t) addTaskTag(t);
+      });
+    });
+  }
+
   // Allow picking today or any future date (2026, 2027, etc.)
   const todayStr = new Date().toISOString().split('T')[0];
   if (dateInput) {
@@ -385,6 +514,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sumType) sumType.textContent = 'Remote';
       }
     }
+    if (Array.isArray(data.tags)) {
+      currentTaskTags = data.tags.filter(Boolean).map(t => String(t).trim()).slice(0, 3);
+      renderTaskTags();
+    } else if (typeof data.tags === 'string' && data.tags) {
+      try {
+        const parsed = JSON.parse(data.tags);
+        if (Array.isArray(parsed)) {
+          currentTaskTags = parsed.filter(Boolean).map(t => String(t).trim()).slice(0, 3);
+          renderTaskTags();
+        }
+      } catch (_) {}
+    }
   }
 
   if (discardDraftBtn) {
@@ -394,6 +535,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await window.supabaseClient.from('Task').delete().eq('id', activeDraftId);
       }
       activeDraftId = null;
+      currentTaskTags = [];
+      renderTaskTags();
       if (form) form.reset();
       if (draftBanner) draftBanner.style.display = 'none';
       goToStep(1);
@@ -447,6 +590,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       criteriaMinAge: isNaN(minAgeVal) ? null : minAgeVal,
       criteriaMaxAge: isNaN(maxAgeVal) ? null : maxAgeVal,
       criteriaLocation,
+      tags: currentTaskTags,
       status: 'DRAFT'
     };
 
@@ -563,6 +707,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         criteriaMinAge: criteriaMinAge,
         criteriaMaxAge: criteriaMaxAge,
         criteriaLocation: criteriaLocation,
+        tags: currentTaskTags,
         proofUrls: imageUrl ? [imageUrl] : [],
         status: 'OPEN'
       };
@@ -584,10 +729,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.removeItem('taska_post_task_draft');
 
         // Send Email Confirmation to Poster via Resend
-        if (window.sendTaskaNotification && posterProfileId) {
+        if (window.sendTaskaNotification && profile && profile.id) {
           window.sendTaskaNotification({
             type: 'TASK_POSTED',
-            profileId: posterProfileId,
+            profileId: profile.id,
             data: {
               taskTitle: title,
               budget: budget ? parseFloat(budget) : 0,

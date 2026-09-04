@@ -90,6 +90,40 @@
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ECFDF5;
+      color: var(--green-800);
+      border: 1px solid #A7F3D0;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      animation: fadeIn 0.15s ease;
+    }
+    .tag-pill-remove {
+      background: none;
+      border: none;
+      color: var(--green-700);
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tag-pill-remove:hover {
+      color: #b91c1c;
+    }
+    .tag-suggest-pill:hover {
+      background: #ECFDF5 !important;
+      color: var(--green-800) !important;
+      border-color: #A7F3D0 !important;
+    }
   </style>
 </head>
 <body>
@@ -178,6 +212,31 @@
               <textarea class="textarea-input" id="taskDesc" rows="5"
                 placeholder="Describe what needs to be done, any specific requirements, access details, tools or materials the Tasker should bring..." required></textarea>
               <span class="field-hint">Include as much context as possible. Vague tasks attract vague applications.</span>
+            </div>
+
+            <!-- Task Tags (Max 3 tags) -->
+            <div class="field-group" style="margin-top: 18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <label class="field-label" style="margin-bottom:0;">Tags (Optional, Max 3)</label>
+                <span id="postTaskTagCount" class="mono" style="font-size:0.76rem; font-weight:600; color:var(--muted);">0/3 tags</span>
+              </div>
+              <div class="tag-editor-container" id="postTaskTagContainer" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); background:#fff; min-height:46px;">
+                <input type="text" id="postTaskTagInput" class="tag-input-field" placeholder="+ Type a tag and press Enter" maxlength="25" style="border:none; outline:none; background:transparent; font-size:0.86rem; flex:1; min-width:140px;">
+              </div>
+              <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;">
+                Add up to 3 tags (e.g. Plumbing, React, Cleaning, Delivery) to help relevant taskers find this task easily.
+              </span>
+
+              <!-- Quick suggestion tags -->
+              <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;" id="postTaskQuickTags">
+                <span style="font-size:0.72rem; color:var(--muted); font-weight:600;">Popular tags:</span>
+                <button type="button" class="tag-suggest-pill" data-tag="Urgent" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Urgent</button>
+                <button type="button" class="tag-suggest-pill" data-tag="Plumbing" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Plumbing</button>
+                <button type="button" class="tag-suggest-pill" data-tag="Web Development" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Web Development</button>
+                <button type="button" class="tag-suggest-pill" data-tag="Delivery" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Delivery</button>
+                <button type="button" class="tag-suggest-pill" data-tag="Graphic Design" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Graphic Design</button>
+                <button type="button" class="tag-suggest-pill" data-tag="Home Repair" style="font-size:0.74rem; padding:3px 9px; border-radius:14px; border:1px solid var(--line); background:var(--bg-soft); cursor:pointer;">+ Home Repair</button>
+              </div>
             </div>
 
             <div style="display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line-soft);">
@@ -446,6 +505,10 @@
           <div class="summary-line">
             <span class="label">Date</span>
             <span class="value" id="sumDate">—</span>
+          </div>
+          <div class="summary-line" id="sumTagsRow" style="display:none;">
+            <span class="label">Tags</span>
+            <span class="value" id="sumTags" style="display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end;">—</span>
           </div>
 
           <div style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-sm); padding:14px 16px; margin:20px 0 16px; font-size:0.85rem; color:var(--ink-soft); line-height:1.5;">

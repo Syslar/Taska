@@ -605,6 +605,7 @@
   };
 
   window.toggleNotificationDrawer = function() {
+    if (typeof ensureNotificationResponsiveStyles === 'function') ensureNotificationResponsiveStyles();
     let container = document.getElementById('taska-notification-drawer');
     if (!container) {
       container = document.createElement('div');
@@ -614,22 +615,30 @@
         background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); opacity: 0; transition: opacity 0.2s ease;
       `;
       container.innerHTML = `
-        <div style="background:var(--paper, #fff); width:100%; max-width:420px; height:100%; display:flex; flex-direction:column; box-shadow:-8px 0 32px rgba(0,0,0,0.25); transform:translateX(100%); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
-          <div style="padding:18px 20px; border-bottom:1px solid var(--line, #e2e8f0); display:flex; align-items:center; justify-content:space-between; background:var(--surface, #fff);">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <div style="width:34px; height:34px; border-radius:50%; background:var(--mint-100, #E1F5E8); color:var(--green-700, #146C34); display:flex; align-items:center; justify-content:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div style="background:var(--paper, #fff); width:100%; max-width:420px; height:100%; display:flex; flex-direction:column; box-shadow:-8px 0 32px rgba(0,0,0,0.25); transform:translateX(100%); transition:transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); box-sizing:border-box;">
+          <div style="padding:16px 18px 12px; border-bottom:1px solid var(--line, #e2e8f0); background:var(--surface, #fff); flex-shrink:0;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:34px; height:34px; border-radius:50%; background:var(--mint-100, #E1F5E8); color:var(--green-700, #146C34); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <h3 style="font-size:1.1rem; margin:0; color:var(--green-900); font-weight:700;">Notifications</h3>
               </div>
-              <h3 style="font-size:1.1rem; margin:0; color:var(--green-900);">Notifications</h3>
+              <button id="taska-close-notif-drawer" style="background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:4px 6px; line-height:1; border-radius:6px;" aria-label="Close">✕</button>
             </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <button id="taska-clear-all-notif-btn" style="background:none; border:none; color:var(--red, #b23a2e); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 6px; border-radius:6px;" title="Permanently delete all notifications">Clear all</button>
-              <button id="taska-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 6px; border-radius:6px;">Mark read</button>
-              <button id="taska-close-notif-drawer" style="background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:4px 6px;" aria-label="Close">✕</button>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button id="taska-mark-all-read-btn" class="taska-notif-action-btn taska-notif-action-read" style="flex:1; justify-content:center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark read
+              </button>
+              <button id="taska-clear-all-notif-btn" class="taska-notif-action-btn taska-notif-action-clear" style="flex:1; justify-content:center;" title="Permanently delete all notifications">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear all
+              </button>
             </div>
           </div>
 
-          <div id="taska-notif-list-container" style="flex:1; overflow-y:auto; padding:12px 16px;">
+          <div id="taska-notif-list-container" style="flex:1; overflow-y:auto; padding:12px 14px;">
             <div style="padding:32px 16px; text-align:center; color:var(--muted); font-size:0.88rem;">Loading notifications…</div>
           </div>
         </div>
@@ -651,9 +660,15 @@
         const userId = profile?.userId || (window.Clerk?.user?.id);
         if (!userId || !window.supabaseClient) return;
 
-        if (!confirm('Are you sure you want to clear all notifications? They will be permanently deleted from the database.')) {
-          return;
-        }
+        const confirmed = window.showConfirmDialog ? await window.showConfirmDialog({
+          title: 'Clear Notifications',
+          message: 'Are you sure you want to clear all notifications? They will be permanently deleted.',
+          confirmText: 'Clear All',
+          cancelText: 'Cancel',
+          isDanger: true,
+        }) : window.confirm('Are you sure you want to clear all notifications?');
+
+        if (!confirmed) return;
 
         try {
           const { error } = await window.supabaseClient
@@ -753,19 +768,24 @@
       else if (diffMins >= 60 && diffMins < 1440) timeStr = `${Math.floor(diffMins/60)}h ago`;
       else if (diffMins >= 1440) timeStr = `${Math.floor(diffMins/1440)}d ago`;
 
+      const safeTitle = window.escapeHtml ? window.escapeHtml(item.title || 'Notification') : (item.title || 'Notification');
+      const safeBody = window.escapeHtml ? window.escapeHtml(item.body || '') : (item.body || '');
+
       return `
-        <div class="taska-notif-item" data-id="${item.id}" data-link="${item.link || ''}" style="padding:14px; border-radius:var(--radius-sm, 10px); margin-bottom:8px; background:${isUnread ? 'rgba(34,145,80,0.06)' : 'var(--surface, #fff)'}; border:1px solid ${isUnread ? 'var(--mint-150, #CDEEDA)' : 'var(--line, #e2e8f0)'}; cursor:pointer; transition:transform 0.12s ease, background 0.12s ease; display:flex; gap:12px; align-items:flex-start; position:relative;">
-          <div style="width:36px; height:36px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+        <div class="taska-notif-item ${isUnread ? 'is-unread' : ''}" data-id="${item.id}" data-link="${item.link || ''}" style="padding:12px 14px; border-radius:var(--radius-sm, 12px); margin-bottom:8px; background:${isUnread ? 'rgba(34,145,80,0.05)' : 'var(--surface, #fff)'}; border:1px solid ${isUnread ? 'var(--mint-150, #CDEEDA)' : 'var(--line, #e2e8f0)'}; cursor:pointer; transition:all 0.15s ease; display:flex; gap:10px; align-items:flex-start; position:relative; box-sizing:border-box;">
+          <div style="width:34px; height:34px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
             ${iconSvg}
           </div>
           <div style="flex:1; min-width:0;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-              <span style="font-weight:600; font-size:0.86rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding-right:8px;">${item.title || 'Notification'}</span>
-              <span style="font-size:0.72rem; color:var(--muted); white-space:nowrap;">${timeStr}</span>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:2px;">
+              <span style="font-weight:700; font-size:0.86rem; color:var(--green-900); line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;">${safeTitle}</span>
+              <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                <span style="font-size:0.72rem; color:var(--muted);">${timeStr}</span>
+                ${isUnread ? `<span style="width:7px; height:7px; border-radius:50%; background:#EF4444; display:inline-block;"></span>` : ''}
+              </div>
             </div>
-            <div style="font-size:0.8rem; color:var(--ink-soft); line-height:1.4; word-break:break-word;">${item.body || ''}</div>
+            <div style="font-size:0.8rem; color:var(--ink-soft); line-height:1.45; word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${safeBody}</div>
           </div>
-          ${isUnread ? `<span style="width:8px; height:8px; border-radius:50%; background:#EF4444; position:absolute; top:12px; right:12px;"></span>` : ''}
         </div>
       `;
     }).join('');
@@ -833,32 +853,146 @@
   }
 
   // ─── ALL NOTIFICATIONS POP-UP MODAL ──────────────────────────────────────
+  function ensureNotificationResponsiveStyles() {
+    if (document.getElementById('taska-notif-dynamic-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'taska-notif-dynamic-styles';
+    style.textContent = `
+      .taska-notif-modal-overlay {
+        position: fixed; inset: 0; z-index: 1000000; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 20px; box-sizing: border-box;
+      }
+      .taska-notif-modal-card {
+        background: var(--paper, #fff); border-radius: var(--radius-md, 16px); max-width: 580px; width: 100%;
+        max-height: 88vh; display: flex; flex-direction: column; border: 1px solid var(--line, #e2e8f0);
+        box-shadow: 0 16px 48px rgba(0,0,0,0.28); position: relative; overflow: hidden; box-sizing: border-box;
+      }
+      .taska-notif-modal-header {
+        padding: 18px 22px 14px; border-bottom: 1px solid var(--line, #e2e8f0); background: var(--surface, #fff); flex-shrink: 0; box-sizing: border-box;
+      }
+      .taska-notif-modal-top-bar {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+      }
+      .taska-notif-modal-title-wrap { flex: 1; min-width: 0; }
+      .taska-notif-modal-title {
+        font-size: 1.15rem; font-weight: 700; margin: 0 0 4px 0; color: var(--green-900, #064E3B);
+        display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      }
+      .taska-notif-modal-count-pill {
+        font-size: 0.74rem; font-weight: 700; background: var(--mint-100, #E1F5E8); color: var(--green-700, #146C34);
+        padding: 2px 8px; border-radius: 999px; border: 1px solid var(--mint-200, #bbf0cb);
+      }
+      .taska-notif-modal-subtitle { font-size: 0.78rem; color: var(--muted, #64748b); display: block; }
+      .taska-notif-modal-close-btn {
+        background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--muted, #64748b);
+        padding: 6px; border-radius: 8px; line-height: 1; display: flex; align-items: center; justify-content: center;
+        width: 32px; height: 32px; flex-shrink: 0; transition: all 0.15s ease;
+      }
+      .taska-notif-modal-close-btn:hover { background: var(--bg-soft, #f1f5f9); color: var(--ink, #0f172a); }
+      .taska-notif-modal-actions-bar {
+        display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px;
+        border-top: 1px dashed var(--line-soft, #f1f5f9); justify-content: flex-end;
+      }
+      .taska-notif-action-btn {
+        display: inline-flex; align-items: center; gap: 5px; background: var(--bg-soft, #f8fafc);
+        border: 1px solid var(--line, #e2e8f0); border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+        cursor: pointer; padding: 6px 11px; transition: all 0.15s ease; line-height: 1.2;
+      }
+      .taska-notif-action-read { color: var(--green-700, #146C34); }
+      .taska-notif-action-read:hover { background: var(--mint-050, #f0fdf4); border-color: var(--mint-200, #bbf0cb); }
+      .taska-notif-action-clear { color: var(--red, #b23a2e); }
+      .taska-notif-action-clear:hover { background: #FEF2F2; border-color: #FECACA; }
+      .taska-notif-modal-body {
+        flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box;
+      }
+      .taska-modal-notif-row {
+        padding: 14px 16px; border-radius: var(--radius-sm, 12px); background: var(--surface, #fff);
+        border: 1px solid var(--line, #e2e8f0); display: flex; gap: 12px; align-items: flex-start;
+        position: relative; transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        box-sizing: border-box; width: 100%;
+      }
+      .taska-modal-notif-row.is-unread { background: rgba(34,145,80,0.04); border-color: var(--mint-150, #CDEEDA); }
+      .taska-modal-notif-row:hover { border-color: var(--mint-300, #86efac); }
+      .taska-notif-icon-col {
+        width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; margin-top: 1px;
+      }
+      .taska-notif-content-col { flex: 1; min-width: 0; cursor: pointer; }
+      .taska-notif-row-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 3px; }
+      .taska-notif-row-title {
+        font-weight: 700; font-size: 0.92rem; color: var(--green-900, #064E3B); line-height: 1.35; flex: 1;
+        min-width: 0; word-break: break-word; overflow-wrap: break-word;
+      }
+      .taska-notif-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+      .taska-notif-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #EF4444; flex-shrink: 0; display: inline-block; }
+      .taska-notif-delete-btn {
+        background: none; border: none; cursor: pointer; color: var(--muted, #94a3b8); padding: 4px;
+        border-radius: 6px; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease;
+      }
+      .taska-notif-delete-btn:hover { color: var(--red, #b23a2e); background: #FEE2E2; }
+      .taska-notif-row-meta {
+        font-size: 0.74rem; color: var(--muted, #64748b); margin-bottom: 6px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+      }
+      .taska-notif-row-body {
+        font-size: 0.84rem; color: var(--ink-soft, #334155); line-height: 1.5; word-break: break-word; overflow-wrap: break-word;
+      }
+      @media (max-width: 600px) {
+        .taska-notif-modal-overlay { padding: 8px !important; align-items: flex-end !important; }
+        .taska-notif-modal-card {
+          max-height: 92vh !important; max-width: 100% !important; border-radius: 18px 18px 10px 10px !important;
+          box-shadow: 0 -8px 32px rgba(0,0,0,0.3) !important;
+        }
+        .taska-notif-modal-header { padding: 14px 14px 10px !important; }
+        .taska-notif-modal-title { font-size: 1.05rem !important; }
+        .taska-notif-modal-actions-bar { justify-content: space-between !important; gap: 8px !important; margin-top: 8px !important; padding-top: 8px !important; }
+        .taska-notif-action-btn { flex: 1 !important; justify-content: center !important; padding: 7px 8px !important; font-size: 0.76rem !important; }
+        .taska-notif-modal-body { padding: 10px 12px !important; gap: 8px !important; }
+        .taska-modal-notif-row { padding: 12px !important; gap: 10px !important; border-radius: 10px !important; }
+        .taska-notif-icon-col { width: 32px !important; height: 32px !important; }
+        .taska-notif-icon-col svg { width: 16px !important; height: 16px !important; }
+        .taska-notif-row-title { font-size: 0.88rem !important; }
+        .taska-notif-row-body { font-size: 0.81rem !important; line-height: 1.45 !important; }
+        #taska-notification-drawer > div { max-width: 100% !important; width: 100% !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   window.openAllNotificationsModal = function(list) {
+    ensureNotificationResponsiveStyles();
     const allList = list || window.__taskaNotifications || [];
     let modal = document.getElementById('taska-all-notifications-modal');
 
     if (!modal) {
       modal = document.createElement('div');
       modal.id = 'taska-all-notifications-modal';
-      modal.style.cssText = `
-        position: fixed; inset: 0; z-index: 1000000; display: flex; align-items: center; justify-content: center;
-        background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); padding: 20px; box-sizing: border-box;
-      `;
+      modal.className = 'taska-notif-modal-overlay';
       modal.innerHTML = `
-        <div style="background:var(--paper, #fff); border-radius:var(--radius-md, 14px); max-width:580px; width:100%; max-height:88vh; display:flex; flex-direction:column; border:1px solid var(--line, #e2e8f0); box-shadow:0 14px 44px rgba(0,0,0,0.28); position:relative; overflow:hidden;">
-          <div style="padding:18px 22px; border-bottom:1px solid var(--line, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--surface, #fff);">
-            <div>
-              <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);" id="taska-all-notif-title">All Notifications</h3>
-              <span style="font-size:0.78rem; color:var(--muted);">Complete historical notification log</span>
+        <div class="taska-notif-modal-card">
+          <div class="taska-notif-modal-header">
+            <div class="taska-notif-modal-top-bar">
+              <div class="taska-notif-modal-title-wrap">
+                <h3 class="taska-notif-modal-title" id="taska-all-notif-title">
+                  All Notifications
+                  <span class="taska-notif-modal-count-pill" id="taska-all-notif-count-pill">${allList.length}</span>
+                </h3>
+                <span class="taska-notif-modal-subtitle">Complete historical notification log</span>
+              </div>
+              <button id="taska-close-all-notif-modal" class="taska-notif-modal-close-btn" aria-label="Close notification log">✕</button>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button id="modal-clear-all-notif-btn" style="background:none; border:none; color:var(--red, #b23a2e); font-weight:600; font-size:0.78rem; cursor:pointer; padding:5px 8px; border-radius:6px;" title="Permanently delete all notifications">Clear all</button>
-              <button id="modal-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:5px 8px; border-radius:6px;">Mark all read</button>
-              <button id="taska-close-all-notif-modal" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;" aria-label="Close">✕</button>
+            <div class="taska-notif-modal-actions-bar">
+              <button id="modal-mark-all-read-btn" class="taska-notif-action-btn taska-notif-action-read">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark all read
+              </button>
+              <button id="modal-clear-all-notif-btn" class="taska-notif-action-btn taska-notif-action-clear" title="Permanently delete all notifications">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Clear all
+              </button>
             </div>
           </div>
 
-          <div id="taska-all-notif-scroll-body" style="flex:1; overflow-y:auto; padding:14px 20px;">
+          <div id="taska-all-notif-scroll-body" class="taska-notif-modal-body">
           </div>
         </div>
       `;
@@ -876,9 +1010,15 @@
         const userId = profile?.userId || (window.Clerk?.user?.id);
         if (!userId || !window.supabaseClient) return;
 
-        if (!confirm('Are you sure you want to permanently clear all notifications from the database? This cannot be undone.')) {
-          return;
-        }
+        const confirmed = window.showConfirmDialog ? await window.showConfirmDialog({
+          title: 'Clear All Notifications',
+          message: 'Are you sure you want to permanently delete all notifications from the database? This cannot be undone.',
+          confirmText: 'Clear All',
+          cancelText: 'Cancel',
+          isDanger: true,
+        }) : window.confirm('Are you sure you want to permanently clear all notifications?');
+
+        if (!confirmed) return;
 
         try {
           const { error } = await window.supabaseClient
@@ -920,8 +1060,8 @@
       };
     }
 
-    const titleEl = modal.querySelector('#taska-all-notif-title');
-    if (titleEl) titleEl.textContent = `All Notifications (${allList.length})`;
+    const countPill = modal.querySelector('#taska-all-notif-count-pill');
+    if (countPill) countPill.textContent = `${allList.length}`;
 
     const bodyEl = modal.querySelector('#taska-all-notif-scroll-body');
     if (!bodyEl) return;
@@ -951,27 +1091,44 @@
           iconColor = '#2563EB';
         }
 
-        const dateFormatted = new Date(item.createdAt || Date.now()).toLocaleDateString('en-NG', {
-          month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
+        const dateObj = new Date(item.createdAt || Date.now());
+        const dateFormatted = !isNaN(dateObj.getTime())
+          ? dateObj.toLocaleDateString('en-NG', {
+              month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            })
+          : '';
+
+        const diffMs = Date.now() - dateObj.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        let timeAgoStr = '';
+        if (diffMins < 1) timeAgoStr = 'Just now';
+        else if (diffMins < 60) timeAgoStr = `${diffMins}m ago`;
+        else if (diffMins < 1440) timeAgoStr = `${Math.floor(diffMins / 60)}h ago`;
+        else timeAgoStr = `${Math.floor(diffMins / 1440)}d ago`;
+
+        const safeTitle = window.escapeHtml ? window.escapeHtml(item.title || 'Notification') : (item.title || 'Notification');
+        const safeBody = window.escapeHtml ? window.escapeHtml(item.body || '') : (item.body || '');
 
         return `
-          <div class="taska-modal-notif-row" data-id="${item.id}" data-link="${item.link || ''}" style="padding:14px 16px; border-radius:var(--radius-sm, 10px); margin-bottom:10px; background:${isUnread ? 'rgba(34,145,80,0.06)' : 'var(--surface, #fff)'}; border:1px solid ${isUnread ? 'var(--mint-150, #CDEEDA)' : 'var(--line, #e2e8f0)'}; display:flex; gap:12px; align-items:flex-start; position:relative; transition:background 0.15s ease;">
-            <div style="width:36px; height:36px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+          <div class="taska-modal-notif-row ${isUnread ? 'is-unread' : ''}" data-id="${item.id}" data-link="${item.link || ''}">
+            <div class="taska-notif-icon-col" style="background:${iconBg}; color:${iconColor};">
               ${iconSvg}
             </div>
-            <div style="flex:1; min-width:0; cursor:pointer;" class="notif-body-click">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span style="font-weight:600; font-size:0.9rem; color:var(--green-900); padding-right:8px;">${item.title || 'Notification'}</span>
-                <span style="font-size:0.72rem; color:var(--muted); white-space:nowrap;">${dateFormatted}</span>
+            <div class="taska-notif-content-col notif-body-click">
+              <div class="taska-notif-row-header">
+                <span class="taska-notif-row-title">${safeTitle}</span>
+                <div class="taska-notif-row-actions">
+                  ${isUnread ? `<span class="taska-notif-unread-dot" title="Unread"></span>` : ''}
+                  <button type="button" class="btn-delete-single-notif taska-notif-delete-btn" data-id="${item.id}" title="Delete notification" aria-label="Delete notification">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                </div>
               </div>
-              <div style="font-size:0.83rem; color:var(--ink-soft); line-height:1.45; word-break:break-word;">${item.body || ''}</div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; margin-left:4px;">
-              ${isUnread ? `<span style="width:8px; height:8px; border-radius:50%; background:#EF4444; flex-shrink:0;" title="Unread"></span>` : ''}
-              <button type="button" class="btn-delete-single-notif" data-id="${item.id}" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; border-radius:4px; transition:color 0.15s ease;" title="Delete notification permanently" onmouseover="this.style.color='var(--red, #b23a2e)'" onmouseout="this.style.color='var(--muted)'">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+              <div class="taska-notif-row-meta">
+                <span>${dateFormatted}</span>
+                ${timeAgoStr ? `<span>· ${timeAgoStr}</span>` : ''}
+              </div>
+              <div class="taska-notif-row-body">${safeBody}</div>
             </div>
           </div>
         `;
