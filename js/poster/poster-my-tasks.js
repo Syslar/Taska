@@ -240,7 +240,7 @@ function renderMyTasksList() {
                   data-tasker-id="${tasker.id}" 
                   data-tasker-name="${tName}"
                   data-budget="${appBid}">Accept & Lock Escrow</button>
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}'">Message</button>
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}&task=${t.id}'">Message</button>
                 <a href="/tasker/profile?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
               </div>
             </div>
@@ -294,7 +294,7 @@ function renderMyTasksList() {
                   Approve & Release Payment
                 </button>
               ` : ''}
-              <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${hiredTasker.id}'">Message Tasker</button>
+              <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${hiredTasker.id}&task=${t.id}'">Message Tasker</button>
               <a href="/tasker/profile?id=${hiredTasker.id}" class="btn btn-ghost btn-sm">Profile</a>
             </div>
           </div>
@@ -666,13 +666,14 @@ async function submitTaskReview() {
   }
 
   try {
-    // 1. Insert Review
+    // 1. Insert Review (Reviewing the Tasker)
     await window.supabaseClient
       .from('Review')
       .insert({
         taskId: taskId,
         reviewerId: profile.id,
         revieweeId: taskerId,
+        revieweeRole: 'TASKER',
         rating: posterSelectedRating,
         comment: comment
       });
@@ -681,16 +682,15 @@ async function submitTaskReview() {
     const { data: allReviews } = await window.supabaseClient
       .from('Review')
       .select('rating')
-      .eq('revieweeId', taskerId);
+      .eq('revieweeId', taskerId)
+      .eq('revieweeRole', 'TASKER');
 
-    if (allReviews && allReviews.length > 0) {
-      const count = allReviews.length;
-      const avg = allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count;
-      await window.supabaseClient
-        .from('Profile')
-        .update({ averageRating: avg, reviewCount: count })
-        .eq('id', taskerId);
-    }
+    const count = allReviews ? allReviews.length : 0;
+    const avg = count > 0 ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count : null;
+    await window.supabaseClient
+      .from('Profile')
+      .update({ taskerRating: avg, taskerReviewsCount: count, averageRating: avg, totalReviews: count })
+      .eq('id', taskerId);
 
     const modal = document.getElementById('taskReviewModal');
     if (modal) {

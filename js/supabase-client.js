@@ -60,21 +60,108 @@ window.getTaskaProfile = function () {
   return window.__taskaProfile || null;
 };
 
-// ─── Global Toast Notification System ─────────────────────────────────────────
-window.showToast = function (message) {
-  let toast = document.querySelector('.toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.innerHTML = `<span class="toast-dot"></span><span class="toast-msg"></span>`;
-    document.body.appendChild(toast);
+// ─── Global Toast Notification System with Lifetime Bar & Hover-Pause ────────
+(function () {
+  let toastEl = null;
+  let progressBarEl = null;
+  let msgEl = null;
+  let rafId = null;
+  const TOTAL_DURATION = 4000;
+  let remainingTime = TOTAL_DURATION;
+  let startTime = 0;
+  let isPaused = false;
+
+  function initToastDOM() {
+    toastEl = document.querySelector('.toast');
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'toast';
+      toastEl.innerHTML = `
+        <span class="toast-dot"></span>
+        <span class="toast-msg"></span>
+        <div class="toast-progress-track">
+          <div class="toast-progress-bar"></div>
+        </div>
+      `;
+      document.body.appendChild(toastEl);
+    } else if (!toastEl.querySelector('.toast-progress-track')) {
+      const existingMsg = toastEl.querySelector('.toast-msg')?.textContent || '';
+      toastEl.innerHTML = `
+        <span class="toast-dot"></span>
+        <span class="toast-msg">${window.escapeHtml?.(existingMsg) || existingMsg}</span>
+        <div class="toast-progress-track">
+          <div class="toast-progress-bar"></div>
+        </div>
+      `;
+    }
+
+    msgEl = toastEl.querySelector('.toast-msg');
+    progressBarEl = toastEl.querySelector('.toast-progress-bar');
+
+    if (!toastEl._hasToastListeners) {
+      toastEl.addEventListener('mouseenter', () => {
+        if (!toastEl.classList.contains('is-visible')) return;
+        const elapsed = Date.now() - startTime;
+        remainingTime = Math.max(0, remainingTime - elapsed);
+        isPaused = true;
+      });
+
+      toastEl.addEventListener('mouseleave', () => {
+        if (!toastEl.classList.contains('is-visible') || remainingTime <= 0) return;
+        startTime = Date.now();
+        isPaused = false;
+      });
+
+      toastEl._hasToastListeners = true;
+    }
   }
-  const msgEl = toast.querySelector('.toast-msg');
-  if (msgEl) msgEl.textContent = message;
-  toast.classList.add('is-visible');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3200);
-};
+
+  function tick() {
+    if (!toastEl || !toastEl.classList.contains('is-visible')) return;
+
+    if (!isPaused) {
+      const elapsed = Date.now() - startTime;
+      const currentRemaining = Math.max(0, remainingTime - elapsed);
+      const percent = Math.min(100, Math.max(0, (currentRemaining / TOTAL_DURATION) * 100));
+
+      if (progressBarEl) {
+        progressBarEl.style.width = `${percent}%`;
+      }
+
+      if (currentRemaining <= 0) {
+        toastEl.classList.remove('is-visible');
+        return;
+      }
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  window.showToast = function (message) {
+    if (!message) return;
+    initToastDOM();
+
+    if (rafId) cancelAnimationFrame(rafId);
+
+    if (msgEl) msgEl.textContent = message;
+
+    remainingTime = TOTAL_DURATION;
+    startTime = Date.now();
+    isPaused = false;
+
+    if (progressBarEl) {
+      progressBarEl.style.width = '100%';
+    }
+
+    if (toastEl.parentElement !== document.body) {
+      document.body.appendChild(toastEl);
+    }
+
+    toastEl.classList.add('is-visible');
+    rafId = requestAnimationFrame(tick);
+  };
+  window.showToast._isEnhanced = true;
+})();
 
 // ─── SVG Icons Repository (100% Emoji-Free) ──────────────────────────────────
 window.TaskaIcons = {

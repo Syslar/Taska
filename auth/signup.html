@@ -12,6 +12,7 @@
 <link rel="canonical" href="https://taska.com.ng/signup">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/js/supabase-client.js"></script>
+<script src="/js/termii-otp.js"></script>
 <link rel="stylesheet" href="/auth/auth.css">
 <style>
   /* ── Phone prefix wrapper ─────────────────────────────────── */
@@ -120,6 +121,60 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  /* ── Custom In-App Modal ─────────────────────────────────── */
+  .taska-custom-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .taska-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(18, 32, 26, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .taska-modal-box {
+    position: relative;
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 20px;
+    padding: 30px 26px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 24px 52px rgba(18, 32, 26, 0.22);
+    animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1;
+  }
+  @keyframes modalPop {
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .taska-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: var(--bg-soft, #f8fafc);
+    border: 1px solid var(--line, #e2e8f0);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s ease;
+  }
+  .taska-modal-close:hover {
+    background: #e2e8f0;
+    color: var(--body);
+  }
 </style>
 </head>
 <body>
@@ -218,9 +273,10 @@
             <div class="phone-input-wrap">
               <span class="phone-prefix">+234</span>
               <input class="text-input phone-prefix-input" type="tel" id="suPhone"
-                     placeholder="080X XXX XXXX" required
-                     maxlength="11">
+                     placeholder="80X XXX XXXX" required
+                     maxlength="16">
             </div>
+            <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Enter your 10 or 11-digit mobile number</span>
             <span class="field-error" id="phone-error">Phone number is required.</span>
           </div>
 
@@ -292,22 +348,87 @@
 
       <!-- OTP PANEL -->
       <div id="otp-panel" style="display:none;">
-        <h1 id="otp-title" style="font-size:1.5rem; margin-bottom:6px;">Verify your email</h1>
-        <p id="otp-desc" style="color:var(--muted); font-size:0.9rem; margin-bottom:28px;">We sent a verification code to you.</p>
+        <!-- Two-Step Stepper: Phone First, Then Email -->
+        <div class="stepper-wrap" style="display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom:24px;">
+          <div class="step-pill is-active" id="step-pill-phone" style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; padding:6px 14px; border-radius:20px; background:#ECFDF5; color:var(--green-800); border:1px solid #A7F3D0; transition:all 0.2s ease;">
+            <span class="step-icon" id="step-icon-phone" style="width:18px; height:18px; border-radius:50%; background:var(--green-700); color:#fff; font-size:0.7rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">1</span>
+            <span>Verify Phone</span>
+          </div>
+          <div style="width:24px; height:2px; background:var(--line, #e2e8f0); border-radius:2px;" id="step-connector"></div>
+          <div class="step-pill" id="step-pill-email" style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; font-weight:600; padding:6px 14px; border-radius:20px; background:var(--surface, #f8fafc); color:var(--muted); border:1px solid var(--line, #e2e8f0); transition:all 0.2s ease;">
+            <span class="step-icon" id="step-icon-email" style="width:18px; height:18px; border-radius:50%; background:var(--line, #cbd5e1); color:#fff; font-size:0.7rem; display:inline-flex; align-items:center; justify-content:center; font-weight:700;">2</span>
+            <span>Verify Email</span>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-bottom:24px;">
+          <div id="otp-icon-wrap" style="width:52px; height:52px; border-radius:50%; background:#ECFDF5; color:var(--green-700); display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px;">
+            <svg id="otp-header-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <h1 id="otp-title" style="font-size:1.45rem; margin:0 0 6px 0; color:var(--green-900);">Verify your phone number</h1>
+          <p id="otp-desc" style="color:var(--muted); font-size:0.9rem; margin:0; line-height:1.5;">We sent a 6-digit SMS verification code to your phone.</p>
+        </div>
         
         <form id="otp-form">
-          <div class="field-group">
-            <label class="field-label" for="otpCode">Verification Code</label>
-            <input class="text-input" type="text" id="otpCode" placeholder="Enter code" required>
+          <div class="field-group" style="margin-bottom:18px;">
+            <label class="field-label" for="otpCode" id="otp-input-label" style="text-align:center; display:block;">Enter 6-Digit SMS Code</label>
+            <input class="text-input" type="text" id="otpCode" placeholder="••••••" required
+                   maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                   style="text-align:center; letter-spacing:8px; font-size:1.35rem; font-weight:700; padding:12px 14px;">
+            <span class="field-error" id="otp-error" style="text-align:center; display:none; margin-top:8px;"></span>
           </div>
+
           <button type="submit" id="otp-btn" class="btn btn-primary btn-block">
-            <span class="btn-text">Verify</span>
+            <span class="btn-text" id="otp-btn-text">Verify Phone &amp; Continue</span>
           </button>
         </form>
         
-        <p style="text-align:center; margin-top:20px; font-size:0.85rem; color:var(--muted);">
-          Didn't get a code? <a href="#" id="resend-code" style="color:var(--green-700); font-weight:600;">Resend</a>
-        </p>
+        <div style="text-align:center; margin-top:20px; font-size:0.86rem; color:var(--muted); display:flex; flex-direction:column; gap:8px;">
+          <div>
+            Didn't get the code? 
+            <button type="button" id="resend-code" style="background:none; border:none; color:var(--green-700); font-weight:600; cursor:pointer; padding:0; text-decoration:underline;">Resend Code</button>
+            <span id="resend-timer" style="color:var(--muted); font-size:0.82rem; margin-left:4px;"></span>
+          </div>
+          <div id="change-contact-wrap" style="display:block; margin-top:4px;">
+            <button type="button" id="change-phone-btn" style="background:none; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-decoration:underline;">Entered wrong phone number? Change</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- IN-APP CHANGE PHONE MODAL -->
+      <div id="change-phone-modal" class="taska-custom-modal" style="display:none;">
+        <div class="taska-modal-backdrop" id="change-phone-backdrop"></div>
+        <div class="taska-modal-box">
+          <button type="button" class="taska-modal-close" id="change-phone-close" aria-label="Close modal">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+
+          <div style="text-align:center; margin-bottom:20px;">
+            <div style="width:48px; height:48px; border-radius:50%; background:#ECFDF5; color:var(--green-700); display:inline-flex; align-items:center; justify-content:center; margin-bottom:12px;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+            <h3 style="font-size:1.3rem; margin:0 0 6px 0; color:var(--green-900);">Update Phone Number</h3>
+            <p style="font-size:0.86rem; color:var(--muted); margin:0; line-height:1.45;">Enter your corrected Nigerian phone number. A new 6-digit SMS verification code will be sent immediately.</p>
+          </div>
+
+          <form id="change-phone-form">
+            <div class="field-group" style="margin-bottom:16px;">
+              <label class="field-label" for="modalNewPhone">New Phone Number</label>
+              <div class="phone-input-wrap">
+                <span class="phone-prefix">+234</span>
+                <input class="text-input phone-prefix-input" type="tel" id="modalNewPhone" placeholder="80X XXX XXXX" required maxlength="16" autofocus>
+              </div>
+              <span class="field-error" id="modal-phone-error" style="display:none; margin-top:6px; color:#d9534f; font-size:0.82rem;"></span>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:22px;">
+              <button type="button" class="btn btn-secondary" id="change-phone-cancel" style="flex:1;">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="change-phone-submit" style="flex:1.4;">
+                <span class="btn-text">Update &amp; Send SMS</span>
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
     </div>
@@ -453,10 +574,19 @@
       const otpPanel    = document.getElementById('otp-panel');
       const signupBtn   = document.getElementById('signup-btn');
       const otpBtn      = document.getElementById('otp-btn');
+      const otpError    = document.getElementById('otp-error');
+      const resendTimer = document.getElementById('resend-timer');
+      const resendBtn   = document.getElementById('resend-code');
 
       let currentSignUpAttempt = null;
+      let verifiedSessionId = null;
       let userRole = 'poster';
-      let currentVerificationType = 'email'; // 'email' or 'phone'
+      let currentVerificationStep = 'phone'; // 'phone' (Step 1) -> 'email' (Step 2)
+      let pendingPhoneInfo = null; // { canonical, termiiFormat, localFormat, display }
+      let pendingUserInfo = null;
+      let currentPinId = null;
+      let resendCountdown = 0;
+      let resendTimerInterval = null;
 
       // Check URL ?role= parameter on load
       const urlParams = new URLSearchParams(window.location.search);
@@ -476,43 +606,366 @@
         });
       });
 
-      // ── Finalize Backend Sync ────────────────────────────────────────────────
-      async function finalizeBackendSync(sessionId) {
-        await window.Clerk.setActive({ session: sessionId });
-        
-        const rawPhone   = document.getElementById('suPhone').value.trim();
-        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-        const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
-        const normalizedRole = (userRole || 'poster').toUpperCase();
+      function showOtpError(msg) {
+        if (otpError) {
+          otpError.textContent = msg;
+          otpError.style.display = 'block';
+        }
+        if (window.showToast) window.showToast(msg, 'error');
+      }
 
-        const genderVal = document.getElementById('suGender')?.value || null;
-        const dobVal = document.getElementById('suDob')?.value || null;
+      function clearOtpError() {
+        if (otpError) {
+          otpError.textContent = '';
+          otpError.style.display = 'none';
+        }
+      }
 
-        localStorage.setItem('taska_active_role', normalizedRole);
+      function startResendTimer(seconds = 60) {
+        if (resendTimerInterval) clearInterval(resendTimerInterval);
+        resendCountdown = seconds;
+        resendBtn.style.pointerEvents = 'none';
+        resendBtn.style.opacity = '0.5';
+        resendTimer.style.display = 'inline';
+        resendTimer.textContent = `(${resendCountdown}s)`;
 
-        // Save profile directly into Supabase
-        if (window.supabaseClient && window.Clerk.user) {
-          try {
-            const { data: profile } = await window.supabaseClient
+        resendTimerInterval = setInterval(() => {
+          resendCountdown--;
+          if (resendCountdown <= 0) {
+            clearInterval(resendTimerInterval);
+            resendTimerInterval = null;
+            resendBtn.style.pointerEvents = 'auto';
+            resendBtn.style.opacity = '1';
+            resendTimer.style.display = 'none';
+            resendTimer.textContent = '';
+          } else {
+            resendTimer.textContent = `(${resendCountdown}s)`;
+          }
+        }, 1000);
+      }
+
+      // Realtime sanitization for phone input
+      const phoneInputEl = document.getElementById('suPhone');
+      if (phoneInputEl) {
+        phoneInputEl.addEventListener('input', function () {
+          const phoneErr = document.getElementById('phone-error');
+          if (phoneErr) phoneErr.style.display = 'none';
+          let v = this.value.trim();
+          if (v.startsWith('+234')) v = v.slice(4);
+          else if (v.startsWith('234') && v.length > 10) v = v.slice(3);
+          this.value = v;
+        });
+      }
+
+      // ── Send Termii SMS OTP Helper ─────────────────────────────────────────
+      async function sendTermiiSmsOtp() {
+        if (!pendingPhoneInfo) return;
+        startResendTimer(60);
+        try {
+          const res = await window.sendPhoneOtp(pendingPhoneInfo.termiiFormat);
+          currentPinId = res.pinId;
+          if (window.showToast) window.showToast(`SMS code sent to ${pendingPhoneInfo.display}`, 'success');
+        } catch (err) {
+          console.error('Termii send error:', err);
+          showOtpError(err.message || 'Failed to send SMS code. You can click Resend.');
+        }
+      }
+
+      // ── Set UI for Step 1: Phone Verification ─────────────────────────────
+      function setupPhoneStepUI() {
+        currentVerificationStep = 'phone';
+        clearOtpError();
+
+        const stepPillPhone = document.getElementById('step-pill-phone');
+        const stepIconPhone = document.getElementById('step-icon-phone');
+        const stepPillEmail = document.getElementById('step-pill-email');
+        const stepIconEmail = document.getElementById('step-icon-email');
+        const stepConnector = document.getElementById('step-connector');
+
+        if (stepPillPhone) {
+          stepPillPhone.style.background = '#ECFDF5';
+          stepPillPhone.style.color = 'var(--green-800)';
+          stepPillPhone.style.borderColor = '#A7F3D0';
+        }
+        if (stepIconPhone) {
+          stepIconPhone.textContent = '1';
+          stepIconPhone.style.background = 'var(--green-700)';
+          stepIconPhone.style.color = '#fff';
+        }
+        if (stepConnector) {
+          stepConnector.style.background = 'var(--line, #e2e8f0)';
+        }
+        if (stepPillEmail) {
+          stepPillEmail.style.background = 'var(--surface, #f8fafc)';
+          stepPillEmail.style.color = 'var(--muted)';
+          stepPillEmail.style.borderColor = 'var(--line, #e2e8f0)';
+        }
+        if (stepIconEmail) {
+          stepIconEmail.textContent = '2';
+          stepIconEmail.style.background = 'var(--line, #cbd5e1)';
+          stepIconEmail.style.color = '#fff';
+        }
+
+        const headerIcon = document.getElementById('otp-header-icon');
+        if (headerIcon) {
+          headerIcon.innerHTML = `
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          `;
+        }
+        document.getElementById('otp-title').textContent = 'Verify your phone number';
+        document.getElementById('otp-desc').innerHTML = `We sent a 6-digit SMS verification code to <strong>${pendingPhoneInfo.display}</strong>.`;
+        document.getElementById('otp-input-label').textContent = 'Enter 6-Digit SMS Code';
+        document.getElementById('otp-btn-text').textContent = 'Verify Phone & Continue';
+        document.getElementById('change-contact-wrap').style.display = 'block';
+
+        const codeInput = document.getElementById('otpCode');
+        codeInput.value = '';
+        codeInput.placeholder = '••••••';
+        codeInput.focus();
+      }
+
+      // ── Set UI for Step 2: Email Verification ─────────────────────────────
+      function setupEmailStepUI() {
+        currentVerificationStep = 'email';
+        clearOtpError();
+
+        const stepPillPhone = document.getElementById('step-pill-phone');
+        const stepIconPhone = document.getElementById('step-icon-phone');
+        const stepPillEmail = document.getElementById('step-pill-email');
+        const stepIconEmail = document.getElementById('step-icon-email');
+        const stepConnector = document.getElementById('step-connector');
+
+        if (stepPillPhone) {
+          stepPillPhone.style.background = '#ECFDF5';
+          stepPillPhone.style.color = 'var(--green-700)';
+          stepPillPhone.style.borderColor = '#A7F3D0';
+        }
+        if (stepIconPhone) {
+          stepIconPhone.innerHTML = '✓';
+          stepIconPhone.style.background = 'var(--green-700)';
+          stepIconPhone.style.color = '#fff';
+        }
+        if (stepConnector) {
+          stepConnector.style.background = 'var(--green-700)';
+        }
+        if (stepPillEmail) {
+          stepPillEmail.style.background = '#ECFDF5';
+          stepPillEmail.style.color = 'var(--green-800)';
+          stepPillEmail.style.borderColor = '#A7F3D0';
+        }
+        if (stepIconEmail) {
+          stepIconEmail.textContent = '2';
+          stepIconEmail.style.background = 'var(--green-700)';
+          stepIconEmail.style.color = '#fff';
+        }
+
+        const headerIcon = document.getElementById('otp-header-icon');
+        if (headerIcon) {
+          headerIcon.innerHTML = `
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          `;
+        }
+        document.getElementById('otp-title').textContent = 'Verify your email address';
+        document.getElementById('otp-desc').innerHTML = `We sent a 6-digit verification code to <strong>${pendingUserInfo.email}</strong>.`;
+        document.getElementById('otp-input-label').textContent = 'Enter 6-Digit Email Code';
+        document.getElementById('otp-btn-text').textContent = 'Verify Email & Complete Signup';
+        document.getElementById('change-contact-wrap').style.display = 'none';
+
+        const codeInput = document.getElementById('otpCode');
+        codeInput.value = '';
+        codeInput.placeholder = '••••••';
+        codeInput.focus();
+
+        startResendTimer(60);
+      }
+
+      // ── In-App Change Phone Number Modal Handlers ──────────────────────────
+      const changePhoneModal   = document.getElementById('change-phone-modal');
+      const changePhoneForm    = document.getElementById('change-phone-form');
+      const modalNewPhone      = document.getElementById('modalNewPhone');
+      const modalPhoneErr      = document.getElementById('modal-phone-error');
+      const changePhoneClose   = document.getElementById('change-phone-close');
+      const changePhoneCancel  = document.getElementById('change-phone-cancel');
+      const changePhoneBackdrop= document.getElementById('change-phone-backdrop');
+      const changePhoneSubmit  = document.getElementById('change-phone-submit');
+
+      function openChangePhoneModal() {
+        if (!changePhoneModal) return;
+        if (modalPhoneErr) {
+          modalPhoneErr.textContent = '';
+          modalPhoneErr.style.display = 'none';
+        }
+        if (modalNewPhone) {
+          modalNewPhone.value = pendingPhoneInfo?.localFormat || '';
+        }
+        changePhoneModal.style.display = 'flex';
+        setTimeout(() => modalNewPhone?.focus(), 50);
+      }
+
+      function closeChangePhoneModal() {
+        if (changePhoneModal) {
+          changePhoneModal.style.display = 'none';
+        }
+        if (modalPhoneErr) {
+          modalPhoneErr.textContent = '';
+          modalPhoneErr.style.display = 'none';
+        }
+      }
+
+      document.getElementById('change-phone-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openChangePhoneModal();
+      });
+
+      changePhoneClose?.addEventListener('click', closeChangePhoneModal);
+      changePhoneCancel?.addEventListener('click', closeChangePhoneModal);
+      changePhoneBackdrop?.addEventListener('click', closeChangePhoneModal);
+
+      // Realtime cleanup for modal phone input
+      modalNewPhone?.addEventListener('input', function () {
+        if (modalPhoneErr) modalPhoneErr.style.display = 'none';
+        let v = this.value.trim();
+        if (v.startsWith('+234')) v = v.slice(4);
+        else if (v.startsWith('234') && v.length > 10) v = v.slice(3);
+        this.value = v;
+      });
+
+      // Submit new phone number
+      changePhoneForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (modalPhoneErr) {
+          modalPhoneErr.textContent = '';
+          modalPhoneErr.style.display = 'none';
+        }
+
+        const newRaw = modalNewPhone ? modalNewPhone.value.trim() : '';
+        const parseFn = window.parseNigerianPhone;
+        const parsed = parseFn ? parseFn(newRaw) : null;
+
+        if (!parsed || !parsed.isValid) {
+          if (modalPhoneErr) {
+            modalPhoneErr.textContent = parsed?.error || 'Please enter a valid 11-digit Nigerian phone number.';
+            modalPhoneErr.style.display = 'block';
+          }
+          modalNewPhone?.focus();
+          return;
+        }
+
+        setLoading(changePhoneSubmit, true);
+
+        try {
+          // Check if number is already in use in Supabase
+          if (window.supabaseClient) {
+            const { data: match } = await window.supabaseClient
               .from('Profile')
-              .upsert({
-                userId: window.Clerk.user.id,
-                username: document.getElementById('suUsername').value.trim().toLowerCase(),
-                firstName: document.getElementById('fname').value.trim(),
-                lastName: document.getElementById('lname').value.trim(),
-                phone: fullPhone,
-                email: document.getElementById('suEmail').value.trim(),
-                role: normalizedRole,
-                activeRole: normalizedRole,
-                gender: genderVal,
-                dateOfBirth: dobVal,
-                location: document.getElementById('suLocation').value.trim()
-              }, { onConflict: 'userId' })
+              .select('id')
+              .or(`phone.eq.${parsed.canonical},phone.eq.${parsed.termiiFormat},phone.eq.${parsed.localFormat}`)
+              .maybeSingle();
+
+            if (match) {
+              if (modalPhoneErr) {
+                modalPhoneErr.textContent = 'This phone number is already registered to an existing Taska account.';
+                modalPhoneErr.style.display = 'block';
+              }
+              setLoading(changePhoneSubmit, false);
+              return;
+            }
+          }
+
+          pendingPhoneInfo = parsed;
+          if (phoneInputEl) phoneInputEl.value = parsed.localFormat;
+
+          const descEl = document.getElementById('otp-desc');
+          if (descEl) {
+            descEl.innerHTML = `We sent a 6-digit SMS verification code to <strong>${pendingPhoneInfo.display}</strong>.`;
+          }
+
+          closeChangePhoneModal();
+          if (window.showToast) window.showToast(`Updated phone number to ${pendingPhoneInfo.display}`, 'success');
+
+          // Send new SMS OTP immediately
+          await sendTermiiSmsOtp();
+        } catch (err) {
+          if (modalPhoneErr) {
+            modalPhoneErr.textContent = err.message || 'Failed to update phone number. Please try again.';
+            modalPhoneErr.style.display = 'block';
+          }
+        } finally {
+          setLoading(changePhoneSubmit, false);
+        }
+      });
+
+      // ── Finalize Verified Signup: Clerk Active + Taska Supabase Profile ─────
+      async function finalizeVerifiedSignup() {
+        try {
+          // 1. Activate Clerk session
+          if (verifiedSessionId && window.Clerk) {
+            await window.Clerk.setActive({ session: verifiedSessionId });
+          }
+
+          // 2. Save phone to Clerk user metadata + try native phone if enabled
+          if (window.Clerk?.user) {
+            try {
+              if (window.Clerk.user.update) {
+                await window.Clerk.user.update({
+                  unsafeMetadata: {
+                    phone: pendingPhoneInfo.canonical,
+                    isPhoneVerified: true
+                  }
+                });
+              }
+            } catch (metaErr) {
+              console.warn('Clerk user metadata update notice:', metaErr);
+            }
+
+            if (window.Clerk.user.createPhoneNumber) {
+              try {
+                await window.Clerk.user.createPhoneNumber({ phoneNumber: pendingPhoneInfo.canonical });
+              } catch (clerkPhoneErr) {
+                console.warn('Clerk native phone number notice (disabled in Clerk Dashboard, stored in metadata & Supabase):', clerkPhoneErr);
+              }
+            }
+          }
+
+          const normalizedRole = (userRole || 'poster').toUpperCase();
+          localStorage.setItem('taska_active_role', normalizedRole);
+
+          // 3. Authoritative Profile & Wallet creation in Supabase
+          if (window.supabaseClient && window.Clerk?.user) {
+            const profilePayload = {
+              userId: window.Clerk.user.id,
+              username: pendingUserInfo.username,
+              firstName: pendingUserInfo.firstName,
+              lastName: pendingUserInfo.lastName,
+              phone: pendingPhoneInfo.canonical, // standardized E.164 +234XXXXXXXXXX
+              email: pendingUserInfo.email,
+              isPhoneVerified: true,
+              phoneVerifiedAt: new Date().toISOString(),
+              role: normalizedRole,
+              activeRole: normalizedRole,
+              gender: pendingUserInfo.gender,
+              dateOfBirth: pendingUserInfo.dob,
+              location: pendingUserInfo.location
+            };
+
+            const { data: profile, error: profErr } = await window.supabaseClient
+              .from('Profile')
+              .upsert(profilePayload, { onConflict: 'userId' })
               .select()
               .single();
 
+            if (profErr) {
+              console.error('Supabase profile creation error:', profErr);
+            }
+
             if (profile) {
-              localStorage.setItem('taska_cached_profile', JSON.stringify({ ...profile, activeRole: normalizedRole }));
+              localStorage.setItem('taska_cached_profile', JSON.stringify({
+                ...profile,
+                isPhoneVerified: true,
+                activeRole: normalizedRole
+              }));
+
               await window.supabaseClient
                 .from('Wallet')
                 .insert({
@@ -524,23 +977,32 @@
                 })
                 .catch(() => {});
             }
-          } catch (err) {
-            console.warn('Direct Supabase profile upsert notice:', err);
           }
-        }
 
-        if (normalizedRole === 'TASKER') {
-          window.location.replace('/tasker/dashboard');
-        } else {
-          window.location.replace('/poster/dashboard');
+          if (window.showToast) window.showToast('Account created & phone verified! Welcome to Taska.', 'success');
+
+          setTimeout(() => {
+            if (normalizedRole === 'TASKER') {
+              window.location.replace('/tasker/dashboard');
+            } else {
+              window.location.replace('/poster/dashboard');
+            }
+          }, 600);
+
+        } catch (err) {
+          console.error('Finalize verified signup notice:', err);
+          showOtpError('Account setup completed. Redirecting to dashboard...');
+          setTimeout(() => {
+            window.location.replace('/poster/dashboard');
+          }, 1000);
         }
       }
 
-      // ── Signup form submit ──────────────────────────────────────────────────
+      // ── Signup form submit (PHONE OTP FIRST - NO CLERK SUBMISSION YET) ─────
       signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Validate username availability
+        // 1. Validate username
         const usernameVal = usernameEl.value.trim().toLowerCase();
         if (!usernameVal || usernameVal.length < 3) {
           document.getElementById('username-error').textContent = 'Username must be at least 3 characters.';
@@ -555,179 +1017,234 @@
           return;
         }
 
-        const firstName    = document.getElementById('fname').value;
-        const lastName     = document.getElementById('lname').value;
+        const firstName    = document.getElementById('fname').value.trim();
+        const lastName     = document.getElementById('lname').value.trim();
         const emailAddress = document.getElementById('suEmail').value.trim();
         const password     = document.getElementById('suPassword').value;
-        
-        const rawPhone   = document.getElementById('suPhone').value.trim();
-        const digitsOnly = rawPhone.replace(/\D/g, '').replace(/^0/, '');
-        const fullPhone  = digitsOnly ? '+234' + digitsOnly : '';
+        const locationVal  = document.getElementById('suLocation').value;
+        const genderVal    = document.getElementById('suGender').value || null;
+        const dobVal       = document.getElementById('suDob').value || null;
 
-        // Enforce strict username, phone & email uniqueness check against Supabase
+        // 2. Validate Nigerian phone number using robust normalizer
+        const rawPhone = document.getElementById('suPhone').value.trim();
+        const parseFn = window.parseNigerianPhone;
+        const phoneInfo = parseFn ? parseFn(rawPhone) : null;
+
+        if (!phoneInfo || !phoneInfo.isValid) {
+          const phoneErr = document.getElementById('phone-error');
+          phoneErr.textContent = phoneInfo?.error || 'Please enter a valid 11-digit Nigerian phone number.';
+          phoneErr.style.display = 'block';
+          document.getElementById('suPhone').focus();
+          return;
+        }
+        document.getElementById('phone-error').style.display = 'none';
+
+        // 3. Enforce strict uniqueness check against Supabase
         if (window.supabaseClient) {
-          const { data: usernameMatch } = await window.supabaseClient
-            .from('Profile')
-            .select('id')
-            .ilike('username', usernameVal)
-            .maybeSingle();
-
-          if (usernameMatch) {
-            setUsernameStatus('taken', '✗ Username already taken');
-            usernameAvailable = false;
-            document.getElementById('username-error').textContent = 'This username is already taken. Please choose another.';
-            document.getElementById('username-error').style.display = 'block';
-            usernameEl.focus();
-            setLoading(signupBtn, false);
-            return;
-          }
-
-          if (fullPhone) {
-            const { data: phoneMatch } = await window.supabaseClient
+          setLoading(signupBtn, true);
+          try {
+            // Check username
+            const { data: usernameMatch } = await window.supabaseClient
               .from('Profile')
               .select('id')
-              .eq('phone', fullPhone)
+              .ilike('username', usernameVal)
               .maybeSingle();
 
-            if (phoneMatch) {
-              if (window.showToast) window.showToast('This phone number is already registered to an existing Taska account.');
+            if (usernameMatch) {
+              setUsernameStatus('taken', '✗ Username already taken');
+              usernameAvailable = false;
+              document.getElementById('username-error').textContent = 'This username is already taken. Please choose another.';
+              document.getElementById('username-error').style.display = 'block';
+              usernameEl.focus();
               setLoading(signupBtn, false);
               return;
             }
-          }
 
-          if (emailAddress) {
+            // Check phone (checks all 3 formats: +234..., 234..., 0...)
+            const { data: phoneMatch } = await window.supabaseClient
+              .from('Profile')
+              .select('id, userId')
+              .or(`phone.eq.${phoneInfo.canonical},phone.eq.${phoneInfo.termiiFormat},phone.eq.${phoneInfo.localFormat}`)
+              .maybeSingle();
+
+            if (phoneMatch) {
+              const phoneErr = document.getElementById('phone-error');
+              phoneErr.textContent = 'This phone number is already registered to an existing Taska account.';
+              phoneErr.style.display = 'block';
+              if (window.showToast) window.showToast('This phone number is already registered to an existing Taska account.', 'error');
+              document.getElementById('suPhone').focus();
+              setLoading(signupBtn, false);
+              return;
+            }
+
+            // Check email
             const { data: emailMatch } = await window.supabaseClient
               .from('Profile')
-              .select('id')
+              .select('id, userId')
               .eq('email', emailAddress)
               .maybeSingle();
 
             if (emailMatch) {
-              if (window.showToast) window.showToast('This email address is already registered. Please log in instead.');
+              const emailErr = document.getElementById('suEmail').parentElement.querySelector('.field-error');
+              if (emailErr) {
+                emailErr.textContent = 'This email address is already registered. Please log in instead.';
+                emailErr.style.display = 'block';
+              }
+              if (window.showToast) window.showToast('This email address is already registered. Please log in instead.', 'error');
+              document.getElementById('suEmail').focus();
               setLoading(signupBtn, false);
               return;
             }
+          } catch (chkErr) {
+            console.warn('Uniqueness check notice:', chkErr);
+          } finally {
+            setLoading(signupBtn, false);
           }
         }
 
-        setLoading(signupBtn, true);
+        // 4. Cache pending signup details in memory (NO DATA SENT TO CLERK YET)
+        pendingPhoneInfo = phoneInfo;
+        pendingUserInfo = {
+          firstName,
+          lastName,
+          username: usernameVal,
+          email: emailAddress,
+          password: password,
+          gender: genderVal,
+          dob: dobVal,
+          location: locationVal
+        };
 
-        try {
-          currentSignUpAttempt = await window.Clerk.client.signUp.create({
-            firstName,
-            lastName,
-            emailAddress,
-            password,
-            username: usernameVal
-          });
-          
-          await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
-          currentVerificationType = 'email';
+        // 5. Transition to Step 1: Phone Verification via Termii SMS OTP
+        signupPanel.style.display = 'none';
+        otpPanel.style.display = 'block';
 
-          // Hide signup, show OTP
-          signupPanel.style.display = 'none';
-          otpPanel.style.display = 'block';
-          
-          document.getElementById('otp-title').textContent = 'Verify your email';
-          document.getElementById('otp-desc').textContent = `We sent a 6-digit verification code to ${emailAddress}.`;
-          if (window.showToast) window.showToast('Verification code sent to your email.');
-
-        } catch (err) {
-          console.error('Signup error:', err);
-          currentSignUpAttempt = null; // Reset attempt on failure
-
-          let errorMsg = 'Signup failed. Please try again.';
-          if (err.errors && err.errors.length > 0) {
-            const firstErr = err.errors[0];
-            const code = firstErr.code;
-            const msg = firstErr.longMessage || firstErr.message;
-
-            if (code === 'form_identifier_exists' || msg.includes('taken') || msg.includes('exists')) {
-              errorMsg = `${msg} If you already created an account, please <a href="/login" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Log in here</a>.`;
-            } else if (msg.includes('captcha') || msg.includes('Turnstile') || msg.includes('bot')) {
-              errorMsg = 'Security verification timed out. <a href="#" id="clerk-modal-signup" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Click here to use standard Clerk Sign Up</a>.';
-            } else {
-              errorMsg = msg;
-            }
-          }
-
-          const errContainer = document.getElementById('username-error');
-          errContainer.innerHTML = errorMsg;
-          errContainer.style.display = 'block';
-          if (window.showToast) window.showToast('Signup error — check form details');
-
-          // Bind fallback click if present
-          setTimeout(() => {
-            document.getElementById('clerk-modal-signup')?.addEventListener('click', (e) => {
-              e.preventDefault();
-              if (window.Clerk?.openSignUp) {
-                window.Clerk.openSignUp({
-                  redirectUrl: '/tasker/dashboard'
-                });
-              }
-            });
-          }, 100);
-
-        } finally {
-          setLoading(signupBtn, false);
-        }
+        setupPhoneStepUI();
+        await sendTermiiSmsOtp();
       });
 
-      // ── OTP form submit ─────────────────────────────────────────────────────
+      // ── OTP form submit (Handles Phone Step 1 FIRST, Then Email Step 2) ───
       otpForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        clearOtpError();
         const codeInput = document.getElementById('otpCode');
         const code = codeInput.value.trim();
 
-        if (!currentSignUpAttempt) {
-          if (window.showToast) window.showToast('No active signup session found. Please fill out the form again.');
-          otpPanel.style.display = 'none';
-          signupPanel.style.display = 'block';
+        if (!code || code.length !== 6) {
+          showOtpError('Please enter a valid 6-digit verification code.');
+          codeInput.focus();
           return;
         }
 
         setLoading(otpBtn, true);
 
         try {
-          if (currentVerificationType === 'email') {
-            const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({ code });
-            
-            if (verifyAttempt.status === 'complete') {
-              await finalizeBackendSync(verifyAttempt.createdSessionId);
-            } else if (verifyAttempt.status === 'missing_requirements' && verifyAttempt.missingFields && verifyAttempt.missingFields.length > 0) {
-              console.warn('Missing requirements:', verifyAttempt.missingFields);
-              if (window.showToast) window.showToast('Missing required fields: ' + verifyAttempt.missingFields.join(', '));
-            } else {
-              console.warn('Unhandled verification state:', verifyAttempt);
-              if (window.showToast) window.showToast('Further verification required.');
+          // ── STEP 1: Verify Phone via Termii SMS OTP ───────────────────────
+          if (currentVerificationStep === 'phone') {
+            if (!currentPinId) {
+              showOtpError('No active SMS PIN session found. Sending new SMS code...');
+              await sendTermiiSmsOtp();
+              return;
             }
-          } 
-          else if (currentVerificationType === 'phone') {
-            // Phone verification flow has been removed
+
+            const verifyResult = await window.verifyPhoneOtp(
+              currentPinId,
+              code,
+              pendingPhoneInfo.termiiFormat
+            );
+
+            if (!verifyResult || !verifyResult.verified) {
+              showOtpError('Invalid or expired SMS verification code. Please check and try again.');
+              return;
+            }
+
+            // Phone is VERIFIED! Now and ONLY now do we submit account details to Clerk:
+            if (window.showToast) window.showToast('Phone number verified! Sending email verification code...', 'success');
+
+            try {
+              currentSignUpAttempt = await window.Clerk.client.signUp.create({
+                firstName: pendingUserInfo.firstName,
+                lastName: pendingUserInfo.lastName,
+                emailAddress: pendingUserInfo.email,
+                password: pendingUserInfo.password,
+                username: pendingUserInfo.username,
+                unsafeMetadata: {
+                  phone: pendingPhoneInfo.canonical,
+                  isPhoneVerified: true
+                }
+              });
+
+              await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
+
+              // Transition to Step 2: Email Verification
+              setupEmailStepUI();
+              if (window.showToast) window.showToast(`Verification code sent to ${pendingUserInfo.email}`);
+            } catch (clerkErr) {
+              console.error('Clerk signup initiation error:', clerkErr);
+              let errorMsg = 'Failed to create signup session with email. Please try again.';
+              if (clerkErr.errors && clerkErr.errors.length > 0) {
+                const firstErr = clerkErr.errors[0];
+                const code = firstErr.code;
+                const msg = firstErr.longMessage || firstErr.message;
+                if (code === 'form_identifier_exists' || msg.includes('taken') || msg.includes('exists')) {
+                  errorMsg = `${msg} If you already have an account, please <a href="/login" style="color:var(--green-700); font-weight:600; text-decoration:underline;">Log in here</a>.`;
+                } else {
+                  errorMsg = msg;
+                }
+              }
+              showOtpError(errorMsg);
+            }
+          }
+          // ── STEP 2: Verify Email via Clerk ────────────────────────────────
+          else if (currentVerificationStep === 'email') {
+            if (!currentSignUpAttempt) {
+              showOtpError('No active signup session found. Please fill out the form again.');
+              otpPanel.style.display = 'none';
+              signupPanel.style.display = 'block';
+              return;
+            }
+
+            const verifyAttempt = await currentSignUpAttempt.attemptEmailAddressVerification({ code });
+
+            if (verifyAttempt.status === 'complete' || verifyAttempt.createdSessionId) {
+              verifiedSessionId = verifyAttempt.createdSessionId;
+              if (window.showToast) window.showToast('Email verified! Finalizing account...', 'success');
+              
+              // Both Phone and Email are verified!
+              await finalizeVerifiedSignup();
+            } else if (verifyAttempt.status === 'missing_requirements' && verifyAttempt.missingFields && verifyAttempt.missingFields.length > 0) {
+              console.warn('Clerk missing requirements:', verifyAttempt.missingFields);
+              showOtpError('Missing required fields: ' + verifyAttempt.missingFields.join(', '));
+            } else {
+              showOtpError('Email verification incomplete. Please check your code.');
+            }
           }
         } catch (err) {
-          console.error('OTP Verification error:', err);
-          const errorMsg = err.errors ? err.errors[0].longMessage : 'Invalid or expired code.';
-          if (window.showToast) window.showToast(errorMsg);
+          console.error('Verification error:', err);
+          const errorMsg = err.errors ? err.errors[0].longMessage : (err.message || 'Invalid or expired code.');
+          showOtpError(errorMsg);
         } finally {
           setLoading(otpBtn, false);
         }
       });
 
-      // ── Resend code ─────────────────────────────────────────────────────────
-      document.getElementById('resend-code').addEventListener('click', async (e) => {
+      // ── Resend code button ──────────────────────────────────────────────────
+      resendBtn.addEventListener('click', async (e) => {
         e.preventDefault();
+        if (resendCountdown > 0) return;
+        clearOtpError();
+
         try {
-          if (currentVerificationType === 'email') {
+          if (currentVerificationStep === 'phone') {
+            await sendTermiiSmsOtp();
+          } else if (currentVerificationStep === 'email') {
+            if (!currentSignUpAttempt) return;
             await currentSignUpAttempt.prepareEmailAddressVerification({ strategy: "email_code" });
-            if (window.showToast) window.showToast('Email verification code resent.');
-          } else if (currentVerificationType === 'phone') {
-            await currentSignUpAttempt.preparePhoneNumberVerification({ strategy: "phone_code" });
-            if (window.showToast) window.showToast('SMS code resent.');
+            startResendTimer(60);
+            if (window.showToast) window.showToast('Email verification code resent.', 'success');
           }
         } catch (err) {
-          if (window.showToast) window.showToast('Failed to resend code.');
+          showOtpError('Failed to resend verification code. Please try again.');
         }
       });
 

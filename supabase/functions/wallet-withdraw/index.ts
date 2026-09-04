@@ -143,11 +143,9 @@ Deno.serve(async (req) => {
 
       if (recipientData.status && recipientData.data?.recipient_code) {
         recipientCode = recipientData.data.recipient_code;
-      } else if (isTestMode) {
-        recipientCode = `RCP_TEST_${Date.now()}`;
       } else {
         console.error('[wallet-withdraw] Recipient creation failed:', recipientData);
-        return respond({ error: recipientData.message || 'Failed to create transfer recipient' }, 400);
+        return respond({ error: recipientData.message || 'Failed to create transfer recipient. Please verify bank and account number.' }, 400);
       }
 
       await supabase.from('paystack_recipients').insert({
@@ -184,42 +182,66 @@ Deno.serve(async (req) => {
 
     const { withdrawal_id } = initiateResult;
 
-    // 4. Initiate Paystack Transfer
-    let transferCode = `TRF_SIM_${Date.now()}`;
-    let isSuccessful = isTestMode;
+    // 4. Initiate Paystack Transfer (Source: Balance)
+    const transferRes = await fetch('https://api.paystack.co/transfer', {
+      method: 'POST',
+      headers: paystackHeaders,
+      body: JSON.stringify({
+        source: 'balance',
+        amount: payoutKobo,
+        recipient: recipientCode,
+        reason: `Taska payout - ${reference}`,
+        reference,
+        currency: 'NGN',
+      }),
+    });
+    const transferData = await transferRes.json();
 
-    if (!isTestMode || !recipientCode.startsWith('RCP_TEST_')) {
-      const transferRes = await fetch('https://api.paystack.co/transfer', {
-        method: 'POST',
-        headers: paystackHeaders,
-        body: JSON.stringify({
-          source: 'balance',
-          amount: payoutKobo,
-          recipient: recipientCode,
-          reason: `Taska payout - ${reference}`,
-          reference,
-          currency: 'NGN',
-        }),
+    if (!transferData.status) {
+      console.error('[wallet-withdraw] Transfer initiation failed:', transferData);
+      await supabase.rpc('finalize_withdrawal', {
+        p_paystack_reference: reference,
+        p_transfer_code: '',
+        p_outcome: 'failed',
+        p_failure_reason: transferData.message || 'Paystack transfer initiation failed',
       });
-      const transferData = await transferRes.json();
-
-      if (transferData.status) {
-        transferCode = transferData.data?.transfer_code || transferCode;
-        isSuccessful = true;
-      } else if (!isTestMode) {
-        console.error('[wallet-withdraw] Transfer initiation failed:', transferData);
-        await supabase.rpc('finalize_withdrawal', {
-          p_paystack_reference: reference,
-          p_transfer_code: '',
-          p_outcome: 'failed',
-          p_failure_reason: transferData.message || 'Paystack transfer initiation failed',
-        });
-        return respond({ error: transferData.message || 'Bank transfer failed' }, 400);
-      }
+      return respond({ error: transferData.message || 'Bank transfer failed. Please check Paystack balance.' }, 400);
     }
 
-    // 5. Finalize withdrawal
-    if (isSuccessful) {
+    const transferCode = transferData.data?.transfer_code || `TRF_${Date.now()}`;
+    const paystackStatus = transferData.data?.status; // 'success' | 'pending' | 'otp' | 'failed'
+
+    // Handle Paystack Transfer OTP requirement
+    if (paystackStatus === 'otp') {
+      console.warn('[wallet-withdraw] Paystack transfer paused because Transfer OTP is enabled:', transferData);
+      // Unlock funds back to user's wallet so their money is not stuck
+      await supabase.rpc('finalize_withdrawal', {
+        p_paystack_reference: reference,
+        p_transfer_code: transferCode,
+        p_outcome: 'failed',
+        p_failure_reason: 'Paystack Transfer OTP is enabled on your Paystack account. Please disable "Confirm transfers before sending" in Paystack Settings > Preferences to allow automated payouts.',
+      });
+
+      // Send Refund Notification (In-App + Email)
+      dispatchNotification(supabase, {
+        type: 'WITHDRAWAL_FAILED',
+        profileId,
+        data: {
+          amountNaira: requestedAmountNaira,
+          failureReason: 'Paystack Transfer OTP is active on the account. Payout paused and full amount refunded to your wallet.',
+          reference,
+        },
+      });
+
+      return respond({
+        error: 'Paystack Transfer OTP is enabled on your Paystack dashboard. To allow automated withdrawals, please go to Paystack Dashboard > Settings > Preferences > Transfers and uncheck "Confirm transfers before sending". Your funds have been refunded to your wallet balance.',
+      }, 400);
+    }
+
+    let outcomeStatus = paystackStatus === 'success' ? 'success' : 'processing';
+
+    // 5. Finalize or track withdrawal
+    if (outcomeStatus === 'success') {
       await supabase.rpc('finalize_withdrawal', {
         p_paystack_reference: reference,
         p_transfer_code: transferCode,
@@ -239,6 +261,15 @@ Deno.serve(async (req) => {
         },
       });
     } else {
+      // Kept in processing state until Paystack webhook confirms transfer.success
+      await supabase
+        .from('withdrawals')
+        .update({
+          paystack_transfer_code: transferCode,
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('paystack_reference', reference);
+
       // Send Initiated / Processing Notification
       dispatchNotification(supabase, {
         type: 'WITHDRAWAL_INITIATED',
@@ -253,13 +284,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const msg = commissionKobo > 0
-      ? `₦${payoutNaira} sent to your ${bankName || 'bank'} account! ₦${(commissionKobo / 100).toFixed(2)} (${commissionRate}%) Taska commission retained.`
-      : `₦${payoutNaira} successfully sent to your ${bankName || 'bank'} account! (0% fee)`;
+    const isConfirmed = outcomeStatus === 'success';
+    const msg = isConfirmed
+      ? `₦${payoutNaira} successfully sent to your ${bankName || 'bank'} account!`
+      : `Withdrawal initiated! ₦${payoutNaira} is pending processing with your bank. You will be notified once confirmed.`;
 
     return respond({
       success: true,
-      status: 'successful',
+      status: isConfirmed ? 'successful' : 'pending',
       withdrawal_id,
       reference,
       transfer_code: transferCode,
@@ -269,9 +301,21 @@ Deno.serve(async (req) => {
       message: msg,
     });
 
-  } catch (err) {
+  } catch (err: any) {
     console.error('[wallet-withdraw] Unhandled error:', err);
-    return respond({ error: 'Internal server error' }, 500);
+    if (reference) {
+      try {
+        await supabase.rpc('finalize_withdrawal', {
+          p_paystack_reference: reference,
+          p_transfer_code: '',
+          p_outcome: 'failed',
+          p_failure_reason: err?.message || 'Server error during transfer processing',
+        });
+      } catch (unlockErr) {
+        console.error('[wallet-withdraw] Failed to auto-unlock funds in catch block:', unlockErr);
+      }
+    }
+    return respond({ error: err?.message || 'Internal server error. Wallet balance was not affected.' }, 500);
   }
 });
 

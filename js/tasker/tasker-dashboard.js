@@ -74,13 +74,18 @@ async function loadTaskerDashboardData() {
         : 'Verified Identity';
     }
 
-    // 5. Fetch Open Tasks Nearby to display on dashboard
-    const { data: openTasks } = await window.supabaseClient
+    // 5. Fetch Open Tasks Nearby to display on dashboard (excluding current user's own posts)
+    let openTasksQuery = window.supabaseClient
       .from('Task')
-      .select('id, title, status, budget, createdAt, category, location')
+      .select('id, title, status, budget, createdAt, category, location, posterId')
       .eq('status', 'OPEN')
-      .order('createdAt', { ascending: false })
-      .limit(6);
+      .order('createdAt', { ascending: false });
+
+    if (profile && profile.id) {
+      openTasksQuery = openTasksQuery.neq('posterId', profile.id);
+    }
+
+    const { data: openTasks } = await openTasksQuery.limit(6);
 
     renderOpenTasksList(openTasks || [], activeJobs || []);
 

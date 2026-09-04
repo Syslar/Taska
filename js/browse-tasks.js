@@ -7,6 +7,7 @@
 
 let allTasksData = [];
 let currentCategoryFilter = 'ALL';
+let currentStateFilter = 'ALL';
 let currentSearchQuery = '';
 let currentSort = 'NEWEST';
 let activeModalTaskId = null;
@@ -20,6 +21,15 @@ async function initBrowseTasksPage() {
   if (searchInput) {
     searchInput.oninput = (e) => {
       currentSearchQuery = e.target.value.toLowerCase().trim();
+      renderTasksGrid();
+    };
+  }
+
+  // Nigerian State filter dropdown
+  const stateSelect = document.getElementById('state-select');
+  if (stateSelect) {
+    stateSelect.onchange = (e) => {
+      currentStateFilter = e.target.value;
       renderTasksGrid();
     };
   }
@@ -114,6 +124,8 @@ async function loadBrowseTasks() {
   if (!window.supabaseClient) return;
 
   try {
+    const profile = await window.ensureTaskaProfile?.();
+
     const { data: tasks, error } = await window.supabaseClient
       .from('Task')
       .select('*, Profile!posterId(id, firstName, lastName, username, avatarUrl, averageRating, isVerified)')
@@ -122,7 +134,13 @@ async function loadBrowseTasks() {
 
     if (error) throw error;
 
-    allTasksData = tasks || [];
+    let list = tasks || [];
+    // Strict Guard: Never show tasks posted by current user in tasker mode
+    if (profile && profile.id) {
+      list = list.filter(t => t.posterId !== profile.id);
+    }
+
+    allTasksData = list;
     renderTasksGrid();
   } catch (err) {
     console.error('Load browse tasks error:', err);
@@ -134,12 +152,37 @@ function renderTasksGrid() {
   const container = document.getElementById('gig-grid-container');
   if (!container) return;
 
+  const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
+
   let filtered = allTasksData.filter(task => {
+    // 1. Never show own posted tasks
+    if (profile && profile.id && task.posterId === profile.id) return false;
+
+    // 2. Category filter
     const matchesCat = currentCategoryFilter === 'ALL' || (task.category || '').toUpperCase() === currentCategoryFilter.toUpperCase();
+
+    // 3. Search keywords match
     const titleMatch = (task.title || '').toLowerCase().includes(currentSearchQuery);
     const descMatch = (task.description || '').toLowerCase().includes(currentSearchQuery);
     const locMatch = (task.location || '').toLowerCase().includes(currentSearchQuery);
-    return matchesCat && (titleMatch || descMatch || locMatch);
+    const searchMatch = !currentSearchQuery || (titleMatch || descMatch || locMatch);
+
+    // 4. Nigerian State / Location filter
+    let stateMatch = true;
+    if (currentStateFilter !== 'ALL') {
+      const taskLoc = (task.location || '').toLowerCase();
+      const critLoc = (task.criteriaLocation || '').toLowerCase();
+      if (currentStateFilter === 'REMOTE') {
+        stateMatch = taskLoc.includes('remote') || taskLoc.includes('anywhere') || critLoc.includes('remote') || critLoc === 'any';
+      } else if (currentStateFilter === 'FCT') {
+        stateMatch = taskLoc.includes('abuja') || taskLoc.includes('fct') || critLoc.includes('abuja') || critLoc.includes('fct');
+      } else {
+        const queryState = currentStateFilter.toLowerCase();
+        stateMatch = taskLoc.includes(queryState) || critLoc.includes(queryState);
+      }
+    }
+
+    return matchesCat && searchMatch && stateMatch;
   });
 
   if (currentSort === 'HIGH') {
@@ -314,7 +357,7 @@ window.openTaskModal = async function (taskId) {
     if (task.allowDirectMessages === true && poster?.id) {
       msgBtn.style.display = 'inline-flex';
       msgBtn.onclick = () => {
-        window.location.href = `/chats?user=${poster.id}`;
+        window.location.href = `/chats?user=${poster.id}&task=${task.id}`;
       };
     } else {
       msgBtn.style.display = 'none';
@@ -330,7 +373,14 @@ window.openTaskModal = async function (taskId) {
     applyBtn._isCriteriaBlocked = false;
     applyBtn.style.background = '';
 
-    if (currentRole === 'POSTER') {
+    if (profile && task.posterId === profile.id) {
+      applyBtn.disabled = true;
+      applyBtn._isCriteriaBlocked = true;
+      applyBtn.textContent = 'You cannot apply to your own task';
+      applyBtn.style.background = 'var(--muted)';
+      if (openPropBtn) openPropBtn.style.display = 'none';
+      return;
+    } else if (currentRole === 'POSTER') {
       applyBtn.disabled = false;
       applyBtn.textContent = 'Switch to Tasker Mode to Apply';
       applyBtn.onclick = () => {
@@ -422,6 +472,10 @@ async function submitApplication(taskId, defaultBudget) {
   }
 
   const task = allTasksData.find(t => t.id === taskId);
+  if (task && profile && task.posterId === profile.id) {
+    if (window.showToast) window.showToast('You cannot apply to tasks you posted.');
+    return;
+  }
   const bidInput = document.getElementById('modal-bid-amount');
   const msgInput = document.getElementById('modal-bid-message');
 

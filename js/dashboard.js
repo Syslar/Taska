@@ -1138,7 +1138,11 @@ async function loadChatMessages() {
             if (urlLower.includes('.mp4') || urlLower.includes('.webm') || urlLower.includes('.mov') || urlLower.includes('video/upload')) {
               mediaHTML = `<video src="${safeUrl}" controls style="max-width:100%; max-height:240px; border-radius:8px; margin-bottom:6px; display:block;"></video>`;
             } else {
-              mediaHTML = `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer"><img src="${safeUrl}" alt="Attachment" style="max-width:100%; max-height:240px; border-radius:8px; object-fit:cover; margin-bottom:6px; display:block;"></a>`;
+              mediaHTML = `
+                <div onclick="if(window.openImageLightbox){window.openImageLightbox('${safeUrl}', 'Attachment');} event.preventDefault(); event.stopPropagation();" style="cursor:pointer; display:inline-block; border-radius:8px; overflow:hidden;" title="Click to view full image in-app">
+                  <img src="${safeUrl}" alt="Attachment" class="chat-attached-image lightbox-img" style="max-width:100%; max-height:240px; border-radius:8px; object-fit:cover; margin-bottom:6px; display:block; transition:transform 0.15s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+              `;
             }
           }
         }

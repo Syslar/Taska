@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
           phoneVerifiedAt: new Date().toISOString(),
         };
         if (formatted) {
-          updatePayload.phone = formatted;
+          updatePayload.phone = formatted.startsWith('+') ? formatted : ('+' + formatted);
         }
 
         let query = supabase.from('Profile').update(updatePayload);

@@ -706,6 +706,10 @@ document.addEventListener('click', (e) => {
                         target.closest('.profile-avatar-large') || 
                         target.closest('.profile-avatar') || 
                         target.closest('#settings-avatar-preview') || 
+                        target.closest('#chat-messages-body') ||
+                        target.closest('.taska-chat-media-wrap') ||
+                        target.closest('.task-media-thumb') ||
+                        target.classList.contains('chat-attached-image') ||
                         target.classList.contains('lightbox-img');
 
     if (isClickable) {
@@ -713,7 +717,7 @@ document.addEventListener('click', (e) => {
       if (src && !src.startsWith('data:image/svg')) {
         e.preventDefault();
         e.stopPropagation();
-        window.openImageLightbox(src, target.alt || 'Profile Picture');
+        window.openImageLightbox(src, target.alt || 'Attachment Preview');
       }
     }
   }

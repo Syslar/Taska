@@ -48,8 +48,11 @@
     }
     const pFullName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile' : 'User Profile';
     const pUsername = profile ? `@${profile.username || 'user'}` : '@user';
-    const pAvatarHTML = (profile && profile.avatarUrl)
-      ? `<img src="${profile.avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
+    const activeAvatar = isTaskerMode
+      ? (profile?.taskerAvatarUrl || profile?.avatarUrl)
+      : (profile?.posterAvatarUrl || profile?.avatarUrl);
+    const pAvatarHTML = activeAvatar
+      ? `<img src="${activeAvatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`
       : (profile ? (profile.firstName || 'U')[0].toUpperCase() : 'U');
 
     // SVG Icons
@@ -106,16 +109,11 @@
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
             Chats
           </a>
+          <div class="sidebar-divider"></div>
+
           <a href="${walletUrl}" class="sidebar-link desktop-only ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 10H21" stroke="currentColor" stroke-width="1.7"/><path d="M7 15H10" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
             My Wallet
-          </a>
-
-          <div class="sidebar-divider"></div>
-
-          <a href="${settingsUrl}" class="sidebar-link ${activeTab === 'settings' ? 'is-active' : ''}" data-tab="settings">
-            <span class="sidebar-icon">${settingsIcon}</span>
-            Settings
           </a>
           <a href="#" class="sidebar-link" id="logout-btn" style="color: #e53e3e;">
             <span class="sidebar-icon">${logoutIcon}</span>
@@ -624,9 +622,10 @@
               </div>
               <h3 style="font-size:1.1rem; margin:0; color:var(--green-900);">Notifications</h3>
             </div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <button id="taska-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 8px; border-radius:6px;">Mark all read</button>
-              <button id="taska-close-notif-drawer" style="background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:4px 8px;" aria-label="Close">✕</button>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button id="taska-clear-all-notif-btn" style="background:none; border:none; color:var(--red, #b23a2e); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 6px; border-radius:6px;" title="Permanently delete all notifications">Clear all</button>
+              <button id="taska-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:4px 6px; border-radius:6px;">Mark read</button>
+              <button id="taska-close-notif-drawer" style="background:none; border:none; color:var(--muted); font-size:1.3rem; cursor:pointer; padding:4px 6px;" aria-label="Close">✕</button>
             </div>
           </div>
 
@@ -646,6 +645,38 @@
 
       container.querySelector('#taska-close-notif-drawer').onclick = close;
       container.onclick = (e) => { if (e.target === container) close(); };
+
+      container.querySelector('#taska-clear-all-notif-btn').onclick = async () => {
+        const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        const userId = profile?.userId || (window.Clerk?.user?.id);
+        if (!userId || !window.supabaseClient) return;
+
+        if (!confirm('Are you sure you want to clear all notifications? They will be permanently deleted from the database.')) {
+          return;
+        }
+
+        try {
+          const { error } = await window.supabaseClient
+            .from('Notification')
+            .delete()
+            .eq('userId', userId);
+
+          if (error) throw error;
+
+          window.__taskaNotifications = [];
+          renderNotificationDrawerList([]);
+          document.querySelectorAll('.taska-notif-badge').forEach(b => { b.style.display = 'none'; b.textContent = '0'; });
+          document.querySelectorAll('.taska-notif-bell-btn, .bell-icon-svg').forEach(el => el.classList.remove('has-unread'));
+
+          const allModal = document.getElementById('taska-all-notifications-modal');
+          if (allModal) allModal.style.display = 'none';
+
+          if (window.showToast) window.showToast('All notifications permanently deleted');
+        } catch (err) {
+          console.error('[Notifications] Clear all error:', err);
+          if (window.showToast) window.showToast('Failed to clear notifications');
+        }
+      };
 
       container.querySelector('#taska-mark-all-read-btn').onclick = async () => {
         const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
@@ -695,7 +726,10 @@
       return;
     }
 
-    listEl.innerHTML = list.map(item => {
+    // Limit the drawer list strictly to the 6 most recent notifications
+    const recentList = list.slice(0, 6);
+
+    let html = recentList.map(item => {
       const isUnread = !item.isRead;
       const type = item.type || '';
       let iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
@@ -736,34 +770,16 @@
       `;
     }).join('');
 
-    function normalizeNotificationUrl(rawLink) {
-      if (!rawLink) return '/tasker/dashboard';
-      let url = rawLink.replace(/https?:\/\/(taska\.(ng|com\.ng)|localhost:\d+|[^\/]+)/i, '');
-      if (!url.startsWith('/')) url = '/' + url;
+    // Append "View All" button footer
+    html += `
+      <div style="margin-top:14px; padding-top:12px; border-top:1px dashed var(--line, #e2e8f0); text-align:center;">
+        <button id="taska-open-all-notif-btn" type="button" style="width:100%; padding:10px 14px; background:var(--surface, #fff); border:1px solid var(--line, #e2e8f0); border-radius:var(--radius-sm, 10px); font-size:0.84rem; font-weight:600; color:var(--green-900); cursor:pointer; transition:all 0.15s ease; text-align:center;">
+          View All Notifications (${list.length}) →
+        </button>
+      </div>
+    `;
 
-      const match = url.match(/^([^?#]*)(.*)$/);
-      let path = (match ? match[1] : url).toLowerCase();
-      const queryAndHash = match ? match[2] : '';
-
-      path = path.replace(/\/index\.html$/, '').replace(/\.html$/, '');
-      if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
-
-      if (path === '/wallet' || path === '/wallet/wallet') return '/wallet' + queryAndHash;
-      if (path === '/poster/mytasks' || path === '/poster/my-tasks' || path === '/poster/mypostedtasks' || path === '/poster/my-posted-tasks' || path === '/mypostedtasks') return '/my-posted-tasks' + queryAndHash;
-      if (path === '/tasker/myapplications' || path === '/tasker/my-applications' || path === '/myapplications') return '/my-applications' + queryAndHash;
-      if (path === '/tasker/browsetasks' || path === '/tasker/browse-tasks' || path === '/browsetasks') return '/browse-tasks' + queryAndHash;
-      if (path === '/poster/posttask' || path === '/poster/post-task' || path === '/posttask') return '/post-task' + queryAndHash;
-      if (path === '/dashboard') return '/tasker/dashboard' + queryAndHash;
-      if (path === '/settings/account') return '/settings/account' + queryAndHash;
-      if (path === '/settings/kyc') return '/settings/kyc' + queryAndHash;
-      if (path === '/settings' || path === '/settings/index') return '/settings' + queryAndHash;
-      if (path === '/chats') return '/chats' + queryAndHash;
-      if (path === '/auth/login' || path === '/login') return '/login' + queryAndHash;
-      if (path === '/auth/signup' || path === '/signup') return '/signup' + queryAndHash;
-      if (path === '/auth/forgot-password' || path === '/forgot-password') return '/forgot-password' + queryAndHash;
-
-      return path + queryAndHash;
-    }
+    listEl.innerHTML = html;
 
     listEl.querySelectorAll('.taska-notif-item').forEach(item => {
       item.onclick = async () => {
@@ -780,7 +796,261 @@
         }
       };
     });
+
+    const openAllBtn = listEl.querySelector('#taska-open-all-notif-btn');
+    if (openAllBtn) {
+      openAllBtn.onclick = () => window.openAllNotificationsModal(list);
+    }
   }
+
+  function normalizeNotificationUrl(rawLink) {
+    if (!rawLink) return '/tasker/dashboard';
+    let url = rawLink.replace(/https?:\/\/(taska\.(ng|com\.ng)|localhost:\d+|[^\/]+)/i, '');
+    if (!url.startsWith('/')) url = '/' + url;
+
+    const match = url.match(/^([^?#]*)(.*)$/);
+    let path = (match ? match[1] : url).toLowerCase();
+    const queryAndHash = match ? match[2] : '';
+
+    path = path.replace(/\/index\.html$/, '').replace(/\.html$/, '');
+    if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
+
+    if (path === '/wallet' || path === '/wallet/wallet') return '/wallet' + queryAndHash;
+    if (path === '/poster/mytasks' || path === '/poster/my-tasks' || path === '/poster/mypostedtasks' || path === '/poster/my-posted-tasks' || path === '/mypostedtasks') return '/my-posted-tasks' + queryAndHash;
+    if (path === '/tasker/myapplications' || path === '/tasker/my-applications' || path === '/myapplications') return '/my-applications' + queryAndHash;
+    if (path === '/tasker/browsetasks' || path === '/tasker/browse-tasks' || path === '/browsetasks') return '/browse-tasks' + queryAndHash;
+    if (path === '/poster/posttask' || path === '/poster/post-task' || path === '/posttask') return '/post-task' + queryAndHash;
+    if (path === '/dashboard') return '/tasker/dashboard' + queryAndHash;
+    if (path === '/settings/account') return '/settings/account' + queryAndHash;
+    if (path === '/settings/kyc') return '/settings/kyc' + queryAndHash;
+    if (path === '/settings' || path === '/settings/index') return '/settings' + queryAndHash;
+    if (path === '/chats') return '/chats' + queryAndHash;
+    if (path === '/auth/login' || path === '/login') return '/login' + queryAndHash;
+    if (path === '/auth/signup' || path === '/signup') return '/signup' + queryAndHash;
+    if (path === '/auth/forgot-password' || path === '/forgot-password') return '/forgot-password' + queryAndHash;
+
+    return path + queryAndHash;
+  }
+
+  // ─── ALL NOTIFICATIONS POP-UP MODAL ──────────────────────────────────────
+  window.openAllNotificationsModal = function(list) {
+    const allList = list || window.__taskaNotifications || [];
+    let modal = document.getElementById('taska-all-notifications-modal');
+
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'taska-all-notifications-modal';
+      modal.style.cssText = `
+        position: fixed; inset: 0; z-index: 1000000; display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(3px); padding: 20px; box-sizing: border-box;
+      `;
+      modal.innerHTML = `
+        <div style="background:var(--paper, #fff); border-radius:var(--radius-md, 14px); max-width:580px; width:100%; max-height:88vh; display:flex; flex-direction:column; border:1px solid var(--line, #e2e8f0); box-shadow:0 14px 44px rgba(0,0,0,0.28); position:relative; overflow:hidden;">
+          <div style="padding:18px 22px; border-bottom:1px solid var(--line, #e2e8f0); display:flex; justify-content:space-between; align-items:center; background:var(--surface, #fff);">
+            <div>
+              <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);" id="taska-all-notif-title">All Notifications</h3>
+              <span style="font-size:0.78rem; color:var(--muted);">Complete historical notification log</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button id="modal-clear-all-notif-btn" style="background:none; border:none; color:var(--red, #b23a2e); font-weight:600; font-size:0.78rem; cursor:pointer; padding:5px 8px; border-radius:6px;" title="Permanently delete all notifications">Clear all</button>
+              <button id="modal-mark-all-read-btn" style="background:none; border:none; color:var(--green-700); font-weight:600; font-size:0.78rem; cursor:pointer; padding:5px 8px; border-radius:6px;">Mark all read</button>
+              <button id="taska-close-all-notif-modal" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;" aria-label="Close">✕</button>
+            </div>
+          </div>
+
+          <div id="taska-all-notif-scroll-body" style="flex:1; overflow-y:auto; padding:14px 20px;">
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.querySelector('#taska-close-all-notif-modal').onclick = () => {
+        modal.style.display = 'none';
+      };
+      modal.onclick = (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+      };
+
+      modal.querySelector('#modal-clear-all-notif-btn').onclick = async () => {
+        const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        const userId = profile?.userId || (window.Clerk?.user?.id);
+        if (!userId || !window.supabaseClient) return;
+
+        if (!confirm('Are you sure you want to permanently clear all notifications from the database? This cannot be undone.')) {
+          return;
+        }
+
+        try {
+          const { error } = await window.supabaseClient
+            .from('Notification')
+            .delete()
+            .eq('userId', userId);
+
+          if (error) throw error;
+
+          window.__taskaNotifications = [];
+          renderNotificationDrawerList([]);
+          document.querySelectorAll('.taska-notif-badge').forEach(b => { b.style.display = 'none'; b.textContent = '0'; });
+          document.querySelectorAll('.taska-notif-bell-btn, .bell-icon-svg').forEach(el => el.classList.remove('has-unread'));
+
+          modal.style.display = 'none';
+          if (window.showToast) window.showToast('All notifications permanently deleted');
+        } catch (err) {
+          console.error('[Notifications] Modal clear error:', err);
+          if (window.showToast) window.showToast('Failed to clear notifications');
+        }
+      };
+
+      modal.querySelector('#modal-mark-all-read-btn').onclick = async () => {
+        const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        const userId = profile?.userId || (window.Clerk?.user?.id);
+        if (!userId || !window.supabaseClient) return;
+
+        try {
+          await window.supabaseClient
+            .from('Notification')
+            .update({ isRead: true })
+            .eq('userId', userId);
+          await window.fetchTaskaNotifications();
+          window.openAllNotificationsModal(window.__taskaNotifications);
+          if (window.showToast) window.showToast('All notifications marked as read');
+        } catch (err) {
+          console.error('[Notifications] Modal mark read error:', err);
+        }
+      };
+    }
+
+    const titleEl = modal.querySelector('#taska-all-notif-title');
+    if (titleEl) titleEl.textContent = `All Notifications (${allList.length})`;
+
+    const bodyEl = modal.querySelector('#taska-all-notif-scroll-body');
+    if (!bodyEl) return;
+
+    if (allList.length === 0) {
+      bodyEl.innerHTML = `
+        <div style="padding:48px 20px; text-align:center; color:var(--muted);">
+          <div style="font-weight:600; font-size:1rem; color:var(--green-900); margin-bottom:4px;">No notifications found</div>
+          <div style="font-size:0.82rem;">Your notification log is currently empty.</div>
+        </div>
+      `;
+    } else {
+      bodyEl.innerHTML = allList.map(item => {
+        const isUnread = !item.isRead;
+        const type = item.type || '';
+        let iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`;
+        let iconBg = 'var(--mint-100, #E1F5E8)';
+        let iconColor = 'var(--green-700, #146C34)';
+
+        if (type.includes('DEPOSIT') || type.includes('WITHDRAWAL') || type.includes('ESCROW')) {
+          iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`;
+          iconBg = '#ECFDF5';
+          iconColor = '#059669';
+        } else if (type.includes('TASK') || type.includes('APPLICATION') || type.includes('HIRED')) {
+          iconSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+          iconBg = '#EFF6FF';
+          iconColor = '#2563EB';
+        }
+
+        const dateFormatted = new Date(item.createdAt || Date.now()).toLocaleDateString('en-NG', {
+          month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        return `
+          <div class="taska-modal-notif-row" data-id="${item.id}" data-link="${item.link || ''}" style="padding:14px 16px; border-radius:var(--radius-sm, 10px); margin-bottom:10px; background:${isUnread ? 'rgba(34,145,80,0.06)' : 'var(--surface, #fff)'}; border:1px solid ${isUnread ? 'var(--mint-150, #CDEEDA)' : 'var(--line, #e2e8f0)'}; display:flex; gap:12px; align-items:flex-start; position:relative; transition:background 0.15s ease;">
+            <div style="width:36px; height:36px; border-radius:50%; background:${iconBg}; color:${iconColor}; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+              ${iconSvg}
+            </div>
+            <div style="flex:1; min-width:0; cursor:pointer;" class="notif-body-click">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-weight:600; font-size:0.9rem; color:var(--green-900); padding-right:8px;">${item.title || 'Notification'}</span>
+                <span style="font-size:0.72rem; color:var(--muted); white-space:nowrap;">${dateFormatted}</span>
+              </div>
+              <div style="font-size:0.83rem; color:var(--ink-soft); line-height:1.45; word-break:break-word;">${item.body || ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-left:4px;">
+              ${isUnread ? `<span style="width:8px; height:8px; border-radius:50%; background:#EF4444; flex-shrink:0;" title="Unread"></span>` : ''}
+              <button type="button" class="btn-delete-single-notif" data-id="${item.id}" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px; border-radius:4px; transition:color 0.15s ease;" title="Delete notification permanently" onmouseover="this.style.color='var(--red, #b23a2e)'" onmouseout="this.style.color='var(--muted)'">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Wire click on notification body to mark read & navigate
+      bodyEl.querySelectorAll('.notif-body-click').forEach(bodyDiv => {
+        bodyDiv.onclick = async () => {
+          const row = bodyDiv.closest('.taska-modal-notif-row');
+          const id = row.getAttribute('data-id');
+          const link = row.getAttribute('data-link');
+          if (id && window.supabaseClient) {
+            try {
+              await window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id);
+              window.fetchTaskaNotifications();
+            } catch (_) {}
+          }
+          if (link) {
+            window.location.href = normalizeNotificationUrl(link);
+          }
+        };
+      });
+
+      // Wire individual delete buttons
+      bodyEl.querySelectorAll('.btn-delete-single-notif').forEach(delBtn => {
+        delBtn.onclick = async (e) => {
+          e.stopPropagation();
+          const notifId = delBtn.getAttribute('data-id');
+          if (!notifId || !window.supabaseClient) return;
+
+          delBtn.disabled = true;
+          try {
+            const { error } = await window.supabaseClient
+              .from('Notification')
+              .delete()
+              .eq('id', notifId);
+
+            if (error) throw error;
+
+            // Remove from memory
+            window.__taskaNotifications = (window.__taskaNotifications || []).filter(n => n.id !== notifId);
+            renderNotificationDrawerList(window.__taskaNotifications);
+
+            // Animate removal from modal
+            const row = delBtn.closest('.taska-modal-notif-row');
+            if (row) {
+              row.style.opacity = '0';
+              row.style.transform = 'scale(0.95)';
+              setTimeout(() => {
+                row.remove();
+                if (window.openAllNotificationsModal) {
+                  window.openAllNotificationsModal(window.__taskaNotifications);
+                }
+              }, 150);
+            }
+
+            // Update badge count
+            const unreadCount = (window.__taskaNotifications || []).filter(n => !n.isRead).length;
+            document.querySelectorAll('.taska-notif-badge').forEach(badge => {
+              if (unreadCount > 0) {
+                badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+                badge.style.display = 'inline-flex';
+              } else {
+                badge.style.display = 'none';
+              }
+            });
+
+            if (window.showToast) window.showToast('Notification deleted');
+          } catch (err) {
+            console.error('Delete single notification error:', err);
+            delBtn.disabled = false;
+            if (window.showToast) window.showToast('Could not delete notification');
+          }
+        };
+      });
+    }
+
+    modal.style.display = 'flex';
+  };
 
   // Polling interval every 30s to update unread notifications automatically
   setInterval(() => {

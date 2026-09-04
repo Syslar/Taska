@@ -17,6 +17,10 @@ const EDGE_FN = 'https://nhittvkskzwpeinscxir.supabase.co/functions/v1';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let _currentProfile = null;
+let _allTransactionsData = [];
+let _activeOverviewFilter = 'all';
+let _activeModalFilter = 'all';
+let _activeModalSearch = '';
 let _walletState = {
   available_balance: 0,
   locked_balance: 0,
@@ -94,6 +98,79 @@ async function loadWalletData() {
       task_commission_rate: info.settings?.task_commission_percentage ?? 10,
     };
 
+    // Also fetch any task earnings/ledger entries from WalletTransaction if available
+    let walletTxs = [];
+    if (window.supabaseClient && profile?.id) {
+      try {
+        const { data: wRecord } = await window.supabaseClient
+          .from('Wallet')
+          .select('id, WalletTransaction(*)')
+          .eq('profileId', profile.id)
+          .maybeSingle();
+        if (wRecord && wRecord.WalletTransaction) {
+          walletTxs = wRecord.WalletTransaction;
+        }
+      } catch (err) {
+        console.warn('[wallet] Error fetching WalletTransaction ledger:', err);
+      }
+    }
+
+    const ownerName = profile ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || profile.username : 'Account Holder';
+
+    // Assemble unified transactions list
+    _allTransactionsData = [
+      ..._walletState.deposits.map(d => ({
+        id: String(d.id || d.paystack_reference),
+        type: 'deposit',
+        category: 'Deposit',
+        date: d.createdAt,
+        status: d.status || 'successful',
+        amount: d.net_naira || d.net_amount_naira || (d.net_amount ? d.net_amount / 100 : 0) || 0,
+        gross: d.gross_naira || d.gross_amount_naira || (d.gross_amount ? d.gross_amount / 100 : 0) || 0,
+        fee: d.commission_naira || (d.commission_amount ? d.commission_amount / 100 : 0) || 0,
+        reference: d.paystack_reference || `TK-DEP-${d.id || Date.now()}`,
+        bank: d.channel ? `Paystack (${d.channel.toUpperCase()})` : 'Paystack Checkout',
+        accountOwner: ownerName,
+        accountNumber: d.channel === 'card' ? 'Debit/Credit Card' : d.channel === 'bank_transfer' ? 'Virtual Bank Transfer' : (d.channel || 'Paystack Gateway'),
+        label: 'Wallet Deposit',
+        failure_reason: null
+      })),
+      ..._walletState.withdrawals.map(w => ({
+        id: String(w.id || w.paystack_reference),
+        type: 'withdrawal',
+        category: 'Withdrawal',
+        date: w.createdAt,
+        status: w.status || 'pending',
+        amount: w.payout_naira || (w.payout_amount ? w.payout_amount / 100 : 0) || 0,
+        gross: w.requested_naira || (w.requested_amount ? w.requested_amount / 100 : 0) || 0,
+        fee: w.commission_naira || (w.commission_amount ? w.commission_amount / 100 : 0) || 0,
+        reference: w.paystack_reference || `TK-WTH-${w.id || Date.now()}`,
+        bank: w.bank_name || 'Commercial Bank',
+        accountOwner: w.account_name || ownerName,
+        accountNumber: w.account_number || 'N/A',
+        label: 'Bank Withdrawal',
+        failure_reason: w.failure_reason || null
+      })),
+      ...walletTxs
+        .filter(tx => ['task_payout', 'escrow_release', 'credit'].includes(tx.type))
+        .map(tx => ({
+          id: String(tx.id || tx.reference),
+          type: 'earning',
+          category: 'Earnings',
+          date: tx.createdAt,
+          status: 'successful',
+          amount: tx.amount || 0,
+          gross: tx.amount || 0,
+          fee: 0,
+          reference: tx.reference || `TK-ERN-${tx.id || Date.now()}`,
+          bank: 'Taska Escrow System',
+          accountOwner: ownerName,
+          accountNumber: 'Task Completion Payout',
+          label: tx.note || 'Task Completion Earning',
+          failure_reason: null
+        }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
     // Hero Balance
     const balEl = document.getElementById('wallet-hero-balance');
     if (balEl) balEl.textContent = formatNaira(_walletState.available_balance);
@@ -125,54 +202,42 @@ async function loadWalletData() {
     const depFeeRateEl = document.getElementById('deposit-fee-rate-display');
     if (depFeeRateEl) depFeeRateEl.textContent = `${_walletState.deposit_fee_rate}%`;
 
-    await loadWalletTransactions('all');
+    renderOverviewTransactions(_activeOverviewFilter);
+    renderModalAllTransactions();
 
   } catch (err) {
     console.error('[wallet] loadWalletData error:', err);
   }
 }
 
-// ── Transaction Ledger ────────────────────────────────────────────────────────
+// ── Transaction Ledger & Modals ───────────────────────────────────────────────
 
-async function loadWalletTransactions(filter = 'all') {
-  const container = document.getElementById('tx-container');
-  if (!container) return;
-
-  const allTx = [
-    ..._walletState.deposits.map(d => ({
-      type: 'deposit',
-      date: d.createdAt,
-      status: d.status,
-      amount: d.net_naira || d.net_amount_naira || 0,
-      gross: d.gross_naira || d.gross_amount_naira || 0,
-      fee: d.commission_naira || 0,
-      reference: d.paystack_reference,
-      channel: d.channel || 'card',
-      label: 'Deposit',
-    })),
-    ..._walletState.withdrawals.map(w => ({
-      type: 'withdrawal',
-      date: w.createdAt,
-      status: w.status,
-      amount: w.payout_naira || 0,
-      gross: w.requested_naira || 0,
-      fee: w.commission_naira || 0,
-      reference: w.paystack_reference,
-      bank: w.bank_name || 'Bank',
-      label: 'Withdrawal',
-      failure_reason: w.failure_reason,
-    })),
-  ].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  let filtered = allTx;
-  if (filter === 'earnings') filtered = allTx.filter(t => t.type === 'deposit');
-  else if (filter === 'withdrawals') filtered = allTx.filter(t => t.type === 'withdrawal');
-
-  if (filtered.length === 0) {
-    container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No transaction history yet.</div>`;
-    return;
+function filterTransactions(txList, filterType, searchQuery = '') {
+  let filtered = txList;
+  if (filterType === 'deposits') {
+    filtered = filtered.filter(t => t.type === 'deposit');
+  } else if (filterType === 'earnings') {
+    filtered = filtered.filter(t => t.type === 'earning');
+  } else if (filterType === 'withdrawals') {
+    filtered = filtered.filter(t => t.type === 'withdrawal');
   }
 
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase().trim();
+    filtered = filtered.filter(t =>
+      (t.reference || '').toLowerCase().includes(q) ||
+      (t.bank || '').toLowerCase().includes(q) ||
+      (t.accountOwner || '').toLowerCase().includes(q) ||
+      (t.label || '').toLowerCase().includes(q) ||
+      (t.category || '').toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
+}
+
+function renderTransactionRowHTML(tx) {
+  const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
   const statusConfig = {
     successful: { label: 'Completed', cls: 'status-open' },
     success: { label: 'Completed', cls: 'status-open' },
@@ -181,46 +246,221 @@ async function loadWalletTransactions(filter = 'all') {
     failed: { label: 'Failed', cls: 'status-closed' },
     reversed: { label: 'Reversed', cls: 'status-closed' },
   };
+  const sc = statusConfig[tx.status] || { label: tx.status, cls: 'status-pending' };
+  const dateStr = new Date(tx.date || Date.now()).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
+  const feeText = tx.fee > 0 ? ` — ${formatNaira(tx.fee)} platform fee` : '';
 
-  let html = '';
-  filtered.forEach(tx => {
-    const isCredit = tx.type === 'deposit' && (tx.status === 'successful' || tx.status === 'success');
-    const sc = statusConfig[tx.status] || { label: tx.status, cls: 'status-pending' };
-    const dateStr = new Date(tx.date || Date.now()).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
-    const feeText = tx.fee > 0 ? ` — ${formatNaira(tx.fee)} platform fee` : '';
-    const desc = tx.type === 'deposit'
-      ? `Wallet Deposit${feeText}`
-      : `Bank Payout to ${window.escapeHtml?.(tx.bank || 'Bank') || tx.bank || 'Bank'}${feeText}`;
+  let desc = tx.label;
+  if (tx.type === 'deposit') desc = `Wallet Deposit${feeText}`;
+  else if (tx.type === 'withdrawal') desc = `Bank Payout to ${tx.bank || 'Bank'}${feeText}`;
+  else if (tx.type === 'earning') desc = tx.label || 'Task Completion Earning';
 
-    html += `
-      <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line-soft);">
-        <div style="flex:1; min-width:0;">
-          <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${window.escapeHtml?.(desc) || desc}</div>
-          <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">
-            ${dateStr} · <span class="status ${sc.cls}" style="font-size:0.72rem; padding:2px 8px;">${sc.label}</span>
-            ${tx.failure_reason ? ` · <span style="color:var(--red-500);">${window.escapeHtml?.(tx.failure_reason) || tx.failure_reason}</span>` : ''}
-          </div>
+  const safeDesc = window.escapeHtml?.(desc) || desc;
+  const safeRef = window.escapeHtml?.(tx.reference) || tx.reference;
+
+  return `
+    <div class="task-row clickable-tx-row" data-tx-id="${window.escapeHtml?.(tx.id) || tx.id}" style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--line-soft); cursor:pointer; transition:background 0.15s ease; border-radius:var(--radius-sm);">
+      <div style="flex:1; min-width:0; padding-right:12px;">
+        <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          ${safeDesc}
         </div>
+        <div class="task-row-meta" style="font-size:0.78rem; color:var(--muted); margin-top:2px;">
+          ${dateStr} · <span class="status ${sc.cls}" style="font-size:0.72rem; padding:2px 8px;">${sc.label}</span>
+          <span class="mono" style="margin-left:6px; color:var(--ink-soft); font-size:0.75rem;">${safeRef}</span>
+          ${tx.failure_reason ? ` · <span style="color:var(--red-500);">${window.escapeHtml?.(tx.failure_reason) || tx.failure_reason}</span>` : ''}
+        </div>
+      </div>
+      <div style="text-align:right; flex-shrink:0;">
         <div class="task-row-amt mono" style="color:${isCredit ? 'var(--green-700)' : 'var(--ink-soft)'}; font-weight:700; font-size:0.95rem;">
           ${isCredit ? '+' : '-'}${formatNaira(tx.amount)}
         </div>
+        <span style="font-size:0.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.3px;">${tx.category}</span>
       </div>
-    `;
-  });
+    </div>
+  `;
+}
 
-  container.innerHTML = html;
+function bindTransactionRowClicks(container) {
+  if (!container) return;
+  container.querySelectorAll('.clickable-tx-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const txId = row.getAttribute('data-tx-id');
+      if (txId) openTransactionDetailModal(txId);
+    });
+  });
+}
+
+function renderOverviewTransactions(filter = 'all') {
+  _activeOverviewFilter = filter;
+  const container = document.getElementById('tx-container');
+  if (!container) return;
+
+  const filtered = filterTransactions(_allTransactionsData, filter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No ${filter === 'all' ? '' : filter} transactions found.</div>`;
+    return;
+  }
+
+  // Show strictly top 5 most recent transactions
+  const top5 = filtered.slice(0, 5);
+  container.innerHTML = top5.map(tx => renderTransactionRowHTML(tx)).join('');
+  bindTransactionRowClicks(container);
+}
+
+function renderModalAllTransactions() {
+  const container = document.getElementById('modal-all-tx-container');
+  if (!container) return;
+
+  const filtered = filterTransactions(_allTransactionsData, _activeModalFilter, _activeModalSearch);
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="padding:40px; text-align:center; color:var(--muted);">No matching transactions found.</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(tx => renderTransactionRowHTML(tx)).join('');
+  bindTransactionRowClicks(container);
+}
+
+function openTransactionDetailModal(txId) {
+  const tx = _allTransactionsData.find(t => t.id === txId || t.reference === txId);
+  if (!tx) return;
+
+  const modal = document.getElementById('tx-detail-modal');
+  if (!modal) return;
+
+  const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
+  const statusConfig = {
+    successful: { label: 'Completed', cls: 'status-open' },
+    success: { label: 'Completed', cls: 'status-open' },
+    pending: { label: 'Pending', cls: 'status-pending' },
+    processing: { label: 'Processing', cls: 'status-pending' },
+    failed: { label: 'Failed', cls: 'status-closed' },
+    reversed: { label: 'Reversed', cls: 'status-closed' },
+  };
+  const sc = statusConfig[tx.status] || { label: tx.status, cls: 'status-pending' };
+
+  const statusEl = document.getElementById('tx-detail-status');
+  if (statusEl) {
+    statusEl.className = `status ${sc.cls}`;
+    statusEl.textContent = sc.label;
+  }
+
+  const typeBadge = document.getElementById('tx-detail-type-badge');
+  if (typeBadge) typeBadge.textContent = (tx.category || 'Transaction').toUpperCase();
+
+  const amtEl = document.getElementById('tx-detail-amount');
+  if (amtEl) {
+    amtEl.textContent = `${isCredit ? '+' : '-'}${formatNaira(tx.amount)}`;
+    amtEl.style.color = isCredit ? 'var(--green-700)' : 'var(--ink)';
+  }
+
+  const dateEl = document.getElementById('tx-detail-date');
+  if (dateEl) {
+    dateEl.textContent = new Date(tx.date || Date.now()).toLocaleString('en-NG', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  const refEl = document.getElementById('tx-detail-ref');
+  if (refEl) refEl.textContent = tx.reference || '—';
+
+  const catEl = document.getElementById('tx-detail-category');
+  if (catEl) catEl.textContent = tx.category || 'Transaction';
+
+  const bankEl = document.getElementById('tx-detail-bank');
+  if (bankEl) bankEl.textContent = tx.bank || '—';
+
+  const ownerEl = document.getElementById('tx-detail-owner');
+  if (ownerEl) ownerEl.textContent = tx.accountOwner || '—';
+
+  const accNumEl = document.getElementById('tx-detail-accnum');
+  if (accNumEl) accNumEl.textContent = tx.accountNumber || '—';
+
+  const grossEl = document.getElementById('tx-detail-gross');
+  if (grossEl) grossEl.textContent = formatNaira(tx.gross);
+
+  const feeEl = document.getElementById('tx-detail-fee');
+  if (feeEl) feeEl.textContent = tx.fee > 0 ? `-${formatNaira(tx.fee)}` : '₦0';
+
+  const netEl = document.getElementById('tx-detail-net');
+  if (netEl) netEl.textContent = formatNaira(tx.amount);
+
+  const failBox = document.getElementById('tx-detail-failure-box');
+  const failReasonEl = document.getElementById('tx-detail-failure-reason');
+  if (failBox && failReasonEl) {
+    if (tx.failure_reason) {
+      failReasonEl.textContent = tx.failure_reason;
+      failBox.style.display = 'block';
+    } else {
+      failBox.style.display = 'none';
+    }
+  }
+
+  showModal(modal);
 }
 
 // ── Setup Listeners ───────────────────────────────────────────────────────────
 
 function setupWalletListeners() {
-  // Tabs
+  // Overview Tabs
   document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('#wallet-tabs-bar .wallet-tab').forEach(t => t.classList.remove('is-active'));
       tab.classList.add('is-active');
-      loadWalletTransactions(tab.dataset.walletFilter || 'all');
+      renderOverviewTransactions(tab.dataset.walletFilter || 'all');
     });
+  });
+
+  // Open All Transactions Modal
+  const allTxModal = document.getElementById('all-tx-modal');
+  const openAllTx = () => {
+    showModal(allTxModal);
+    renderModalAllTransactions();
+  };
+  document.getElementById('btn-open-all-tx-top')?.addEventListener('click', openAllTx);
+  document.getElementById('btn-open-all-tx-bottom')?.addEventListener('click', openAllTx);
+
+  // Close All Transactions Modal
+  document.getElementById('all-tx-close-btn')?.addEventListener('click', () => hideModal(allTxModal));
+  allTxModal?.addEventListener('click', (e) => {
+    if (e.target === allTxModal) hideModal(allTxModal);
+  });
+
+  // Modal Tabs inside All Transactions Modal
+  document.querySelectorAll('#modal-tx-tabs-bar .wallet-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#modal-tx-tabs-bar .wallet-tab').forEach(t => t.classList.remove('is-active'));
+      tab.classList.add('is-active');
+      _activeModalFilter = tab.dataset.modalFilter || 'all';
+      renderModalAllTransactions();
+    });
+  });
+
+  // Modal Search inside All Transactions Modal
+  const modalSearchInput = document.getElementById('modal-tx-search-input');
+  if (modalSearchInput) {
+    modalSearchInput.addEventListener('input', (e) => {
+      _activeModalSearch = e.target.value;
+      renderModalAllTransactions();
+    });
+  }
+
+  // Transaction Details Modal Close & Copy Reference
+  const txDetailModal = document.getElementById('tx-detail-modal');
+  document.getElementById('tx-detail-close-btn')?.addEventListener('click', () => hideModal(txDetailModal));
+  document.getElementById('tx-detail-dismiss-btn')?.addEventListener('click', () => hideModal(txDetailModal));
+  txDetailModal?.addEventListener('click', (e) => {
+    if (e.target === txDetailModal) hideModal(txDetailModal);
+  });
+
+  document.getElementById('btn-copy-tx-ref')?.addEventListener('click', () => {
+    const refText = document.getElementById('tx-detail-ref')?.textContent;
+    if (refText && refText !== '—') {
+      navigator.clipboard?.writeText(refText);
+      if (window.showToast) window.showToast('Transaction reference copied to clipboard!');
+    }
   });
 
   // ── Deposit Modal ───────────────────────────────────────────────────────────
@@ -476,6 +716,7 @@ function setupWalletListeners() {
 
       if (!result.success) {
         if (window.showToast) window.showToast(`Withdrawal failed: ${result.error || 'Please try again.'}`);
+        await loadWalletData();
         return;
       }
 

@@ -56,9 +56,8 @@
           <div class="profile-tagline" id="profileTagline" style="display:none;"></div>
         </div>
 
-        <!-- Hourly Rate Badge -->
+        <!-- Hourly Rate Badge (No Dollar Icon, Only Displays if set) -->
         <div class="profile-rate-badge" id="profileRateBadge" style="display:none;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span id="profileRateText">₦0/hr</span>
         </div>
 
@@ -71,16 +70,11 @@
           <span class="profile-rating-count" id="ratingCount">Loading rating…</span>
         </div>
 
-        <!-- Tasker-specific quick stats -->
+        <!-- Tasker-specific quick stats (Tasks done & Member since) -->
         <div class="profile-stats">
           <div class="profile-stat">
             <span class="profile-stat-value mono" id="statTasksDone">0</span>
             <span class="profile-stat-label">Tasks done</span>
-          </div>
-          <div class="profile-stat-divider"></div>
-          <div class="profile-stat">
-            <span class="profile-stat-value mono" id="statEarnings">₦0</span>
-            <span class="profile-stat-label">Earned</span>
           </div>
           <div class="profile-stat-divider"></div>
           <div class="profile-stat">
@@ -176,8 +170,8 @@
                   <span class="about-detail-label">Specialization</span>
                   <span class="about-detail-value" id="aboutDetailSpecialization">—</span>
                 </div>
-                <div class="about-detail-row">
-                  <span class="about-detail-label">Hourly Rate</span>
+                <div class="about-detail-row" id="aboutDetailRateRow">
+                  <span class="about-detail-label">Rate</span>
                   <span class="about-detail-value mono" id="aboutDetailRate">—</span>
                 </div>
                 <div class="about-detail-row">

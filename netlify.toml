@@ -253,6 +253,12 @@
   force = true
 
 [[redirects]]
+  from = "/wallet/transactions"
+  to = "/wallet/transactions/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/chats"
   to = "/chats/index.html"
   status = 200

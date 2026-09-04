@@ -126,7 +126,7 @@ function renderMyTasksList() {
                 data-tasker-id="${tasker.id}" 
                 data-tasker-name="${tName}">Accept / Hire</button>
             ` : '')}
-            <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}'">Message</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}&task=${t.id}'">Message</button>
             <a href="/tasker/profile?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
           </div>
         </div>

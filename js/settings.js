@@ -14,14 +14,115 @@ function renderSettingsStarsHtml(ratingScore, size = 15) {
   return html;
 }
 
+let taskerTagEditor = null;
+let posterTagEditor = null;
+
+function setupTagEditor({ containerId, inputId, addBtnId, counterId, initialTags = [], maxTags = 5 }) {
+  const containerEl = document.getElementById(containerId);
+  const inputEl = document.getElementById(inputId);
+  const addBtnEl = document.getElementById(addBtnId);
+  const counterEl = document.getElementById(counterId);
+
+  if (!containerEl || !inputEl) return null;
+
+  let tags = [...initialTags].filter(Boolean).map(t => t.trim()).slice(0, maxTags);
+
+  function render() {
+    containerEl.querySelectorAll('.tag-pill').forEach(el => el.remove());
+
+    tags.forEach((tag, idx) => {
+      const pill = document.createElement('span');
+      pill.className = 'tag-pill';
+      pill.innerHTML = `
+        <span>${window.escapeHtml(tag)}</span>
+        <button type="button" class="tag-pill-remove" aria-label="Remove tag" data-idx="${idx}">✕</button>
+      `;
+      containerEl.insertBefore(pill, inputEl);
+    });
+
+    if (counterEl) {
+      counterEl.textContent = `${tags.length}/${maxTags} tags added${tags.length >= maxTags ? ' (maximum reached)' : ''}`;
+      counterEl.style.color = tags.length >= maxTags ? 'var(--green-700)' : 'var(--muted)';
+    }
+
+    if (inputEl) {
+      inputEl.disabled = tags.length >= maxTags;
+      inputEl.placeholder = tags.length >= maxTags ? 'Maximum 5 tags reached' : '+ Type a tag and press Enter';
+    }
+    if (addBtnEl) {
+      addBtnEl.disabled = tags.length >= maxTags;
+    }
+  }
+
+  function addTag(raw) {
+    if (!raw) return;
+    const clean = raw.trim().replace(/^#/, '').replace(/[,;\n]/g, '');
+    if (!clean) return;
+    if (tags.length >= maxTags) {
+      if (window.showToast) window.showToast(`Maximum ${maxTags} tags allowed.`, 'info');
+      return;
+    }
+    if (tags.some(t => t.toLowerCase() === clean.toLowerCase())) {
+      if (window.showToast) window.showToast(`Tag "${clean}" already added.`, 'info');
+      return;
+    }
+    tags.push(clean);
+    render();
+  }
+
+  function removeTag(idx) {
+    tags.splice(idx, 1);
+    render();
+  }
+
+  if (!containerEl._hasInit) {
+    containerEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tag-pill-remove');
+      if (btn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.idx, 10);
+        removeTag(idx);
+      }
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        addTag(inputEl.value);
+        inputEl.value = '';
+      }
+    });
+
+    addBtnEl?.addEventListener('click', (e) => {
+      e.preventDefault();
+      addTag(inputEl.value);
+      inputEl.value = '';
+      inputEl.focus();
+    });
+
+    containerEl._hasInit = true;
+  }
+
+  render();
+
+  return {
+    getTags: () => [...tags],
+    setTags: (newTags) => {
+      tags = [...newTags].filter(Boolean).map(t => t.trim()).slice(0, maxTags);
+      render();
+    },
+    addTag
+  };
+}
+
 window.renderSettingsPage = async function () {
   const profile = await window.ensureTaskaProfile();
   if (!profile) return;
 
-  // 1. Populate form fields
+  // 1. Populate General Profile fields
   const fname = document.getElementById('settingsFname');
   const lname = document.getElementById('settingsLname');
-  const phone = document.getElementById('settingsPhone');
   const loc = document.getElementById('settingsLocation');
   const bio = document.getElementById('settingsBio');
   const genderEl = document.getElementById('settingsGender');
@@ -30,6 +131,7 @@ window.renderSettingsPage = async function () {
 
   if (fname) fname.value = profile.firstName || '';
   if (lname) lname.value = profile.lastName || '';
+  if (loc) loc.value = profile.location || '';
   if (genderEl) genderEl.value = profile.gender || '';
   if (dobEl) {
     dobEl.value = profile.dateOfBirth || '';
@@ -40,13 +142,156 @@ window.renderSettingsPage = async function () {
       ageHint.style.color = 'var(--green-700)';
     }
   }
+  if (bio) bio.value = profile.bio || '';
 
   setupPhoneVerificationAndEditing(profile);
 
-  if (loc) loc.value = profile.location || '';
-  if (bio) bio.value = profile.bio || profile.taskerBio || profile.posterBio || '';
+  // 2. Populate Tasker Profile fields
+  const taskerTitleEl = document.getElementById('settingsTaskerTitle');
+  const rateAmtEl = document.getElementById('settingsTaskerRateAmount');
+  const rateUnitEl = document.getElementById('settingsTaskerRateUnit');
+  const taskerBioEl = document.getElementById('settingsTaskerBio');
 
-  // 2. Populate live profile card preview
+  if (taskerTitleEl) taskerTitleEl.value = profile.taskerTitle || '';
+  if (taskerBioEl) taskerBioEl.value = profile.taskerBio || '';
+
+  if (rateAmtEl && rateUnitEl) {
+    const rawRate = (profile.taskerRate || '').trim();
+    if (rawRate) {
+      let unit = '/hr';
+      let amt = rawRate;
+      if (rawRate.includes('/project')) {
+        unit = '/project';
+        amt = rawRate.replace(/\/project/i, '');
+      } else if (rawRate.includes('/task')) {
+        unit = '/task';
+        amt = rawRate.replace(/\/task/i, '');
+      } else if (rawRate.includes('/day')) {
+        unit = '/day';
+        amt = rawRate.replace(/\/day/i, '');
+      } else if (rawRate.includes('/hr')) {
+        unit = '/hr';
+        amt = rawRate.replace(/\/hr/i, '');
+      }
+      amt = amt.replace(/[₦N$]/g, '').trim();
+      rateAmtEl.value = amt;
+      rateUnitEl.value = unit;
+    } else {
+      rateAmtEl.value = '';
+      rateUnitEl.value = '/hr';
+    }
+  }
+
+  // Initialize Tasker Skills Tag Editor (Max 5 tags)
+  const initialTaskerSkills = (profile.taskerSkills || '').split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  taskerTagEditor = setupTagEditor({
+    containerId: 'taskerSkillsContainer',
+    inputId: 'taskerSkillInput',
+    addBtnId: 'btnAddTaskerSkill',
+    counterId: 'taskerSkillsCounter',
+    initialTags: initialTaskerSkills,
+    maxTags: 5
+  });
+
+  // 3. Populate Task Poster Profile fields
+  const posterNameEl = document.getElementById('settingsPosterName');
+  const posterBioEl = document.getElementById('settingsPosterBio');
+
+  if (posterNameEl) posterNameEl.value = profile.posterName || '';
+  if (posterBioEl) posterBioEl.value = profile.posterBio || '';
+
+  // Initialize Poster Categories Tag Editor (Max 5 tags)
+  const initialPosterCategories = (profile.posterCategories || '').split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  posterTagEditor = setupTagEditor({
+    containerId: 'posterCategoriesContainer',
+    inputId: 'posterCategoryInput',
+    addBtnId: 'btnAddPosterCategory',
+    counterId: 'posterCategoriesCounter',
+    initialTags: initialPosterCategories,
+    maxTags: 5
+  });
+
+  // Wire quick suggestion tag pills
+  document.querySelectorAll('.tag-suggest-pill').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.preventDefault();
+      const target = btn.dataset.target;
+      const tag = btn.dataset.tag;
+      if (target === 'tasker' && taskerTagEditor) {
+        taskerTagEditor.addTag(tag);
+      } else if (target === 'poster' && posterTagEditor) {
+        posterTagEditor.addTag(tag);
+      }
+    };
+  });
+
+  // 4. Adapt Profile Details specifically to User's Active Role
+  const activeRole = localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER';
+  const isTasker = activeRole === 'TASKER';
+
+  const secTasker = document.getElementById('role-section-tasker');
+  const secPoster = document.getElementById('role-section-poster');
+  const roleModeIcon = document.getElementById('roleModeIcon');
+  const roleModeText = document.getElementById('roleModeText');
+  const roleModeSub = document.getElementById('roleModeSub');
+  const btnSwitchMode = document.getElementById('btnSwitchModeSettings');
+  const btnViewActiveProfile = document.getElementById('btnViewActiveProfile');
+  const btnViewProfileLabel = document.getElementById('btnViewProfileLabel');
+  const btnAvatarLabel = document.getElementById('btnAvatarLabel');
+
+  const taskerIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`;
+  const posterIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+
+  const switchRoleInSettings = async (targetRole) => {
+    profile.activeRole = targetRole;
+    window.__taskaProfile = profile;
+    try {
+      localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+      localStorage.setItem('taska_active_role', targetRole);
+    } catch (_) {}
+    if (window.supabaseClient) {
+      try {
+        await window.supabaseClient
+          .from('Profile')
+          .update({ activeRole: targetRole })
+          .eq('id', profile.id);
+      } catch (_) {}
+    }
+    if (window.showToast) {
+      window.showToast(`Switched to ${targetRole === 'TASKER' ? 'Tasker' : 'Poster'} Profile`);
+    }
+    window.location.reload();
+  };
+
+  if (isTasker) {
+    if (secTasker) secTasker.style.display = 'block';
+    if (secPoster) secPoster.style.display = 'none';
+    if (roleModeIcon) roleModeIcon.innerHTML = taskerIcon;
+    if (roleModeText) roleModeText.textContent = 'Tasker Profile Configurations';
+    if (roleModeSub) roleModeSub.textContent = 'Editing professional title, rates, and skills for Tasker Mode';
+    if (btnSwitchMode) {
+      btnSwitchMode.innerHTML = 'Switch to Poster Profile &rarr;';
+      btnSwitchMode.onclick = () => switchRoleInSettings('POSTER');
+    }
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/tasker/profile?id=${profile.id}`;
+    if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Tasker Profile';
+    if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Tasker Photo';
+  } else {
+    if (secTasker) secTasker.style.display = 'none';
+    if (secPoster) secPoster.style.display = 'block';
+    if (roleModeIcon) roleModeIcon.innerHTML = posterIcon;
+    if (roleModeText) roleModeText.textContent = 'Task Poster Profile Configurations';
+    if (roleModeSub) roleModeSub.textContent = 'Editing brand name, categories, and bio for Task Poster Mode';
+    if (btnSwitchMode) {
+      btnSwitchMode.innerHTML = 'Switch to Tasker Profile &rarr;';
+      btnSwitchMode.onclick = () => switchRoleInSettings('TASKER');
+    }
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/poster/profile?id=${profile.id}`;
+    if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Poster Profile';
+    if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Poster Photo / Logo';
+  }
+
+  // 5. Populate live profile card preview with active mode's avatar
   const avatarEl = document.getElementById('profile-big-avatar');
   const nameEl = document.getElementById('profile-full-name');
   const usernameEl = document.getElementById('profile-username-val');
@@ -55,42 +300,22 @@ window.renderSettingsPage = async function () {
   const emailEl = document.getElementById('profile-email-val');
   const phoneValEl = document.getElementById('profile-phone-val');
 
+  const activeAvatar = isTasker
+    ? (profile.taskerAvatarUrl || profile.avatarUrl)
+    : (profile.posterAvatarUrl || profile.avatarUrl);
+
   if (avatarEl) {
-    if (profile.avatarUrl) {
-      avatarEl.innerHTML = `<img src="${profile.avatarUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    if (activeAvatar) {
+      avatarEl.innerHTML = `<img src="${activeAvatar}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
       const initial = (profile.firstName || 'U')[0].toUpperCase();
       avatarEl.textContent = initial;
     }
   }
 
-  const checkIcon = window.TaskaIcons?.verified || `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
-
-  if (nameEl) nameEl.textContent = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
-  if (usernameEl) usernameEl.textContent = `@${profile.username || 'user'}`;
-  if (roleEl) roleEl.textContent = profile.role === 'TASKER' ? 'Tasker' : profile.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
-  if (emailEl) emailEl.textContent = profile.email || '—';
-
-  if (phoneValEl) {
-    if (profile.phone && profile.isPhoneVerified) {
-      phoneValEl.innerHTML = `<span style="color:var(--green-700); font-weight:600; display:inline-flex; align-items:center; gap:3px;">${checkIcon} ${profile.phone}</span>`;
-    } else if (profile.phone) {
-      phoneValEl.textContent = profile.phone;
-    } else {
-      phoneValEl.textContent = '—';
-    }
-  }
-
-  if (verifiedEl) {
-    const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
-    verifiedEl.innerHTML = isVer ? `<span style="color:var(--green-700); display:inline-flex; align-items:center; gap:3px;">${checkIcon} Verified</span>` : 'Unverified';
-  }
-
-  // Setup View Public Profile Button
-  const btnViewLive = document.getElementById('btnViewLiveProfile');
-  if (btnViewLive) {
-    const isTasker = profile.role === 'TASKER';
-    btnViewLive.href = isTasker ? `/tasker/profile?id=${profile.id}` : `/poster/profile?id=${profile.id}`;
+  if (roleEl) {
+    roleEl.textContent = isTasker ? 'Tasker' : 'Task Poster';
+    roleEl.className = `badge ${isTasker ? 'profile-role-badge--tasker' : 'profile-role-badge--poster'}`;
   }
 
   // Real-time input updates for Live Preview
@@ -134,7 +359,7 @@ window.renderSettingsPage = async function () {
     };
   }
 
-  // 3. Populate KYC Status Banner
+  // 6. Populate KYC Status Banner
   const kycSection = document.getElementById('settings-kyc-section');
   if (kycSection) {
     const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
@@ -161,7 +386,7 @@ window.renderSettingsPage = async function () {
     }
   }
 
-  // 4. Setup Internal Module Tab Navigation
+  // 7. Setup Internal Module Tab Navigation
   setupProfileInnerTabs(profile.id);
 
   // Load Reviews & History for the user
@@ -197,11 +422,15 @@ async function loadSettingsReviews(profileId) {
   const ratingBarsEl = document.getElementById('settingsRatingBars');
   const reviewsListEl = document.getElementById('settingsReviewsList');
 
+  const activeRole = localStorage.getItem('taska_active_role') || (window.__taskaProfile ? window.__taskaProfile.activeRole : 'POSTER');
+  const targetRole = activeRole === 'TASKER' ? 'TASKER' : 'POSTER';
+
   try {
     const { data: reviews, error } = await window.supabaseClient
       .from('Review')
       .select('*, reviewer:Profile!reviewerId(*)')
       .eq('revieweeId', profileId)
+      .eq('revieweeRole', targetRole)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -378,12 +607,57 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   const gender = document.getElementById('settingsGender')?.value || null;
   const dateOfBirth = document.getElementById('settingsDob')?.value || null;
 
+  // Tasker fields
+  const taskerTitle = document.getElementById('settingsTaskerTitle')?.value.trim() || null;
+  const taskerBio = document.getElementById('settingsTaskerBio')?.value.trim() || null;
+  const taskerSkills = taskerTagEditor ? taskerTagEditor.getTags().join(', ') : null;
+
+  let rateToSave = null;
+  const rateAmtEl = document.getElementById('settingsTaskerRateAmount');
+  const rateUnitEl = document.getElementById('settingsTaskerRateUnit');
+  const cleanAmt = rateAmtEl ? rateAmtEl.value.trim().replace(/[₦N$]/g, '').trim() : '';
+  if (cleanAmt && cleanAmt !== '0') {
+    const unit = rateUnitEl ? rateUnitEl.value : '/hr';
+    rateToSave = `${cleanAmt}${unit}`;
+  }
+
+  // Poster fields
+  const posterName = document.getElementById('settingsPosterName')?.value.trim() || null;
+  const posterBio = document.getElementById('settingsPosterBio')?.value.trim() || null;
+  const posterCategories = posterTagEditor ? posterTagEditor.getTags().join(', ') : null;
+
   try {
     // Security & Data Integrity:
     // Phone number and phone verification status are NEVER modified directly by client-side form updates.
     // They are updated exclusively by the verified Termii OTP Edge Function upon successful code check.
-    const updatePayload = { firstName, lastName, location, bio, gender, dateOfBirth };
-    if (newAvatarUrl) updatePayload.avatarUrl = newAvatarUrl;
+    const updatePayload = {
+      firstName,
+      lastName,
+      location,
+      bio,
+      gender,
+      dateOfBirth,
+      taskerTitle,
+      taskerRate: rateToSave,
+      taskerSkills: taskerSkills || null,
+      taskerBio,
+      posterName,
+      posterCategories: posterCategories || null,
+    };
+
+    const activeRole = localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER';
+    const isTasker = activeRole === 'TASKER';
+
+    if (newAvatarUrl) {
+      if (isTasker) {
+        updatePayload.taskerAvatarUrl = newAvatarUrl;
+      } else {
+        updatePayload.posterAvatarUrl = newAvatarUrl;
+      }
+      if (!profile.avatarUrl) {
+        updatePayload.avatarUrl = newAvatarUrl;
+      }
+    }
 
     const { error } = await window.supabaseClient
       .from('Profile')

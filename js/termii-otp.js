@@ -7,12 +7,55 @@
 
   const SUPABASE_FN_URL = 'https://nhittvkskzwpeinscxir.supabase.co/functions/v1/termii-otp';
 
+  // ── Phone Formatting & Normalization Helper ──────────────────────────────
+  function parseNigerianPhone(input) {
+    if (!input) return { isValid: false, error: 'Phone number is required.' };
+
+    // Strip all non-digits
+    let digits = String(input).trim().replace(/\D/g, '');
+
+    // Strip leading country code 234 if present
+    if (digits.startsWith('234')) {
+      digits = digits.slice(3);
+    }
+    // Strip leading trunk prefix 0 if present
+    if (digits.startsWith('0')) {
+      digits = digits.slice(1);
+    }
+
+    // Must be 10 digits starting with 7, 8, or 9 (Nigerian mobile prefixes)
+    if (digits.length !== 10 || !/^[789][01]\d{8}$/.test(digits)) {
+      return {
+        isValid: false,
+        error: 'Please enter a valid 11-digit Nigerian phone number (e.g. 0801 234 5678).'
+      };
+    }
+
+    const core10 = digits;
+    const canonical = '+234' + core10;
+    const termiiFormat = '234' + core10;
+    const localFormat = '0' + core10;
+    const display = `+234 ${core10.slice(0, 3)} ${core10.slice(3, 6)} ${core10.slice(6)}`;
+
+    return {
+      isValid: true,
+      core10,
+      canonical,
+      termiiFormat,
+      localFormat,
+      display
+    };
+  }
+
   // ── Core API Helpers ────────────────────────────────────────────────────────
   async function sendPhoneOtp(phone, userId, profileId) {
+    const parsed = parseNigerianPhone(phone);
+    const targetPhone = parsed.isValid ? parsed.termiiFormat : phone;
+
     const res = await fetch(SUPABASE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'send_otp', phone, userId, profileId }),
+      body: JSON.stringify({ action: 'send_otp', phone: targetPhone, userId, profileId }),
     });
     const data = await res.json();
     if (!res.ok || !data.success) {
@@ -22,10 +65,13 @@
   }
 
   async function verifyPhoneOtp(pinId, pin, phone, userId, profileId) {
+    const parsed = parseNigerianPhone(phone);
+    const targetPhone = parsed.isValid ? parsed.termiiFormat : phone;
+
     const res = await fetch(SUPABASE_FN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'verify_otp', pinId, pin, phone, userId, profileId }),
+      body: JSON.stringify({ action: 'verify_otp', pinId, pin, phone: targetPhone, userId, profileId }),
     });
     const data = await res.json();
     if (!res.ok || !data.success || !data.verified) {
@@ -493,6 +539,7 @@
   }
 
   // ── Global Export ──────────────────────────────────────────────────────────
+  window.parseNigerianPhone = parseNigerianPhone;
   window.sendPhoneOtp = sendPhoneOtp;
   window.verifyPhoneOtp = verifyPhoneOtp;
   window.checkPhoneVerificationStatus = checkPhoneVerificationStatus;

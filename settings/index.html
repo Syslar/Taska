@@ -13,6 +13,150 @@
   <link rel="stylesheet" href="/css/styles.css?v=19">
   <style>
     .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    .role-settings-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 22px;
+      background: var(--bg-soft, #f1f5f9);
+      padding: 5px;
+      border-radius: 12px;
+      width: fit-content;
+    }
+    .role-settings-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted, #64748b);
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .role-settings-btn:hover {
+      color: var(--green-900, #064e3b);
+    }
+    .role-settings-btn.is-active {
+      background: #ffffff;
+      color: var(--green-900, #064e3b);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .tag-editor-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: var(--radius-sm, 10px);
+      background: var(--surface, #ffffff);
+      min-height: 48px;
+      transition: border-color 0.15s ease;
+    }
+    .tag-editor-container:focus-within {
+      border-color: var(--green-700);
+      box-shadow: 0 0 0 3px rgba(18, 114, 73, 0.12);
+    }
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #ECFDF5;
+      color: var(--green-800);
+      border: 1px solid #A7F3D0;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      animation: fadeIn 0.15s ease;
+    }
+    .tag-pill-remove {
+      background: none;
+      border: none;
+      color: var(--green-700);
+      font-size: 0.95rem;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tag-pill-remove:hover {
+      color: #b91c1c;
+    }
+    .tag-input-field {
+      flex: 1;
+      min-width: 140px;
+      border: none;
+      outline: none;
+      font-size: 0.86rem;
+      background: transparent;
+      color: var(--body, #1e293b);
+    }
+    .tag-suggest-pill {
+      background: var(--bg-soft, #f8fafc);
+      border: 1px solid var(--line, #e2e8f0);
+      color: var(--muted, #64748b);
+      font-size: 0.74rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tag-suggest-pill:hover {
+      background: #ECFDF5;
+      color: var(--green-800);
+      border-color: #A7F3D0;
+    }
+    .rate-input-wrap {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: var(--radius-sm, 10px);
+      overflow: hidden;
+      background: var(--surface, #ffffff);
+      transition: border-color 0.15s ease;
+    }
+    .rate-input-wrap:focus-within {
+      border-color: var(--green-700);
+      box-shadow: 0 0 0 3px rgba(18, 114, 73, 0.12);
+    }
+    .rate-prefix {
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      background: var(--bg-soft, #f8fafc);
+      color: var(--green-900, #064e3b);
+      font-weight: 700;
+      font-size: 1.05rem;
+      border-right: 1px solid var(--line, #e2e8f0);
+    }
+    .rate-input-clean {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      color: var(--body);
+      background: transparent;
+    }
+    .rate-select-clean {
+      border: none;
+      border-left: 1px solid var(--line, #e2e8f0);
+      outline: none;
+      background: var(--bg-soft, #f8fafc);
+      padding: 0 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--green-800);
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -76,11 +220,11 @@
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
             <label for="settingsAvatarUpload" class="btn btn-secondary btn-sm" style="cursor: pointer; border-radius: 20px; font-size: 0.82rem; padding: 7px 14px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Change Photo
+              <span id="btnAvatarLabel">Change Photo</span>
             </label>
-            <a id="btnViewLiveProfile" href="#" class="btn btn-primary btn-sm" style="border-radius: 20px; font-size: 0.82rem; padding: 7px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
+            <a id="btnViewActiveProfile" href="/tasker/profile" class="btn btn-secondary btn-sm" style="border-radius: 20px; font-size: 0.82rem; padding: 7px 14px; text-decoration:none; display:inline-flex; align-items:center; gap:5px;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-              View Public Profile
+              <span id="btnViewProfileLabel">View Profile</span>
             </a>
           </div>
         </div>
@@ -94,72 +238,211 @@
 
         <!-- TAB 1: EDIT PROFILE FORM -->
         <div id="inner-panel-edit">
+          
+          <!-- Active Mode Banner (Adapts automatically based on active profile mode) -->
+          <div id="roleModeBanner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:20px; padding:12px 16px; background:var(--bg-soft, #f8fafc); border:1px solid var(--line, #e2e8f0); border-radius:var(--radius-sm, 10px);">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="roleModeIcon" style="color:var(--green-700); display:flex; align-items:center;"></span>
+              <div>
+                <span id="roleModeText" style="font-size:0.88rem; font-weight:700; color:var(--green-900);">Tasker Profile Configurations</span>
+                <span id="roleModeSub" style="display:block; font-size:0.75rem; color:var(--muted); margin-top:1px;">Showing settings for your active mode</span>
+              </div>
+            </div>
+            <button type="button" id="btnSwitchModeSettings" class="btn btn-sm btn-secondary" style="font-size:0.78rem; padding:5px 14px; border-radius:20px; cursor:pointer;">
+              Switch Profile Mode &rarr;
+            </button>
+          </div>
+
           <form id="settingsProfileForm">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
-              <div class="field-group">
-                <label class="field-label" for="settingsFname">First name</label>
-                <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+
+            <!-- 1. TASKER PROFILE SECTION -->
+            <div class="settings-role-section" id="role-section-tasker">
+              <div style="margin-bottom: 20px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h3 style="font-size: 1.05rem; font-weight:700; color:var(--green-900); margin:0;">Tasker Public Profile</h3>
+                  <span class="profile-role-badge profile-role-badge--tasker" style="font-size:0.72rem; padding:2px 8px; border-radius:12px; pointer-events:none;" title="Platform Role Badge (Uneditable)">Tasker</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--muted); margin: 4px 0 0 0;">Manage your profession, starting rate, skills & services, and tasker bio.</p>
               </div>
-              <div class="field-group">
-                <label class="field-label" for="settingsLname">Last name</label>
-                <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+
+              <!-- Profession / Specialization -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsTaskerTitle">Profession / Specialization</label>
+                <input class="text-input" type="text" id="settingsTaskerTitle" placeholder="e.g. Software Developer, Interior Painter, Plumber, Handyman">
+                <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:3px; display:block;">Shown directly below your name on your public tasker card.</span>
               </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
-              <div class="field-group">
+
+              <!-- Rate & Duration -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsTaskerRateAmount">Starting Price &amp; Duration (Optional)</label>
+                <div class="rate-input-wrap">
+                  <span class="rate-prefix">₦</span>
+                  <input class="rate-input-clean" type="text" id="settingsTaskerRateAmount" placeholder="e.g. 50,000">
+                  <select class="rate-select-clean" id="settingsTaskerRateUnit" aria-label="Rate duration">
+                    <option value="/hr">/hr (Per hour)</option>
+                    <option value="/day">/day (Per day)</option>
+                    <option value="/task">/task (Per task)</option>
+                    <option value="/project">/project (Per project)</option>
+                  </select>
+                </div>
+                <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;">Leave the price blank if you prefer not to display a rate and let clients negotiate with you.</span>
+              </div>
+
+              <!-- Skills & Services (Max 5 tags) -->
+              <div class="field-group" style="margin-bottom: 18px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                  <label class="field-label" for="settingsPhone" style="margin-bottom:0;">Phone number</label>
-                  <div id="phoneVerifyStatus" style="display:inline-flex; align-items:center; gap:6px;"></div>
+                  <label class="field-label" style="margin-bottom:0;">Skills &amp; Services Tags</label>
+                  <span id="taskerSkillsCounter" style="font-size:0.76rem; color:var(--muted); font-weight:600;">0/5 tags added</span>
                 </div>
-                <div class="phone-input-wrap" id="settingsPhoneWrap">
-                  <span class="phone-prefix">+234</span>
-                  <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567" autocomplete="tel">
-                  <button type="button" id="btnEditPhone" class="phone-action-btn" title="Change phone number" aria-label="Change phone number" style="display:none;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                  </button>
+                
+                <div class="tag-editor-container" id="taskerSkillsContainer">
+                  <input type="text" class="tag-input-field" id="taskerSkillInput" placeholder="+ Type a skill and press Enter">
+                  <button type="button" class="btn btn-sm btn-secondary" id="btnAddTaskerSkill" style="padding:4px 10px; font-size:0.75rem; border-radius:14px;">Add</button>
                 </div>
-                <span class="field-hint" id="phoneHelperHint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;"></span>
+                <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;">Add up to 5 tags at most. These tags help Taska recommend relevant tasks to you.</span>
+
+                <!-- Quick suggestion pills -->
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                  <span style="font-size:0.72rem; color:var(--muted); font-weight:600;">Popular suggestions:</span>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Web Development">+ Web Development</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Handyman">+ Handyman</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Graphic Design">+ Graphic Design</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Delivery">+ Delivery</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Cleaning">+ Cleaning</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Plumbing">+ Plumbing</button>
+                  <button type="button" class="tag-suggest-pill" data-target="tasker" data-tag="Electrical">+ Electrical</button>
+                </div>
               </div>
 
-              <div class="field-group">
-                <label class="field-label" for="settingsLocation">Location</label>
-                <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Lekki, Lagos">
+              <!-- Tasker Bio -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsTaskerBio">Tasker Bio &amp; Experience</label>
+                <textarea class="text-input" id="settingsTaskerBio" rows="3" placeholder="Describe your experience, work ethics, certifications, or past projects..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
               </div>
             </div>
 
-            <!-- Gender and Date of Birth (Age) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
-              <div class="field-group">
-                <label class="field-label" for="settingsGender">Gender</label>
-                <select class="text-input" id="settingsGender" style="width:100%;">
-                  <option value="">Select Gender</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
+            <!-- 2. TASK POSTER PROFILE SECTION -->
+            <div class="settings-role-section" id="role-section-poster" style="display:none;">
+              <div style="margin-bottom: 20px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h3 style="font-size: 1.05rem; font-weight:700; color:var(--green-900); margin:0;">Task Poster Public Profile</h3>
+                  <span class="profile-role-badge profile-role-badge--poster" style="font-size:0.72rem; padding:2px 8px; border-radius:12px; pointer-events:none;" title="Platform Role Badge (Uneditable)">Task Poster</span>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--muted); margin: 4px 0 0 0;">Manage your poster display name, categories you hire for, and poster bio.</p>
               </div>
 
-              <div class="field-group">
-                <label class="field-label" for="settingsDob">Date of Birth (Age)</label>
-                <input class="text-input" type="date" id="settingsDob" max="2012-12-31">
-                <span class="field-hint" id="settingsAgeHint" style="font-size:0.75rem; color:var(--muted); margin-top:3px; display:block;">Required for age-restricted tasks.</span>
+              <!-- Poster / Organization Name -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsPosterName">Business / Display Name (Optional)</label>
+                <input class="text-input" type="text" id="settingsPosterName" placeholder="e.g. Forsythe Tech or Chiamaka O.">
+                <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:3px; display:block;">Shown on your posted tasks. If left blank, your full name is displayed.</span>
+              </div>
+
+              <!-- Categories Hired For (Max 5 tags) -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                  <label class="field-label" style="margin-bottom:0;">Categories Hired For</label>
+                  <span id="posterCategoriesCounter" style="font-size:0.76rem; color:var(--muted); font-weight:600;">0/5 tags added</span>
+                </div>
+                
+                <div class="tag-editor-container" id="posterCategoriesContainer">
+                  <input type="text" class="tag-input-field" id="posterCategoryInput" placeholder="+ Type a category and press Enter">
+                  <button type="button" class="btn btn-sm btn-secondary" id="btnAddPosterCategory" style="padding:4px 10px; font-size:0.75rem; border-radius:14px;">Add</button>
+                </div>
+                <span class="field-hint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;">Add up to 5 categories you regularly hire taskers for.</span>
+
+                <!-- Quick suggestion pills -->
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+                  <span style="font-size:0.72rem; color:var(--muted); font-weight:600;">Popular categories:</span>
+                  <button type="button" class="tag-suggest-pill" data-target="poster" data-tag="Home Repair">+ Home Repair</button>
+                  <button type="button" class="tag-suggest-pill" data-target="poster" data-tag="Tech & Design">+ Tech &amp; Design</button>
+                  <button type="button" class="tag-suggest-pill" data-target="poster" data-tag="Delivery & Errands">+ Delivery &amp; Errands</button>
+                  <button type="button" class="tag-suggest-pill" data-target="poster" data-tag="Cleaning">+ Cleaning</button>
+                  <button type="button" class="tag-suggest-pill" data-target="poster" data-tag="Events & Hospitality">+ Events</button>
+                </div>
+              </div>
+
+              <!-- Poster Bio -->
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsPosterBio">Poster Bio / About</label>
+                <textarea class="text-input" id="settingsPosterBio" rows="3" placeholder="Tell taskers about what you do, what kind of work you post, or your expectations..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
               </div>
             </div>
 
-            <div class="field-group" style="margin-bottom: 24px;">
-              <label class="field-label" for="settingsBio">Bio & Summary</label>
-              <textarea class="text-input" id="settingsBio" rows="3" placeholder="Tell other users and clients about your skills, experience, or what you do..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
+            <!-- 3. PERSONAL & ACCOUNT DETAILS SECTION (Displayed below active profile configurations) -->
+            <div class="settings-role-section" id="role-section-general" style="display:block; margin-top:24px; padding-top:22px; border-top:1px solid var(--line-soft);">
+              <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 1.05rem; font-weight:700; color:var(--green-900); margin:0;">Personal &amp; Contact Details</h3>
+                <p style="font-size: 0.85rem; color: var(--muted); margin: 4px 0 0 0;">These core details identify your account across both Tasker and Poster modes.</p>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+                <div class="field-group">
+                  <label class="field-label" for="settingsFname">First name</label>
+                  <input class="text-input" type="text" id="settingsFname" required placeholder="e.g. John">
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="settingsLname">Last name</label>
+                  <input class="text-input" type="text" id="settingsLname" required placeholder="e.g. Doe">
+                </div>
+              </div>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+                <div class="field-group">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label class="field-label" for="settingsPhone" style="margin-bottom:0;">Phone number</label>
+                    <div id="phoneVerifyStatus" style="display:inline-flex; align-items:center; gap:6px;"></div>
+                  </div>
+                  <div class="phone-input-wrap" id="settingsPhoneWrap">
+                    <span class="phone-prefix">+234</span>
+                    <input class="text-input phone-prefix-input" type="tel" id="settingsPhone" required placeholder="803 123 4567" autocomplete="tel">
+                    <button type="button" id="btnEditPhone" class="phone-action-btn" title="Change phone number" aria-label="Change phone number" style="display:none;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    </button>
+                  </div>
+                  <span class="field-hint" id="phoneHelperHint" style="font-size:0.75rem; color:var(--muted); margin-top:4px; display:block;"></span>
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="settingsLocation">Location (City, State)</label>
+                  <input class="text-input" type="text" id="settingsLocation" placeholder="e.g. Apata, Ibadan or Lekki, Lagos">
+                </div>
+              </div>
+
+              <!-- Gender and Date of Birth (Age) -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-bottom: 18px;">
+                <div class="field-group">
+                  <label class="field-label" for="settingsGender">Gender</label>
+                  <select class="text-input" id="settingsGender" style="width:100%;">
+                    <option value="">Select Gender</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+
+                <div class="field-group">
+                  <label class="field-label" for="settingsDob">Date of Birth (Age)</label>
+                  <input class="text-input" type="date" id="settingsDob" max="2012-12-31">
+                  <span class="field-hint" id="settingsAgeHint" style="font-size:0.75rem; color:var(--muted); margin-top:3px; display:block;">Required for age-restricted tasks.</span>
+                </div>
+              </div>
+
+              <div class="field-group" style="margin-bottom: 18px;">
+                <label class="field-label" for="settingsBio">General Account Bio</label>
+                <textarea class="text-input" id="settingsBio" rows="3" placeholder="General summary about you on Taska..." style="resize: vertical; min-height: 86px; line-height: 1.5;"></textarea>
+              </div>
             </div>
 
             <!-- Action & Tip Footer -->
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding-top: 20px; border-top: 1px solid var(--line-soft);">
               <div style="font-size: 0.84rem; color: var(--muted); display: flex; align-items: center; gap: 6px; max-width: 480px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--green-700); flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                <span>Changes reflect instantly across your public profile card and task applications.</span>
+                <span>Changes save across both your Tasker and Poster profiles immediately.</span>
               </div>
               <button type="submit" class="btn btn-primary" id="settingsSaveBtn" style="min-width: 150px;">Save Changes</button>
             </div>
+
           </form>
         </div>
 

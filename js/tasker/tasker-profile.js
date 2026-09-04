@@ -49,7 +49,6 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   const rawFullName = `${profileToRender.firstName || ''} ${profileToRender.lastName || ''}`.trim() || 'Taska User';
   const fullName = window.escapeHtml(rawFullName);
   const initials = `${(profileToRender.firstName || '')[0] || ''}${(profileToRender.lastName || '')[0] || ''}`.toUpperCase() || 'U';
-  const roleLabel = profileToRender.role === 'TASKER' ? 'Tasker' : profileToRender.role === 'POSTER' ? 'Task Poster' : 'Poster & Tasker';
   const checkIcon = window.TaskaIcons?.verified || '';
 
   // 1. Populate Left Identity Card
@@ -60,11 +59,13 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   const taglineEl = document.getElementById('profileTagline');
   const rateBadgeEl = document.getElementById('profileRateBadge');
   const rateTextEl = document.getElementById('profileRateText');
+  const rateRowEl = document.getElementById('aboutDetailRateRow');
   const locationEl = document.getElementById('profileLocationText');
 
   if (avatarEl) {
-    if (profileToRender.avatarUrl) {
-      avatarEl.innerHTML = `<img src="${profileToRender.avatarUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    const activeAvatar = profileToRender.taskerAvatarUrl || profileToRender.avatarUrl;
+    if (activeAvatar) {
+      avatarEl.innerHTML = `<img src="${activeAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
       avatarEl.textContent = initials;
     }
@@ -75,30 +76,49 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   }
 
   if (nameEl) nameEl.textContent = rawFullName;
-  if (roleEl) roleEl.textContent = roleLabel;
 
+  // Uneditable platform badge: Tasker Profile MUST always show 'Tasker'
+  if (roleEl) {
+    roleEl.textContent = 'Tasker';
+    roleEl.className = 'profile-role-badge profile-role-badge--tasker';
+  }
+
+  // Profession / Specialization
   if (taglineEl) {
-    if (profileToRender.taskerTitle) {
-      taglineEl.textContent = profileToRender.taskerTitle;
+    if (profileToRender.taskerTitle && profileToRender.taskerTitle.trim()) {
+      taglineEl.textContent = profileToRender.taskerTitle.trim();
       taglineEl.style.display = 'block';
     } else {
       taglineEl.style.display = 'none';
     }
   }
 
-  if (rateBadgeEl && rateTextEl) {
-    if (profileToRender.taskerRate) {
-      const rateVal = profileToRender.taskerRate.startsWith('₦') ? profileToRender.taskerRate : `₦${profileToRender.taskerRate}`;
-      rateTextEl.textContent = rateVal.includes('/hr') ? rateVal : `${rateVal}/hr`;
-      rateBadgeEl.style.display = 'inline-flex';
-    } else {
-      rateBadgeEl.style.display = 'none';
+  // Hourly Rate Badge & About Row: If not set, it should NOT show at all!
+  const hasRate = Boolean(profileToRender.taskerRate && profileToRender.taskerRate.trim());
+  if (hasRate) {
+    let rateVal = profileToRender.taskerRate.trim();
+    if (!rateVal.startsWith('₦') && !rateVal.startsWith('N')) {
+      rateVal = `₦${rateVal}`;
+    } else if (rateVal.startsWith('N')) {
+      rateVal = `₦${rateVal.slice(1)}`;
     }
+    if (rateBadgeEl && rateTextEl) {
+      rateTextEl.textContent = rateVal;
+      rateBadgeEl.style.display = 'inline-flex';
+    }
+    if (rateRowEl) {
+      const aboutDetailRate = document.getElementById('aboutDetailRate');
+      if (aboutDetailRate) aboutDetailRate.textContent = rateVal;
+      rateRowEl.style.display = 'flex';
+    }
+  } else {
+    if (rateBadgeEl) rateBadgeEl.style.display = 'none';
+    if (rateRowEl) rateRowEl.style.display = 'none';
   }
 
-  if (locationEl) locationEl.textContent = profileToRender.location || 'Lagos, Nigeria';
+  if (locationEl) locationEl.textContent = profileToRender.location || 'Nigeria';
 
-  // Member Since
+  // Member Since (Default platform info - uneditable)
   const statMemberSince = document.getElementById('statMemberSince');
   const aboutDetailMemberSince = document.getElementById('aboutDetailMemberSince');
 
@@ -111,15 +131,15 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   if (statMemberSince) statMemberSince.textContent = memberSinceStr;
   if (aboutDetailMemberSince) aboutDetailMemberSince.textContent = memberSinceStr;
 
-  // Skills chips
+  // Skills & Services chips (Max 5 tags)
   const skillChipsEl = document.getElementById('skillChips');
   const aboutDetailSkills = document.getElementById('aboutDetailSkills');
-  const rawSkills = profileToRender.taskerSkills || profileToRender.skills || '';
-  const skillsList = rawSkills.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  const rawSkills = profileToRender.taskerSkills || '';
+  const skillsList = rawSkills.split(/[,;\n]/).map(s => s.trim()).filter(Boolean).slice(0, 5);
 
   const chipsHtml = skillsList.length > 0
     ? skillsList.map(s => `<span class="chip">${window.escapeHtml(s)}</span>`).join('')
-    : '<span class="chip" style="background:var(--mint-050); color:var(--green-800);">General Services</span>';
+    : '<span style="color:var(--muted); font-size:0.82rem;">No skills listed yet.</span>';
 
   if (skillChipsEl) skillChipsEl.innerHTML = chipsHtml;
   if (aboutDetailSkills) aboutDetailSkills.innerHTML = chipsHtml;
@@ -141,14 +161,12 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   const aboutDetailLocation = document.getElementById('aboutDetailLocation');
   const aboutDetailRole = document.getElementById('aboutDetailRole');
   const aboutDetailSpecialization = document.getElementById('aboutDetailSpecialization');
-  const aboutDetailRate = document.getElementById('aboutDetailRate');
   const aboutDetailVerification = document.getElementById('aboutDetailVerification');
 
-  if (aboutBioText) aboutBioText.textContent = profileToRender.bio || profileToRender.taskerBio || 'This user has not added a bio yet.';
-  if (aboutDetailLocation) aboutDetailLocation.textContent = profileToRender.location || 'Lagos, Nigeria';
-  if (aboutDetailRole) aboutDetailRole.textContent = roleLabel;
+  if (aboutBioText) aboutBioText.textContent = profileToRender.taskerBio || profileToRender.bio || 'This user has not added a bio yet.';
+  if (aboutDetailLocation) aboutDetailLocation.textContent = profileToRender.location || 'Nigeria';
+  if (aboutDetailRole) aboutDetailRole.textContent = 'Tasker';
   if (aboutDetailSpecialization) aboutDetailSpecialization.textContent = profileToRender.taskerTitle || 'General Tasker';
-  if (aboutDetailRate) aboutDetailRate.textContent = profileToRender.taskerRate || 'Negotiable';
   if (aboutDetailVerification) {
     const isVer = profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED';
     aboutDetailVerification.innerHTML = isVer
@@ -159,7 +177,7 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   // 3. Load Dynamic Reviews & Breakdown
   await loadProfileReviews(profileToRender.id);
 
-  // 4. Load Dynamic Task History & Real Earnings
+  // 4. Load Dynamic Task History (ONLY Completed Tasks for Taskers)
   await loadProfileTaskHistory(profileToRender.id);
 };
 
@@ -178,6 +196,7 @@ async function loadProfileReviews(profileId) {
       .from('Review')
       .select('*, reviewer:Profile!reviewerId(*)')
       .eq('revieweeId', profileId)
+      .eq('revieweeRole', 'TASKER')
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -222,7 +241,7 @@ async function loadProfileReviews(profileId) {
       if (reviewsList) {
         reviewsList.innerHTML = `
           <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">
-            No reviews yet for this user.
+            No reviews yet for this tasker.
           </div>
         `;
       }
@@ -264,57 +283,51 @@ async function loadProfileReviews(profileId) {
   }
 }
 
-// Dynamic Task History & Real Completed Tasks Stats
+// Dynamic Task History — Tasker Public Profile: ONLY show completed tasks they completed as a tasker!
 async function loadProfileTaskHistory(profileId) {
   const historyList = document.getElementById('historyTasksList');
   if (!historyList) return;
 
   try {
-    const { data: tasks, error } = await window.supabaseClient
+    const { data: completedTasks, error } = await window.supabaseClient
       .from('Task')
       .select('*')
-      .or(`posterId.eq.${profileId},assignedTo.eq.${profileId}`)
-      .order('createdAt', { ascending: false })
-      .limit(20);
+      .eq('assignedTo', profileId)
+      .eq('status', 'COMPLETED')
+      .order('updatedAt', { ascending: false })
+      .limit(30);
 
     if (error) throw error;
 
-    const completedTasks = tasks ? tasks.filter((t) => t.status === 'COMPLETED') : [];
+    const count = completedTasks ? completedTasks.length : 0;
 
-    // Calculate dynamic stats
+    // Calculate dynamic stats (Tasks completed)
     const statTasksDone = document.getElementById('statTasksDone');
-    const statEarnings = document.getElementById('statEarnings');
     const aboutDetailTasks = document.getElementById('aboutDetailTasks');
 
-    if (statTasksDone) statTasksDone.textContent = completedTasks.length;
-    if (aboutDetailTasks) aboutDetailTasks.textContent = completedTasks.length;
+    if (statTasksDone) statTasksDone.textContent = count;
+    if (aboutDetailTasks) aboutDetailTasks.textContent = count;
 
-    if (statEarnings) {
-      const totalEarned = completedTasks
-        .filter((t) => t.assignedTo === profileId)
-        .reduce((sum, t) => sum + Number(t.budget || 0), 0);
-      statEarnings.textContent = window.formatNaira ? window.formatNaira(totalEarned) : `₦${totalEarned.toLocaleString()}`;
-    }
-
-    if (!tasks || tasks.length === 0) {
-      historyList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">No task history yet.</div>';
+    if (!completedTasks || completedTasks.length === 0) {
+      historyList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">No completed tasks yet.</div>';
       return;
     }
 
-    historyList.innerHTML = tasks.map((t) => {
-      const taskDateStr = new Date(t.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
+    historyList.innerHTML = completedTasks.map((t) => {
+      const taskDateStr = new Date(t.updatedAt || t.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
       const safeTitle = window.escapeHtml(t.title || 'Task');
       const safeCategory = window.escapeHtml(t.category || 'General');
-      const budgetStr = t.budget != null ? (window.formatNaira ? window.formatNaira(t.budget) : `₦${t.budget}`) : 'Open';
+      const budgetStr = t.budget != null ? (window.formatNaira ? window.formatNaira(t.budget) : `₦${Number(t.budget).toLocaleString()}`) : 'Paid';
 
       return `
         <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--line-soft);">
           <div>
             <div style="font-weight:600; font-size:0.92rem; color:var(--green-900);">${safeTitle}</div>
-            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${safeCategory} · <span class="mono">${budgetStr}</span> · ${taskDateStr}</div>
+            <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${safeCategory} · <span class="mono">${budgetStr}</span> · Completed ${taskDateStr}</div>
           </div>
-          <span class="status ${t.status === 'COMPLETED' ? 'status-closed' : 'status-open'}" style="font-size:0.75rem;">
-            ${t.status}
+          <span class="status status-closed" style="font-size:0.75rem; display:inline-flex; align-items:center; gap:4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            COMPLETED
           </span>
         </div>
       `;
@@ -487,26 +500,26 @@ document.addEventListener('DOMContentLoaded', () => {
         .insert({
           reviewerId: myProfile.id,
           revieweeId: window.currentViewingProfile.id,
+          revieweeRole: 'TASKER',
           rating: selectedRatingValue,
           comment: comment || ''
         });
 
       if (error) throw error;
 
-      // Recalculate average rating & review count
+      // Recalculate average rating & review count for Tasker role
       const { data: allReviews } = await window.supabaseClient
         .from('Review')
         .select('rating')
-        .eq('revieweeId', window.currentViewingProfile.id);
+        .eq('revieweeId', window.currentViewingProfile.id)
+        .eq('revieweeRole', 'TASKER');
 
-      if (allReviews && allReviews.length > 0) {
-        const count = allReviews.length;
-        const avg = allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count;
-        await window.supabaseClient
-          .from('Profile')
-          .update({ averageRating: avg, reviewCount: count })
-          .eq('id', window.currentViewingProfile.id);
-      }
+      const count = allReviews ? allReviews.length : 0;
+      const avg = count > 0 ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count : null;
+      await window.supabaseClient
+        .from('Profile')
+        .update({ taskerRating: avg, taskerReviewsCount: count, averageRating: avg, totalReviews: count })
+        .eq('id', window.currentViewingProfile.id);
 
       closeReviewModal();
       const commentInput = document.getElementById('reviewComment');

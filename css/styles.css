@@ -775,6 +775,15 @@ button { cursor: pointer; }
   flex-wrap: wrap;
   gap: 10px;
 }
+.footer-bottom a.syslar-link {
+  color: var(--green-700);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.footer-bottom a.syslar-link:hover {
+  color: var(--green-600);
+  text-decoration: underline;
+}
 
 .mobile-only { display: none !important; }
 .desktop-only { display: flex !important; }
@@ -1031,32 +1040,66 @@ button { cursor: pointer; }
 
 
 
-/* ---- Toast ---- */
+/* ---- Toast Notification (Elevated above all modals & backdrops) ---- */
 .toast {
   position: fixed;
-  bottom: 24px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%) translateY(20px);
-  background: var(--ink);
+  background: var(--ink, #12201A);
   color: #fff;
-  padding: 14px 22px;
-  border-radius: var(--radius-pill);
+  padding: 13px 22px 16px;
+  border-radius: var(--radius-md, 14px);
   font-size: 0.88rem;
   font-weight: 500;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: var(--shadow-lg);
-  z-index: 300;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.38), 0 2px 8px rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  z-index: 2147483647; /* Highest possible z-index to appear on top of modals, drawers, and blurred backdrops */
   opacity: 0;
   pointer-events: none;
-  transition: opacity .2s ease, transform .2s ease;
+  transition: opacity .2s ease, transform .25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  max-width: min(92vw, 480px);
+  box-sizing: border-box;
 }
 .toast.is-visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+  pointer-events: auto; /* Allows mouse hover to pause */
+  cursor: default;
 }
-.toast-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-500); }
+.toast-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-500, #229150);
+  flex-shrink: 0;
+  box-shadow: 0 0 8px rgba(34, 145, 80, 0.7);
+}
+.toast-msg {
+  flex: 1;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.toast-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  background: var(--green-500, #229150);
+  border-radius: 0 2px 2px 0;
+  will-change: width;
+}
 
 /* ==========================================================================
    APP SHELL LAYOUT, SIDEBAR, TOPBAR & HEADER (Shared across all app pages)
@@ -1700,9 +1743,71 @@ button { cursor: pointer; }
   }
 }
 
+/* ── Responsive Chats & Messaging Component ───────────────────────────── */
+.chat-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  min-height: 580px;
+  height: calc(100vh - 190px);
+  max-height: 840px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.chat-threads-panel {
+  border-right: 1px solid var(--line);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  min-width: 0;
+  height: 100%;
+}
+.chat-conversation-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  background: var(--paper);
+}
+.chat-mobile-back-btn {
+  display: none;
+}
+.chat-thread-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  transition: background 0.15s ease, transform 0.1s ease;
+  user-select: none;
+}
+.chat-thread-item:hover {
+  background: var(--mint-050);
+}
+.chat-thread-item.is-active {
+  background: var(--mint-100) !important;
+}
+
 @media (max-width: 768px) {
   .chat-container {
     grid-template-columns: 1fr !important;
+    height: calc(100vh - 150px) !important;
+    min-height: 480px !important;
+  }
+  .chat-container:not(.has-active-chat) .chat-conversation-panel {
+    display: none !important;
+  }
+  .chat-container.has-active-chat .chat-threads-panel {
+    display: none !important;
+  }
+  .chat-mobile-back-btn {
+    display: inline-flex !important;
   }
 }
 

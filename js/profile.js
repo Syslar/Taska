@@ -174,11 +174,14 @@ async function loadProfileReviews(profileId) {
   const ratingStarsBigEl = document.getElementById('ratingStarsBig');
   const ratingBarsEl = document.getElementById('ratingBars');
 
+  const targetRole = (window.currentViewingProfile && window.currentViewingProfile.role === 'POSTER') ? 'POSTER' : 'TASKER';
+
   try {
     const { data: reviews, error } = await window.supabaseClient
       .from('Review')
       .select('*, reviewer:Profile!reviewerId(*)')
       .eq('revieweeId', profileId)
+      .eq('revieweeRole', targetRole)
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -490,12 +493,15 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSubmitReview.disabled = true;
     btnSubmitReview.textContent = 'Submitting review...';
 
+    const targetRole = (window.currentViewingProfile && window.currentViewingProfile.role === 'POSTER') ? 'POSTER' : 'TASKER';
+
     try {
       const { error } = await window.supabaseClient
         .from('Review')
         .insert({
           reviewerId: myProfile.id,
           revieweeId: window.currentViewingProfile.id,
+          revieweeRole: targetRole,
           rating: selectedRatingValue,
           comment: comment || ''
         });
@@ -506,7 +512,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const { data: allReviews } = await window.supabaseClient
         .from('Review')
         .select('rating')
-        .eq('revieweeId', window.currentViewingProfile.id);
+        .eq('revieweeId', window.currentViewingProfile.id)
+        .eq('revieweeRole', targetRole);
 
       if (allReviews && allReviews.length > 0) {
         const count = allReviews.length;

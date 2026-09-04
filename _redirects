@@ -80,6 +80,7 @@
 /poster/profile                /poster/profile/index.html       200!
 
 /wallet                        /wallet/index.html               200!
+/wallet/transactions           /wallet/transactions/index.html  200!
 /chats                         /chats/index.html                200!
 /settings                      /settings/index.html             200!
 /settings/account              /settings/account.html           200!

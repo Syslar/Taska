@@ -61,8 +61,9 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   const locationEl = document.getElementById('profileLocationText');
 
   if (avatarEl) {
-    if (profileToRender.avatarUrl) {
-      avatarEl.innerHTML = `<img src="${profileToRender.avatarUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
+    const activeAvatar = profileToRender.posterAvatarUrl || profileToRender.avatarUrl;
+    if (activeAvatar) {
+      avatarEl.innerHTML = `<img src="${activeAvatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
     } else {
       avatarEl.textContent = initials;
     }
@@ -73,18 +74,23 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   }
 
   if (nameEl) nameEl.textContent = rawFullName;
-  if (roleEl) roleEl.textContent = roleLabel;
+
+  // Uneditable platform badge: Poster Profile MUST always show 'Task Poster'
+  if (roleEl) {
+    roleEl.textContent = 'Task Poster';
+    roleEl.className = 'profile-role-badge profile-role-badge--poster';
+  }
 
   if (taglineEl) {
-    if (profileToRender.posterName) {
-      taglineEl.textContent = profileToRender.posterName;
+    if (profileToRender.posterName && profileToRender.posterName.trim()) {
+      taglineEl.textContent = profileToRender.posterName.trim();
       taglineEl.style.display = 'block';
     } else {
       taglineEl.style.display = 'none';
     }
   }
 
-  if (locationEl) locationEl.textContent = profileToRender.location || 'Lagos, Nigeria';
+  if (locationEl) locationEl.textContent = profileToRender.location || 'Nigeria';
 
   // Member Since
   const statMemberSince = document.getElementById('statMemberSince');
@@ -99,15 +105,15 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   if (statMemberSince) statMemberSince.textContent = memberSinceStr;
   if (aboutDetailMemberSince) aboutDetailMemberSince.textContent = memberSinceStr;
 
-  // Categories / Hires for chips
+  // Categories / Hires for chips (Max 5 tags)
   const skillChipsEl = document.getElementById('skillChips');
   const aboutDetailCategories = document.getElementById('aboutDetailCategories');
-  const rawSkills = profileToRender.posterCategories || profileToRender.skills || '';
-  const skillsList = rawSkills.split(/[,;\n]/).map(s => s.trim()).filter(Boolean);
+  const rawSkills = profileToRender.posterCategories || '';
+  const skillsList = rawSkills.split(/[,;\n]/).map(s => s.trim()).filter(Boolean).slice(0, 5);
 
   const chipsHtml = skillsList.length > 0
     ? skillsList.map(s => `<span class="chip">${window.escapeHtml(s)}</span>`).join('')
-    : '<span class="chip" style="background:var(--mint-050); color:var(--green-800);">General Tasks</span>';
+    : '<span style="color:var(--muted); font-size:0.82rem;">No categories listed yet.</span>';
 
   if (skillChipsEl) skillChipsEl.innerHTML = chipsHtml;
   if (aboutDetailCategories) aboutDetailCategories.innerHTML = chipsHtml;
@@ -164,6 +170,7 @@ async function loadProfileReviews(profileId) {
       .from('Review')
       .select('*, reviewer:Profile!reviewerId(*)')
       .eq('revieweeId', profileId)
+      .eq('revieweeRole', 'POSTER')
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
@@ -208,7 +215,7 @@ async function loadProfileReviews(profileId) {
       if (reviewsList) {
         reviewsList.innerHTML = `
           <div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">
-            No reviews yet for this user.
+            No reviews yet for this task poster.
           </div>
         `;
       }
@@ -260,29 +267,28 @@ async function loadProfileTaskHistory(profileId) {
       .from('Task')
       .select('*')
       .eq('posterId', profileId)
-      .order('createdAt', { ascending: false })
-      .limit(20);
+      .order('createdAt', { ascending: false });
 
     if (error) throw error;
 
     const postedCount = tasks ? tasks.length : 0;
-    const activeHiresCount = tasks ? tasks.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'ASSIGNED').length : 0;
 
     // Calculate dynamic stats
     const statTasksPosted = document.getElementById('statTasksPosted');
-    const statActiveHires = document.getElementById('statActiveHires');
     const aboutDetailTasksPosted = document.getElementById('aboutDetailTasksPosted');
 
     if (statTasksPosted) statTasksPosted.textContent = postedCount;
-    if (statActiveHires) statActiveHires.textContent = activeHiresCount;
     if (aboutDetailTasksPosted) aboutDetailTasksPosted.textContent = postedCount;
 
-    if (!tasks || tasks.length === 0) {
-      historyList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">No tasks posted yet.</div>';
+    // Only show current OPEN tasks
+    const openTasks = (tasks || []).filter((t) => (t.status || '').toUpperCase() === 'OPEN');
+
+    if (!openTasks || openTasks.length === 0) {
+      historyList.innerHTML = '<div style="padding:40px 20px; text-align:center; color:var(--muted); font-size:0.9rem;">No currently open tasks.</div>';
       return;
     }
 
-    historyList.innerHTML = tasks.map((t) => {
+    historyList.innerHTML = openTasks.map((t) => {
       const taskDateStr = new Date(t.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' });
       const safeTitle = window.escapeHtml(t.title || 'Task');
       const safeCategory = window.escapeHtml(t.category || 'General');
@@ -294,8 +300,8 @@ async function loadProfileTaskHistory(profileId) {
             <div style="font-weight:600; font-size:0.92rem; color:var(--green-900);">${safeTitle}</div>
             <div style="font-size:0.78rem; color:var(--muted); margin-top:2px;">${safeCategory} · <span class="mono">${budgetStr}</span> · ${taskDateStr}</div>
           </div>
-          <span class="status ${t.status === 'COMPLETED' ? 'status-closed' : 'status-open'}" style="font-size:0.75rem;">
-            ${t.status}
+          <span class="status status-open" style="font-size:0.75rem;">
+            OPEN
           </span>
         </div>
       `;
@@ -468,26 +474,26 @@ document.addEventListener('DOMContentLoaded', () => {
         .insert({
           reviewerId: myProfile.id,
           revieweeId: window.currentViewingProfile.id,
+          revieweeRole: 'POSTER',
           rating: selectedRatingValue,
           comment: comment || ''
         });
 
       if (error) throw error;
 
-      // Recalculate average rating & review count
+      // Recalculate average rating & review count for Poster role
       const { data: allReviews } = await window.supabaseClient
         .from('Review')
         .select('rating')
-        .eq('revieweeId', window.currentViewingProfile.id);
+        .eq('revieweeId', window.currentViewingProfile.id)
+        .eq('revieweeRole', 'POSTER');
 
-      if (allReviews && allReviews.length > 0) {
-        const count = allReviews.length;
-        const avg = allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count;
-        await window.supabaseClient
-          .from('Profile')
-          .update({ averageRating: avg, reviewCount: count })
-          .eq('id', window.currentViewingProfile.id);
-      }
+      const count = allReviews ? allReviews.length : 0;
+      const avg = count > 0 ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count : null;
+      await window.supabaseClient
+        .from('Profile')
+        .update({ posterRating: avg, posterReviewsCount: count })
+        .eq('id', window.currentViewingProfile.id);
 
       closeReviewModal();
       const commentInput = document.getElementById('reviewComment');
