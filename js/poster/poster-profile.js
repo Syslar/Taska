@@ -19,18 +19,30 @@ function renderStarsHtml(ratingScore, size = 16) {
 
 window.renderStandaloneProfile = async function (targetProfileId) {
   const urlParams = new URLSearchParams(window.location.search);
-  const pid = targetProfileId || urlParams.get('id');
+  let identifier = targetProfileId || urlParams.get('u') || urlParams.get('username') || urlParams.get('id');
+
+  // Check if username is in the URL pathname (e.g. /poster/profile/johndoe)
+  if (!identifier) {
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const profileIdx = pathParts.indexOf('profile');
+    if (profileIdx !== -1 && pathParts[profileIdx + 1] && pathParts[profileIdx + 1] !== 'index.html') {
+      identifier = decodeURIComponent(pathParts[profileIdx + 1]);
+    }
+  }
 
   const myProfile = await window.ensureTaskaProfile();
-
   let profileToRender = null;
 
-  if (pid) {
-    const { data, error } = await window.supabaseClient
-      .from('Profile')
-      .select('*')
-      .eq('id', pid)
-      .single();
+  if (identifier) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+    let query = window.supabaseClient.from('Profile').select('*');
+    if (isUuid) {
+      query = query.eq('id', identifier);
+    } else {
+      const cleanUsername = identifier.replace(/^@/, '').trim();
+      query = query.ilike('username', cleanUsername);
+    }
+    const { data, error } = await query.maybeSingle();
     if (!error && data) profileToRender = data;
   }
 
@@ -41,6 +53,14 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   if (!profileToRender) {
     if (window.showToast) window.showToast('Profile not found.');
     return;
+  }
+
+  // Update address bar cleanly to display ?u=username
+  if (profileToRender.username && window.history && window.history.replaceState) {
+    const cleanSearch = `?u=${encodeURIComponent(profileToRender.username)}`;
+    if (window.location.search !== cleanSearch) {
+      window.history.replaceState(null, '', `/poster/profile${cleanSearch}`);
+    }
   }
 
   window.currentViewingProfile = profileToRender;

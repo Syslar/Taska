@@ -267,7 +267,7 @@
 <script src="/js/cloudinary-upload.js?v=20"></script>
 <script src="/js/auth-state.js?v=20"></script>
 <script src="/js/notifications.js?v=20"></script>
-<script src="/js/sidebar-component.js?v=20"></script>
+<script src="/js/sidebar-component.js?v=29"></script>
 
 <script>
 (function() {
@@ -444,7 +444,14 @@
 
         if (pendingAvatarFile && window.uploadTaskaMedia) {
           showInAppToast('Uploading Poster picture/logo...');
-          posterAvatarUrl = await window.uploadTaskaMedia(pendingAvatarFile);
+          const oldAvatar = userProfile.posterAvatarUrl || userProfile.avatarUrl;
+          const uploadedUrl = await window.uploadTaskaMedia(pendingAvatarFile);
+          if (uploadedUrl) {
+            posterAvatarUrl = uploadedUrl;
+            if (oldAvatar && oldAvatar !== uploadedUrl && typeof window.deleteCloudinaryMedia === 'function') {
+              window.deleteCloudinaryMedia(oldAvatar).catch(e => console.warn('[Cloudinary] Old avatar cleanup:', e));
+            }
+          }
         }
 
         const name = (document.getElementById('posterNameInput')?.value || '').trim();

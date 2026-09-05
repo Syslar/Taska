@@ -10,6 +10,42 @@
     if (cached) {
       const parsed = JSON.parse(cached);
       if (parsed && parsed.id) {
+        const ph = parsed.phone;
+        const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+        const isTaskerRestricted = Boolean(parsed.isTaskerRestricted);
+        const isPosterRestricted = Boolean(parsed.isPosterRestricted);
+        const path = window.location.pathname.toLowerCase();
+
+        // If trying to access tasker path without a valid phone number or if restricted, force redirect to poster dashboard
+        if (path.includes('/tasker/') && (!hasPhone || isTaskerRestricted)) {
+          if (!hasPhone) {
+            sessionStorage.setItem('taska_phone_required_prompt', '1');
+          } else if (isTaskerRestricted) {
+            sessionStorage.setItem('taska_restriction_notice', parsed.taskerRestrictionReason || 'Your Tasker account is currently under administrative inspection or restricted.');
+          }
+          try {
+            localStorage.setItem('taska_active_role', 'POSTER');
+            parsed.activeRole = 'POSTER';
+            localStorage.setItem('taska_cached_profile', JSON.stringify(parsed));
+          } catch (_) {}
+          window.location.replace('/poster/dashboard');
+          return;
+        }
+
+        // If trying to access poster path while poster profile is restricted
+        if (path.includes('/poster/') && isPosterRestricted) {
+          sessionStorage.setItem('taska_restriction_notice', parsed.posterRestrictionReason || 'Your Task Poster account is currently under administrative inspection or restricted.');
+          if (hasPhone && !isTaskerRestricted) {
+            try {
+              localStorage.setItem('taska_active_role', 'TASKER');
+              parsed.activeRole = 'TASKER';
+              localStorage.setItem('taska_cached_profile', JSON.stringify(parsed));
+            } catch (_) {}
+            window.location.replace('/tasker/dashboard');
+            return;
+          }
+        }
+
         window.__taskaProfile = parsed;
         populateSidebar(parsed);
         if (document.readyState === 'loading') {
@@ -41,28 +77,144 @@ window.getTaskaProfile = function () {
 };
 
 window.getTaskaRole = function () {
-  const path = window.location.pathname;
-  if (path.includes('/Tasker/')) return 'TASKER';
-  if (path.includes('/Poster/')) return 'POSTER';
+  const path = window.location.pathname.toLowerCase();
+  if (path.includes('/tasker/')) return 'TASKER';
+  if (path.includes('/poster/')) return 'POSTER';
+
+  let profile = window.__taskaProfile;
+  if (!profile) {
+    try {
+      const c = localStorage.getItem('taska_cached_profile');
+      if (c) profile = JSON.parse(c);
+    } catch (_) {}
+  }
+
+  const ph = profile ? profile.phone : null;
+  const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+  const isTaskerRestricted = Boolean(profile && profile.isTaskerRestricted);
+  const isPosterRestricted = Boolean(profile && profile.isPosterRestricted);
 
   let stored = null;
   try { stored = localStorage.getItem('taska_active_role'); } catch (_) {}
-  if (stored === 'TASKER' || stored === 'POSTER') return stored;
+  let role = stored || (profile && profile.activeRole) || (profile && profile.role) || 'POSTER';
+  role = role.toUpperCase();
 
-  if (window.__taskaProfile && window.__taskaProfile.activeRole) {
-    return window.__taskaProfile.activeRole.toUpperCase();
+  if (role === 'TASKER') {
+    if (!hasPhone || isTaskerRestricted) {
+      role = 'POSTER';
+      try { localStorage.setItem('taska_active_role', 'POSTER'); } catch (_) {}
+    }
+  } else if (role === 'POSTER') {
+    if (isPosterRestricted && hasPhone && !isTaskerRestricted) {
+      role = 'TASKER';
+      try { localStorage.setItem('taska_active_role', 'TASKER'); } catch (_) {}
+    }
   }
-  if (window.__taskaProfile && window.__taskaProfile.role === 'TASKER') {
-    return 'TASKER';
-  }
-  return 'POSTER';
+
+  return role;
 };
 
-window.switchTaskaRole = async function (newRole) {
-  const profile = await window.ensureTaskaProfile();
+window.switchTaskaRole = async function (newRole, options = {}) {
+  let profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+  if (!profile) {
+    try {
+      const c = localStorage.getItem('taska_cached_profile');
+      if (c) profile = JSON.parse(c);
+    } catch (_) {}
+  }
+  if (!profile) {
+    profile = await window.ensureTaskaProfile();
+  }
   if (!profile) return;
 
   const targetRole = newRole.toUpperCase() === 'TASKER' ? 'TASKER' : 'POSTER';
+
+  // Always query authoritative, real-time profile state directly from Supabase
+  if (window.supabaseClient && profile.id) {
+    try {
+      const { data: dbProf, error: dbErr } = await window.supabaseClient
+        .from('Profile')
+        .select('id, phone, isPhoneVerified, role, activeRole, isTaskerSetup, isPosterSetup, isTaskerRestricted, taskerRestrictionReason, isPosterRestricted, posterRestrictionReason')
+        .eq('id', profile.id)
+        .maybeSingle();
+
+      if (dbProf && !dbErr) {
+        Object.assign(profile, dbProf);
+        window.__taskaProfile = profile;
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+      }
+    } catch (fErr) {
+      console.warn('Authoritative profile check notice:', fErr);
+    }
+  }
+
+  // Tasker mode checks: Restrictions and Phone Requirement
+  if (targetRole === 'TASKER') {
+    // 1. Check administrative restriction / inspection
+    if (profile.isTaskerRestricted) {
+      const reason = profile.taskerRestrictionReason || 'Your Tasker profile is currently under administrative inspection or restricted. Please contact support.';
+      if (window.showToast) {
+        window.showToast(reason, 'error');
+      } else {
+        alert(reason);
+      }
+      return;
+    }
+
+    // 2. Check verified phone requirement
+    const ph = profile.phone;
+    const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+    if (!hasPhone) {
+      if (window.promptAddPhoneNumberModal) {
+        window.promptAddPhoneNumberModal(() => {
+          window.switchTaskaRole('TASKER', options);
+        });
+      } else if (window.showToast) {
+        window.showToast('Please add and verify your phone number to switch to Tasker mode.', 'info');
+      }
+      return;
+    }
+  } else if (targetRole === 'POSTER') {
+    if (profile.isPosterRestricted) {
+      const reason = profile.posterRestrictionReason || 'Your Task Poster profile is currently under administrative inspection or restricted. Please contact support.';
+      if (window.showToast) {
+        window.showToast(reason, 'error');
+      } else {
+        alert(reason);
+      }
+      return;
+    }
+  }
+
+  // Database-authoritative update FIRST
+  if (window.supabaseClient && profile.id) {
+    try {
+      const { error } = await window.supabaseClient
+        .from('Profile')
+        .update({ activeRole: targetRole })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('Supabase activeRole update notice:', err);
+      const msg = err.message || '';
+      if (msg.includes('tasker_requires_phone')) {
+        if (window.showToast) window.showToast('Tasker mode requires an active verified phone number.', 'error');
+        if (window.promptAddPhoneNumberModal) {
+          window.promptAddPhoneNumberModal(() => window.switchTaskaRole('TASKER', options));
+        }
+      } else if (msg.includes('tasker_restriction_check')) {
+        if (window.showToast) window.showToast('This account is currently restricted from activating Tasker mode.', 'error');
+      } else if (msg.includes('poster_restriction_check')) {
+        if (window.showToast) window.showToast('This account is currently restricted from activating Task Poster mode.', 'error');
+      } else {
+        if (window.showToast) window.showToast(`Unable to switch mode: ${msg}`, 'error');
+      }
+      return;
+    }
+  }
+
+  // Update local memory and cache ONLY AFTER database update succeeded
   profile.activeRole = targetRole;
   window.__taskaProfile = profile;
 
@@ -71,19 +223,19 @@ window.switchTaskaRole = async function (newRole) {
     localStorage.setItem('taska_active_role', targetRole);
   } catch (_) {}
 
-  if (window.supabaseClient) {
-    try {
-      await window.supabaseClient
-        .from('Profile')
-        .update({ activeRole: targetRole })
-        .eq('id', profile.id);
-    } catch (err) {
-      console.error('Supabase activeRole update notice:', err);
-    }
-  }
-
   if (window.showToast) {
     window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker Mode' : 'Poster Mode'}`);
+  }
+
+  if (options.reload) {
+    window.location.reload();
+    return;
+  }
+
+  const currentPath = window.location.pathname.toLowerCase();
+  if (currentPath.includes('/settings')) {
+    window.location.reload();
+    return;
   }
 
   // Redirect to respective system dashboard
@@ -140,7 +292,8 @@ function populateSidebar(profile) {
   }
   
   const getProfileTarget = () => {
-    return isTaskerMode ? `/tasker/profile?id=${profile.id}` : `/poster/profile?id=${profile.id}`;
+    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
+    return isTaskerMode ? `/tasker/profile?${uParam}` : `/poster/profile?${uParam}`;
   };
 
   if (mobileAv) {
@@ -359,6 +512,74 @@ async function runAuthGuard() {
     if (typeof window.initSidebar === 'function') {
       window.initSidebar();
     }
+
+    // Security Guard: Restrictions and Tasker phone requirement
+    const path = window.location.pathname.toLowerCase();
+    const ph = profile.phone;
+    const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+    const isTaskerRestricted = Boolean(profile.isTaskerRestricted);
+    const isPosterRestricted = Boolean(profile.isPosterRestricted);
+
+    if (path.includes('/tasker/')) {
+      if (!hasPhone) {
+        sessionStorage.setItem('taska_phone_required_prompt', '1');
+        try {
+          localStorage.setItem('taska_active_role', 'POSTER');
+          profile.activeRole = 'POSTER';
+          localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+        } catch (_) {}
+        window.location.replace('/poster/dashboard');
+        return;
+      }
+      if (isTaskerRestricted) {
+        sessionStorage.setItem('taska_restriction_notice', profile.taskerRestrictionReason || 'Your Tasker account is currently under administrative inspection or restricted.');
+        try {
+          localStorage.setItem('taska_active_role', 'POSTER');
+          profile.activeRole = 'POSTER';
+          localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+        } catch (_) {}
+        window.location.replace('/poster/dashboard');
+        return;
+      }
+    } else if (path.includes('/poster/')) {
+      if (isPosterRestricted) {
+        sessionStorage.setItem('taska_restriction_notice', profile.posterRestrictionReason || 'Your Task Poster account is currently under administrative inspection or restricted.');
+        if (hasPhone && !isTaskerRestricted) {
+          try {
+            localStorage.setItem('taska_active_role', 'TASKER');
+            profile.activeRole = 'TASKER';
+            localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+          } catch (_) {}
+          window.location.replace('/tasker/dashboard');
+          return;
+        }
+      }
+    }
+
+    // Display restriction notice if present
+    const restrictionNotice = sessionStorage.getItem('taska_restriction_notice');
+    if (restrictionNotice) {
+      sessionStorage.removeItem('taska_restriction_notice');
+      if (window.showToast) {
+        window.showToast(restrictionNotice, 'error');
+      } else {
+        alert(restrictionNotice);
+      }
+    }
+
+    // Check if user was redirected to poster dashboard because phone was required for tasker mode
+    if (sessionStorage.getItem('taska_phone_required_prompt') === '1') {
+      sessionStorage.removeItem('taska_phone_required_prompt');
+      if (window.showToast) window.showToast('A verified phone number is required to use Tasker mode.', 'info');
+      setTimeout(() => {
+        if (window.promptAddPhoneNumberModal) {
+          window.promptAddPhoneNumberModal(() => {
+            window.switchTaskaRole('TASKER');
+          });
+        }
+      }, 500);
+    }
+
     window.checkProfileCompletionPrompt(profile);
   }
 
@@ -769,6 +990,270 @@ window.renderTaskMediaHTML = function (mediaUrls) {
       }).join('')}
     </div>
   `;
+};
+
+// ── Tasker Phone Verification Modal & Enforcer ────────────────────────────────
+function ensureTermiiScriptLoaded() {
+  const isLoaded = () => Boolean(
+    window.parseNigerianPhone && 
+    (window.openPhoneVerificationModal || window.openPhoneOtpModal)
+  );
+  if (isLoaded()) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[src*="termii-otp.js"]');
+    if (existing) {
+      let waitCount = 0;
+      const interval = setInterval(() => {
+        if (isLoaded() || ++waitCount > 50) {
+          clearInterval(interval);
+          resolve();
+        }
+      }, 50);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = '/js/termii-otp.js?v=27';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load phone verification service.'));
+    document.head.appendChild(script);
+  });
+}
+
+window.promptAddPhoneNumberModal = async function (onSuccessCallback) {
+  try {
+    await ensureTermiiScriptLoaded();
+  } catch (err) {
+    console.error('Termii load error:', err);
+    if (window.showToast) window.showToast('Unable to initialize phone verification. Please check your internet connection.', 'error');
+    return;
+  }
+
+  let profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+  if (!profile) {
+    try {
+      const c = localStorage.getItem('taska_cached_profile');
+      if (c) profile = JSON.parse(c);
+    } catch (_) {}
+  }
+  if (!profile && window.ensureTaskaProfile) {
+    profile = await window.ensureTaskaProfile();
+  }
+  if (!profile) {
+    if (window.showToast) window.showToast('Please wait for account profile to finish loading.', 'info');
+    return;
+  }
+
+  // Remove any existing instance
+  const existing = document.getElementById('taska-add-phone-modal');
+  if (existing) existing.remove();
+
+  const modalHtml = `
+    <div id="taska-add-phone-modal" style="position:fixed; inset:0; z-index:999998; background:rgba(18, 32, 26, 0.65); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:16px; opacity:0; transition:opacity 0.2s ease;">
+      <div style="background:var(--surface, #ffffff); border:1px solid var(--line, #e2e8f0); border-radius:20px; max-width:440px; width:100%; padding:28px 24px; box-shadow:0 24px 50px rgba(18,32,26,0.2); position:relative; transform:scale(0.95); transition:transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+        
+        <button type="button" id="add-phone-close-btn" style="position:absolute; top:16px; right:16px; background:var(--bg-soft, #f8fafc); border:1px solid var(--line, #e2e8f0); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--muted); font-size:16px; transition:all 0.15s ease;">✕</button>
+
+        <div style="text-align:center; margin-bottom:20px;">
+          <div style="width:54px; height:54px; border-radius:16px; background:#ECFDF5; color:var(--green-700); display:inline-flex; align-items:center; justify-content:center; margin-bottom:14px;">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+          </div>
+          <h3 style="font-family:'Space Grotesk', -apple-system, sans-serif; font-size:1.3rem; font-weight:700; color:var(--green-900); margin:0 0 8px 0;">Add Phone Number</h3>
+          <p style="font-size:0.86rem; color:var(--muted); margin:0; line-height:1.5;">
+            To activate <strong>Tasker Mode</strong> and browse or apply for tasks, you must add and verify an active Nigerian mobile number.
+          </p>
+        </div>
+
+        <form id="add-phone-form">
+          <div style="margin-bottom:16px;">
+            <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--body); margin-bottom:6px;">Mobile Phone Number</label>
+            <div style="display:flex; align-items:center; border:1.5px solid var(--line, #e2e8f0); border-radius:10px; background:var(--surface, #fff); overflow:hidden; transition:border-color 0.15s ease;" id="add-phone-wrap">
+              <span style="padding:0 12px; font-weight:600; font-size:0.9rem; color:var(--muted); background:var(--bg-soft, #f8fafc); border-right:1px solid var(--line, #e2e8f0); line-height:42px;">+234</span>
+              <input type="tel" id="add-phone-input" placeholder="80X XXX XXXX" maxlength="16" required autofocus
+                     style="flex:1; border:none; outline:none; padding:10px 12px; font-size:0.95rem; background:transparent;">
+            </div>
+            <span id="add-phone-error" style="display:none; color:#DC2626; font-size:0.8rem; margin-top:6px;"></span>
+          </div>
+
+          <button type="submit" id="add-phone-submit-btn" class="btn btn-primary btn-block" style="width:100%; padding:12px; font-weight:600; border-radius:10px; font-size:0.92rem;">
+            Send SMS Verification Code
+          </button>
+        </form>
+
+        <p style="text-align:center; margin-top:16px; margin-bottom:0; font-size:0.78rem; color:var(--muted);">
+          Protected with end-to-end SMS verification. No spam.
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  const modalEl = document.getElementById('taska-add-phone-modal');
+  const modalBox = modalEl.firstElementChild;
+  const inputEl = document.getElementById('add-phone-input');
+  const errorEl = document.getElementById('add-phone-error');
+  const formEl = document.getElementById('add-phone-form');
+  const submitBtn = document.getElementById('add-phone-submit-btn');
+  const closeBtn = document.getElementById('add-phone-close-btn');
+
+  requestAnimationFrame(() => {
+    modalEl.style.opacity = '1';
+    modalBox.style.transform = 'scale(1)';
+  });
+
+  const closeModal = () => {
+    modalEl.style.opacity = '0';
+    modalBox.style.transform = 'scale(0.95)';
+    setTimeout(() => modalEl.remove(), 200);
+  };
+
+  closeBtn.addEventListener('click', closeModal);
+  modalEl.addEventListener('click', (e) => {
+    if (e.target === modalEl) closeModal();
+  });
+
+  inputEl.addEventListener('input', () => {
+    errorEl.style.display = 'none';
+    let v = inputEl.value.trim();
+    if (v.startsWith('+234')) v = v.slice(4);
+    else if (v.startsWith('234') && v.length > 10) v = v.slice(3);
+    inputEl.value = v;
+  });
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.style.display = 'none';
+
+    const parseFn = window.parseNigerianPhone;
+    const parsed = parseFn ? parseFn(inputEl.value.trim()) : null;
+
+    if (!parsed || !parsed.isValid) {
+      errorEl.textContent = parsed?.error || 'Please enter a valid 11-digit Nigerian phone number.';
+      errorEl.style.display = 'block';
+      inputEl.focus();
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking availability…';
+
+    try {
+      // 1. Check if phone is already taken by another profile in Supabase
+      if (window.supabaseClient) {
+        try {
+          const { data: match } = await window.supabaseClient
+            .from('Profile')
+            .select('id, username')
+            .ilike('phone', `%${parsed.core10}`)
+            .maybeSingle();
+
+          if (match) {
+            errorEl.textContent = 'This phone number is already registered to an existing Taska account.';
+            errorEl.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send SMS Verification Code';
+            inputEl.focus();
+            return;
+          }
+        } catch (dbErr) {
+          console.warn('Phone uniqueness check notice:', dbErr);
+        }
+      }
+
+      const openFn = window.openPhoneVerificationModal || window.openPhoneOtpModal;
+      if (typeof openFn !== 'function') {
+        throw new Error('Phone verification service is still initializing. Please click Send SMS again.');
+      }
+
+      // Close the number entry modal ONLY NOW right before opening the OTP modal
+      closeModal();
+
+      const clerkUser = window.Clerk?.user;
+      const userId = clerkUser ? clerkUser.id : profile.userId;
+
+      // 2. Open Termii 6-digit SMS verification modal
+      openFn({
+        phone: parsed.termiiFormat,
+        userId: userId,
+        profileId: profile.id,
+        onChangeNumber: () => {
+          window.promptAddPhoneNumberModal(onSuccessCallback);
+        },
+        onVerified: async (verifyRes) => {
+          try {
+            // Update Supabase profile
+            if (window.supabaseClient) {
+              const { error: updErr } = await window.supabaseClient
+                .from('Profile')
+                .update({
+                  phone: parsed.canonical,
+                  isPhoneVerified: true,
+                  phoneVerifiedAt: new Date().toISOString()
+                })
+                .eq('id', profile.id);
+
+              if (updErr) {
+                console.error('Failed to update phone in Profile:', updErr);
+              }
+            }
+
+            // Update in-memory and cached profile
+            profile.phone = parsed.canonical;
+            profile.isPhoneVerified = true;
+            profile.phoneVerifiedAt = new Date().toISOString();
+            window.__taskaProfile = profile;
+
+            try {
+              localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
+            } catch (_) {}
+
+            // Update Clerk unsafe metadata
+            if (window.Clerk?.user?.update) {
+              await window.Clerk.user.update({
+                unsafeMetadata: {
+                  ...window.Clerk.user.unsafeMetadata,
+                  phone: parsed.canonical,
+                  isPhoneVerified: true
+                }
+              }).catch(() => {});
+            }
+
+            // Re-populate sidebar and live profile cards with the updated phone
+            if (typeof populateSidebar === 'function') {
+              populateSidebar(profile);
+            }
+
+            if (window.showToast) {
+              window.showToast('Phone number verified! Tasker capabilities unlocked.', 'success');
+            }
+
+            // Run callback (e.g. switchTaskaRole('TASKER') or openProfileSetupModal('TASKER'))
+            if (typeof onSuccessCallback === 'function') {
+              onSuccessCallback(profile);
+            }
+          } catch (finErr) {
+            console.error('Post-phone-verification notice:', finErr);
+          }
+        },
+        onCancel: () => {
+          if (window.showToast) {
+            window.showToast('A verified phone number is required to use Tasker mode.', 'info');
+          }
+        }
+      });
+
+    } catch (err) {
+      console.error('Phone check error:', err);
+      modalEl.style.opacity = '1';
+      modalBox.style.transform = 'scale(1)';
+      errorEl.textContent = err.message || 'An error occurred. Please try again.';
+      errorEl.style.display = 'block';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send SMS Verification Code';
+    }
+  });
 };
 
 // Boot auth guard on DOMReady

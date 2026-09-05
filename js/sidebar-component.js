@@ -105,9 +105,10 @@
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             ${isTaskerMode ? 'My Applications' : 'My Posted Tasks'}
           </a>
-          <a href="${chatsUrl}" class="sidebar-link ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
+          <a href="${chatsUrl}" class="sidebar-link ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages" style="display:flex; align-items:center;">
             <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg></span>
-            Chats
+            <span style="flex:1;">Chats</span>
+            <span class="taska-chats-badge" style="display:none;">0</span>
           </a>
           <div class="sidebar-divider"></div>
 
@@ -261,8 +262,11 @@
           <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Tasks
         </a>
-        <a href="${chatsUrl}" class="tab-item ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg>
+        <a href="${chatsUrl}" class="tab-item ${activeTab === 'messages' ? 'is-active' : ''}" data-tab="messages" style="position:relative;">
+          <div style="position:relative; display:inline-block;">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="1.7"/></svg>
+            <span class="taska-chats-badge taska-chats-badge-mobile" style="display:none;">0</span>
+          </div>
           Chats
         </a>
         <a href="${walletUrl}" class="tab-item ${activeTab === 'wallet' ? 'is-active' : ''}" data-tab="wallet">
@@ -278,6 +282,12 @@
     // Initial notification fetch
     if (window.fetchTaskaNotifications) {
       window.fetchTaskaNotifications();
+    }
+    if (window.fetchUnreadChatsCount) {
+      window.fetchUnreadChatsCount();
+      if (typeof setupChatsRealtimeBadge === 'function') {
+        setupChatsRealtimeBadge();
+      }
     }
   };
 
@@ -346,6 +356,13 @@
         e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
+        const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        if (p && p.isPosterRestricted) {
+          const reason = p.posterRestrictionReason || 'Your Task Poster profile is currently under administrative inspection or restricted.';
+          if (window.showToast) window.showToast(reason, 'error');
+          else alert(reason);
+          return;
+        }
         if (window.switchTaskaRole) window.switchTaskaRole('POSTER');
       };
     }
@@ -355,6 +372,30 @@
         e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
+
+        const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        if (p && p.isTaskerRestricted) {
+          const reason = p.taskerRestrictionReason || 'Your Tasker profile is currently under administrative inspection or restricted.';
+          if (window.showToast) window.showToast(reason, 'error');
+          else alert(reason);
+          return;
+        }
+
+        const ph = p?.phone;
+        const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+
+        if (!hasPhone) {
+          if (window.promptAddPhoneNumberModal) {
+            window.promptAddPhoneNumberModal(() => {
+              if (window.switchTaskaRole) window.switchTaskaRole('TASKER');
+              else window.location.href = '/tasker/dashboard';
+            });
+          } else if (window.showToast) {
+            window.showToast('Please add and verify your phone number before switching to Tasker mode.', 'info');
+          }
+          return;
+        }
+
         if (window.switchTaskaRole) window.switchTaskaRole('TASKER');
       };
     }
@@ -364,6 +405,31 @@
         e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
+        const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        if (p && p.isTaskerRestricted) {
+          const reason = p.taskerRestrictionReason || 'Your Tasker profile is currently under administrative inspection or restricted.';
+          if (window.showToast) window.showToast(reason, 'error');
+          else alert(reason);
+          return;
+        }
+
+        const ph = p?.phone;
+        const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+        if (!hasPhone) {
+          if (window.promptAddPhoneNumberModal) {
+            window.promptAddPhoneNumberModal(() => {
+              if (window.switchTaskaRole) {
+                window.switchTaskaRole('TASKER');
+              } else {
+                openProfileSetupModal('TASKER');
+              }
+            });
+            return;
+          } else if (window.showToast) {
+            window.showToast('Please add and verify your phone number before setting up Tasker mode.', 'info');
+            return;
+          }
+        }
         if (window.switchTaskaRole) {
           window.switchTaskaRole('TASKER');
         } else {
@@ -377,6 +443,13 @@
         e.preventDefault();
         e.stopPropagation();
         if (switcherMenu) switcherMenu.style.display = 'none';
+        const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+        if (p && p.isPosterRestricted) {
+          const reason = p.posterRestrictionReason || 'Your Task Poster profile is currently under administrative inspection or restricted.';
+          if (window.showToast) window.showToast(reason, 'error');
+          else alert(reason);
+          return;
+        }
         if (window.switchTaskaRole) {
           window.switchTaskaRole('POSTER');
         } else {
@@ -390,7 +463,8 @@
       if (e) { e.preventDefault(); e.stopPropagation(); }
       const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
       if (p && p.id) {
-        window.location.href = profileLink.includes('?') ? `${profileLink}&id=${p.id}` : `${profileLink}?id=${p.id}`;
+        const uParam = p.username ? `u=${encodeURIComponent(p.username)}` : `id=${p.id}`;
+        window.location.href = profileLink.includes('?') ? `${profileLink}&${uParam}` : `${profileLink}?${uParam}`;
       } else {
         window.location.href = profileLink;
       }
@@ -434,11 +508,38 @@
 
   // Profile Setup Modal Builder
   function openProfileSetupModal(targetRole) {
+    const isTasker = targetRole === 'TASKER';
+    const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : {});
+
+    if (isTasker && profile.isTaskerRestricted) {
+      const reason = profile.taskerRestrictionReason || 'Your Tasker profile is currently under administrative inspection or restricted.';
+      if (window.showToast) window.showToast(reason, 'error');
+      else alert(reason);
+      return;
+    }
+    if (!isTasker && profile.isPosterRestricted) {
+      const reason = profile.posterRestrictionReason || 'Your Task Poster profile is currently under administrative inspection or restricted.';
+      if (window.showToast) window.showToast(reason, 'error');
+      else alert(reason);
+      return;
+    }
+
+    const ph = profile?.phone;
+    const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+
+    if (isTasker && !hasPhone) {
+      if (window.promptAddPhoneNumberModal) {
+        window.promptAddPhoneNumberModal(() => {
+          openProfileSetupModal('TASKER');
+        });
+      } else if (window.showToast) {
+        window.showToast('Please add and verify your phone number before setting up Tasker mode.', 'info');
+      }
+      return;
+    }
+
     const existing = document.getElementById('taska-setup-modal-container');
     if (existing) existing.remove();
-
-    const isTasker = targetRole === 'TASKER';
-    const profile = window.__taskaProfile || {};
 
     const container = document.createElement('div');
     container.id = 'taska-setup-modal-container';
@@ -569,6 +670,7 @@
         .from('Notification')
         .select('*')
         .eq('userId', userId)
+        .neq('type', 'NEW_MESSAGE')
         .order('createdAt', { ascending: false })
         .limit(30);
 
@@ -603,6 +705,70 @@
       console.error('[Notifications] Fetch exception:', err);
     }
   };
+
+  // ─── CHATS UNREAD BADGE COUNTER ──────────────────────────────────────────
+  window.fetchUnreadChatsCount = async function() {
+    const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+    if (!profile?.id || !window.supabaseClient) return;
+
+    try {
+      // Find all unread incoming messages where current user is the receiver
+      const { data: unreadMsgs, error } = await window.supabaseClient
+        .from('Message')
+        .select('senderId')
+        .eq('receiverId', profile.id)
+        .is('readAt', null);
+
+      if (error) {
+        console.error('[Chats] Unread count query error:', error);
+        return;
+      }
+
+      // Count distinct senders: messages from each user counts as 1
+      const distinctSenders = new Set((unreadMsgs || []).map(m => m.senderId));
+      const unreadCount = distinctSenders.size;
+
+      document.querySelectorAll('.taska-chats-badge').forEach(badge => {
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+          badge.style.display = 'inline-flex';
+        } else {
+          badge.style.display = 'none';
+          badge.textContent = '0';
+        }
+      });
+    } catch (err) {
+      console.warn('[Chats] Unread count calculation error:', err);
+    }
+  };
+
+  function setupChatsRealtimeBadge() {
+    const profile = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+    if (!profile?.id || !window.supabaseClient) return;
+
+    try {
+      if (window.__taskaChatsRealtimeChannel) {
+        window.supabaseClient.removeChannel(window.__taskaChatsRealtimeChannel);
+      }
+      window.__taskaChatsRealtimeChannel = window.supabaseClient
+        .channel('sidebar-chats-badge-' + profile.id)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'Message',
+            filter: `receiverId=eq.${profile.id}`
+          },
+          () => {
+            if (window.fetchUnreadChatsCount) window.fetchUnreadChatsCount();
+          }
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn('[Chats] Realtime badge channel error:', e);
+    }
+  }
 
   window.toggleNotificationDrawer = function() {
     if (typeof ensureNotificationResponsiveStyles === 'function') ensureNotificationResponsiveStyles();
@@ -1209,9 +1375,10 @@
     modal.style.display = 'flex';
   };
 
-  // Polling interval every 30s to update unread notifications automatically
+  // Polling interval every 30s to update unread notifications and chats badge automatically
   setInterval(() => {
     if (window.fetchTaskaNotifications) window.fetchTaskaNotifications();
+    if (window.fetchUnreadChatsCount) window.fetchUnreadChatsCount();
   }, 30000);
 
   // Auto-init on DOMContentLoaded and upon profile ready

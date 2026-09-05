@@ -235,6 +235,18 @@
   force = true
 
 [[redirects]]
+  from = "/tasker/profile/settings"
+  to = "/tasker/profile/settings/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/profile/settings"
+  to = "/poster/profile/settings/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/tasker/profile"
   to = "/tasker/profile/index.html"
   status = 200
@@ -242,6 +254,18 @@
 
 [[redirects]]
   from = "/poster/profile"
+  to = "/poster/profile/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasker/profile/*"
+  to = "/tasker/profile/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/poster/profile/*"
   to = "/poster/profile/index.html"
   status = 200
   force = true

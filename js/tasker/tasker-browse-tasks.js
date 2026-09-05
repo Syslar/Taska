@@ -55,6 +55,10 @@ async function initBrowseTasksPage() {
 
   // Modal close handler
   document.getElementById('task-modal-close')?.addEventListener('click', closeTaskModal);
+  const taskModalEl = document.getElementById('task-detail-modal');
+  taskModalEl?.addEventListener('click', (e) => {
+    if (e.target === taskModalEl) closeTaskModal();
+  });
 
   // Proposal toggle handlers
   const openPropBtn = document.getElementById('btn-open-proposal-wrap');
@@ -365,10 +369,13 @@ window.openTaskModal = async function (taskId) {
   }
   if (msgInput) msgInput.value = '';
 
+  // Synchronously compute and update fee breakdown for THIS task immediately:
+  triggerFeeUpdate();
+
   const posterLink = document.getElementById('modal-poster-link');
   const checkIcon = window.TaskaIcons?.verified || '';
-  if (posterLink) {
-    posterLink.href = `/poster/profile?id=${poster?.id || ''}`;
+    const posterParam = poster?.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster?.id || ''}`;
+    posterLink.href = `/poster/profile?${posterParam}`;
     posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:2px;">${checkIcon} Verified</span>` : ''}`;
   }
 
@@ -392,6 +399,7 @@ window.openTaskModal = async function (taskId) {
   if (applyBtn) {
     applyBtn._isCriteriaBlocked = false;
     applyBtn.style.background = '';
+    applyBtn.onclick = null;
 
     if (profile && task.posterId === profile.id) {
       applyBtn.disabled = true;
@@ -416,6 +424,7 @@ window.openTaskModal = async function (taskId) {
 
       if (existing) {
         applyBtn.disabled = true;
+        applyBtn._isCriteriaBlocked = true;
         applyBtn.textContent = 'Already Applied';
       } else {
         // Evaluate Criteria against Profile
@@ -471,6 +480,7 @@ window.openTaskModal = async function (taskId) {
 
         // All criteria satisfied!
         applyBtn.disabled = false;
+        applyBtn._isCriteriaBlocked = false;
         triggerFeeUpdate();
         applyBtn.onclick = () => submitApplication(taskId, task.budget);
       }
@@ -624,7 +634,32 @@ window.showKycRequiredModal = function (task) {
 function closeTaskModal() {
   const modal = document.getElementById('task-detail-modal');
   if (modal) modal.style.display = 'none';
+  activeModalTaskId = null;
   isCustomProposalActive = false;
+
+  const customPropWrap = document.getElementById('custom-proposal-wrap');
+  if (customPropWrap) customPropWrap.style.display = 'none';
+
+  const bidInput = document.getElementById('modal-bid-amount');
+  if (bidInput) bidInput.value = '';
+
+  const msgInput = document.getElementById('modal-bid-message');
+  if (msgInput) msgInput.value = '';
+
+  const feeValEl = document.getElementById('bid-fee-val');
+  if (feeValEl) feeValEl.textContent = '-₦0';
+
+  const takehomeValEl = document.getElementById('bid-takehome-val');
+  if (takehomeValEl) takehomeValEl.textContent = '₦0';
+
+  const applyBtn = document.getElementById('modal-apply-btn');
+  if (applyBtn) {
+    applyBtn.disabled = false;
+    applyBtn._isCriteriaBlocked = false;
+    applyBtn.style.background = '';
+    applyBtn.textContent = 'Submit Application';
+    applyBtn.onclick = null;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

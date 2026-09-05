@@ -76,8 +76,12 @@
 /tasker/dashboard              /tasker/dashboard/index.html     200!
 /poster/dashboard              /poster/dashboard/index.html     200!
 
+/tasker/profile/settings       /tasker/profile/settings/index.html 200!
+/poster/profile/settings       /poster/profile/settings/index.html 200!
 /tasker/profile                /tasker/profile/index.html       200!
 /poster/profile                /poster/profile/index.html       200!
+/tasker/profile/*              /tasker/profile/index.html       200!
+/poster/profile/*              /poster/profile/index.html       200!
 
 /wallet                        /wallet/index.html               200!
 /wallet/transactions           /wallet/transactions/index.html  200!

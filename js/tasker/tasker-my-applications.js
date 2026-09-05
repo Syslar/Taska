@@ -209,7 +209,7 @@ function renderApplicationsList() {
 
               ${poster.id ? `
                 <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${poster.id}&task=${task.id}'">Message Poster</button>
-                <a href="/poster/profile?id=${poster.id}" class="btn btn-ghost btn-sm">View Poster</a>
+                <a href="/poster/profile?${poster.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster.id}`}" class="btn btn-ghost btn-sm">View Poster</a>
               ` : ''}
             </div>
           </div>

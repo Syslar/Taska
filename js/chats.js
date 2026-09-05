@@ -252,14 +252,22 @@ async function loadChatConversations(silent = false) {
     (messages || []).forEach(m => {
       const isSender = m.senderId === currentProfile.id;
       const peer = isSender ? m.receiver : m.sender;
-      if (peer && peer.id && !peersMap.has(peer.id)) {
-        peersMap.set(peer.id, {
-          peer: peer,
-          taskId: m.taskId || null,
-          lastMsg: m.body || m.content || (m.mediaUrl ? '📎 Attachment' : 'Message'),
-          time: formatMessageTime(m.createdAt),
-          rawTime: new Date(m.createdAt).getTime()
-        });
+      if (peer && peer.id) {
+        if (!peersMap.has(peer.id)) {
+          peersMap.set(peer.id, {
+            peer: peer,
+            taskId: m.taskId || null,
+            lastMsg: m.body || m.content || (m.mediaUrl ? '📎 Attachment' : 'Message'),
+            time: formatMessageTime(m.createdAt),
+            rawTime: new Date(m.createdAt).getTime(),
+            unreadCount: 0
+          });
+        }
+        // Count unread incoming messages from this user
+        if (!isSender && !m.readAt) {
+          const conv = peersMap.get(peer.id);
+          conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
       }
     });
 
@@ -277,7 +285,8 @@ async function loadChatConversations(silent = false) {
           taskId: activeChatTaskId,
           lastMsg: 'New conversation (send a message)',
           time: 'Draft',
-          rawTime: Date.now() + 1000
+          rawTime: Date.now() + 1000,
+          unreadCount: 0
         });
       }
     }
@@ -321,6 +330,7 @@ function renderConversationList(threads) {
   threads.forEach(item => {
     const p = item.peer;
     const isActive = p.id === activeChatPeerId;
+    const unreadCount = item.unreadCount || 0;
     const rawName = `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.username || 'Taska User';
     const pName = window.escapeHtml ? window.escapeHtml(rawName) : rawName;
     const safeLastMsg = window.escapeHtml ? window.escapeHtml(item.lastMsg) : item.lastMsg;
@@ -329,14 +339,17 @@ function renderConversationList(threads) {
       : (p.firstName || 'U')[0].toUpperCase();
 
     html += `
-      <div class="chat-thread-item ${isActive ? 'is-active' : ''}" data-peer-id="${p.id}" data-task-id="${item.taskId || ''}">
+      <div class="chat-thread-item ${isActive ? 'is-active' : ''} ${unreadCount > 0 ? 'has-unread' : ''}" data-peer-id="${p.id}" data-task-id="${item.taskId || ''}">
         <div class="sidebar-user-avatar" style="width:38px; height:38px; font-size:0.88rem; flex-shrink:0;">${avatarHTML}</div>
         <div style="flex:1; min-width:0;">
           <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-            <span style="font-weight:600; font-size:0.86rem; color:var(--green-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pName}</span>
-            <span style="font-size:0.7rem; color:var(--muted); flex-shrink:0;">${item.time}</span>
+            <span style="font-weight:${unreadCount > 0 ? '700' : '600'}; font-size:0.86rem; color:var(--green-900); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${pName}</span>
+            <span style="font-size:0.7rem; color:${unreadCount > 0 ? 'var(--green-600, #16a34a)' : 'var(--muted)'}; font-weight:${unreadCount > 0 ? '700' : 'normal'}; flex-shrink:0;">${item.time}</span>
           </div>
-          <div style="font-size:0.78rem; color:${isActive ? 'var(--green-900)' : 'var(--muted)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">${safeLastMsg}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-top:2px;">
+            <div style="font-size:0.78rem; color:${isActive ? 'var(--green-900)' : (unreadCount > 0 ? 'var(--green-950, #0a2717)' : 'var(--muted)')}; font-weight:${unreadCount > 0 ? '600' : 'normal'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">${safeLastMsg}</div>
+            ${unreadCount > 0 ? `<span class="chat-thread-unread-badge">${unreadCount > 99 ? '99+' : unreadCount}</span>` : ''}
+          </div>
         </div>
       </div>
     `;
@@ -379,6 +392,9 @@ async function selectChatConversation(peerId, taskId = null) {
     loadTaskContext(taskId);
   }
 
+  // Mark all unread messages from this peer as read
+  markMessagesAsRead(peerId);
+
   // Add mobile class so the chat panel occupies full screen on mobile
   const container = document.getElementById('chat-container');
   if (container) {
@@ -399,6 +415,34 @@ async function selectChatConversation(peerId, taskId = null) {
 
   // Load message history
   await loadChatMessages(peerId);
+}
+
+async function markMessagesAsRead(peerId) {
+  if (!window.supabaseClient || !currentProfile || !peerId) return;
+
+  try {
+    const { error } = await window.supabaseClient
+      .from('Message')
+      .update({ readAt: new Date().toISOString() })
+      .eq('senderId', peerId)
+      .eq('receiverId', currentProfile.id)
+      .is('readAt', null);
+
+    if (!error) {
+      if (Array.isArray(cachedConversations)) {
+        const conv = cachedConversations.find(c => c.peer?.id === peerId);
+        if (conv && conv.unreadCount > 0) {
+          conv.unreadCount = 0;
+          renderConversationList(cachedConversations);
+        }
+      }
+      if (typeof window.fetchUnreadChatsCount === 'function') {
+        window.fetchUnreadChatsCount();
+      }
+    }
+  } catch (err) {
+    console.warn('[Chats] Error marking messages as read:', err);
+  }
 }
 
 function deselectActiveChat() {
@@ -460,7 +504,8 @@ async function loadPeerHeader(peerId) {
       }
 
       const isTasker = peer.role === 'TASKER';
-      const profilePath = isTasker ? `/tasker/profile?id=${peer.id}` : `/poster/profile?id=${peer.id}`;
+      const userParam = peer.username ? `u=${encodeURIComponent(peer.username)}` : `id=${peer.id}`;
+      const profilePath = isTasker ? `/tasker/profile?${userParam}` : `/poster/profile?${userParam}`;
       const checkIcon = window.TaskaIcons?.verified || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><polyline points="20 6 9 17 4 12"/></svg>';
 
       if (peerNameEl) {
@@ -537,6 +582,12 @@ async function loadChatMessages(peerId, silent = false) {
     if (!silent || isNearBottom) {
       bodyEl.scrollTop = bodyEl.scrollHeight;
     }
+
+    // Mark any unread messages from this peer as read
+    const hasUnread = (messages || []).some(m => m.senderId === peerId && !m.readAt);
+    if (hasUnread) {
+      markMessagesAsRead(peerId);
+    }
   } catch (err) {
     console.error('[Chats] Load chat messages error:', err);
     if (!silent) {
@@ -569,16 +620,92 @@ function buildMessageBubbleHTML(m, profile) {
     }
   }
 
+  const deleteBtnHTML = isMine
+    ? `<button class="chat-msg-delete-btn" onclick="requestDeleteChatMessage('${m.id}', '${m.mediaUrl ? encodeURIComponent(m.mediaUrl) : ''}')" title="Delete message" aria-label="Delete message">
+         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+       </button>`
+    : '';
+
   return `
-    <div style="display:flex; flex-direction:column; align-items:${isMine ? 'flex-end' : 'flex-start'}; margin-bottom:6px;">
-      <div style="max-width:78%; padding:10px 14px; border-radius:${isMine ? '14px 14px 2px 14px' : '14px 14px 14px 2px'}; background:${isMine ? 'var(--green-900)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; border:${isMine ? 'none' : '1px solid var(--line)'}; font-size:0.9rem; line-height:1.45; word-break:break-word; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-        ${mediaHTML}
-        ${safeText ? `<div>${safeText}</div>` : ''}
+    <div class="chat-msg-wrapper ${isMine ? 'is-mine' : 'is-peer'}" id="chat-msg-${m.id}" data-msg-id="${m.id}" style="display:flex; flex-direction:column; align-items:${isMine ? 'flex-end' : 'flex-start'}; margin-bottom:8px; position:relative;">
+      <div style="display:flex; align-items:center; gap:6px; flex-direction:${isMine ? 'row' : 'row-reverse'}; max-width:85%;">
+        ${isMine ? deleteBtnHTML : ''}
+        <div class="chat-msg-bubble" style="max-width:100%; padding:10px 14px; border-radius:${isMine ? '14px 14px 2px 14px' : '14px 14px 14px 2px'}; background:${isMine ? 'var(--green-900)' : 'var(--paper)'}; color:${isMine ? '#fff' : 'var(--body)'}; border:${isMine ? 'none' : '1px solid var(--line)'}; font-size:0.9rem; line-height:1.45; word-break:break-word; box-shadow:0 1px 2px rgba(0,0,0,0.05); position:relative;">
+          ${mediaHTML}
+          ${safeText ? `<div>${safeText}</div>` : ''}
+        </div>
       </div>
       <div style="font-size:0.68rem; color:var(--muted); margin-top:3px; padding:0 4px;">${timeStr}</div>
     </div>
   `;
 }
+
+window.requestDeleteChatMessage = async function(msgId, encodedMediaUrl) {
+  if (!msgId || !window.supabaseClient || !currentProfile) return;
+
+  let confirmed = false;
+  if (window.showConfirmDialog) {
+    confirmed = await window.showConfirmDialog({
+      title: 'Delete Message?',
+      message: 'Are you sure you want to delete this message? Any attachments will also be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDanger: true
+    });
+  } else if (window.confirm) {
+    confirmed = window.confirm('Delete this message? Any attachments will also be removed.');
+  } else {
+    confirmed = true;
+  }
+  if (!confirmed) return;
+
+  const mediaUrl = encodedMediaUrl ? decodeURIComponent(encodedMediaUrl) : null;
+
+  try {
+    const el = document.getElementById(`chat-msg-${msgId}`);
+    if (el) {
+      el.style.opacity = '0.3';
+      el.style.pointerEvents = 'none';
+    }
+
+    // 1. If message had a Cloudinary media attachment, delete it from Cloudinary
+    if (mediaUrl && typeof window.deleteCloudinaryMedia === 'function') {
+      window.deleteCloudinaryMedia(mediaUrl).catch(err => {
+        console.warn('[Chats] Cloudinary attachment cleanup notice:', err);
+      });
+    }
+
+    // 2. Delete message from database
+    const { error } = await window.supabaseClient
+      .from('Message')
+      .delete()
+      .eq('id', msgId)
+      .eq('senderId', currentProfile.id);
+
+    if (error) throw error;
+
+    // 3. Smoothly animate out and remove from DOM
+    if (el) {
+      el.style.transition = 'all 0.2s ease';
+      el.style.transform = 'scale(0.95)';
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 200);
+    }
+
+    // 4. Update cached conversations & thread preview
+    loadChatConversations(true);
+
+    if (window.showToast) window.showToast('Message deleted');
+  } catch (err) {
+    console.error('[Chats] Failed to delete message:', err);
+    const el = document.getElementById(`chat-msg-${msgId}`);
+    if (el) {
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+    }
+    if (window.showToast) window.showToast('Could not delete message. Please try again.');
+  }
+};
 
 function appendSingleMessageToChat(m) {
   const bodyEl = document.getElementById('chat-messages-body');
@@ -736,7 +863,17 @@ function setupRealtimeSubscription() {
   try {
     chatRealtimeChannel = window.supabaseClient
       .channel('public:Message')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'Message' }, (payload) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'Message' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          const deletedId = payload.old?.id;
+          if (deletedId) {
+            const el = document.getElementById(`chat-msg-${deletedId}`);
+            if (el) el.remove();
+          }
+          loadChatConversations(true);
+          return;
+        }
+
         const newMsg = payload.new;
         if (!newMsg || !currentProfile) return;
 
@@ -745,10 +882,11 @@ function setupRealtimeSubscription() {
           (newMsg.senderId === currentProfile.id && newMsg.receiverId === activeChatPeerId) ||
           (newMsg.senderId === activeChatPeerId && newMsg.receiverId === currentProfile.id);
 
-        if (isCurrentThread) {
-          // If message was from peer, append it directly
+        if (isCurrentThread && payload.eventType === 'INSERT') {
+          // If message was from peer, append it directly and mark as read immediately
           if (newMsg.senderId !== currentProfile.id) {
             appendSingleMessageToChat(newMsg);
+            markMessagesAsRead(activeChatPeerId);
           }
         }
 
@@ -775,17 +913,8 @@ async function dispatchNotification(peerId, snippet) {
     const notifTitle = `New message from ${senderName}`;
     const truncatedBody = snippet.length > 90 ? snippet.substring(0, 90) + '…' : snippet;
 
-    // In-App Notification entry
-    if (peer && peer.userId) {
-      await window.supabaseClient.from('Notification').insert({
-        userId: peer.userId,
-        type: 'NEW_MESSAGE',
-        title: notifTitle,
-        body: truncatedBody,
-        link: `/chats?user=${currentProfile.id}`,
-        isRead: false
-      });
-    }
+    // NOTE: Direct user-to-user chat messages are indicated via the sidebar chat badge
+    // and thread badge, and are not placed under in-app notifications.
 
     // Global webhook / email dispatcher if configured
     if (window.sendTaskaNotification && peer) {

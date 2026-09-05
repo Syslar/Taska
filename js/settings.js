@@ -226,7 +226,16 @@ window.renderSettingsPage = async function () {
   });
 
   // 4. Adapt Profile Details specifically to User's Active Role
-  const activeRole = localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER';
+  const ph = profile.phone;
+  const hasPhone = ph && String(ph).trim().length >= 10 && String(ph).toLowerCase() !== 'null' && String(ph).toLowerCase() !== 'undefined';
+  let activeRole = (window.getTaskaRole ? window.getTaskaRole() : (localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER')).toUpperCase();
+  if (activeRole === 'TASKER' && (!hasPhone || profile.isTaskerRestricted)) {
+    activeRole = 'POSTER';
+    try {
+      localStorage.setItem('taska_active_role', 'POSTER');
+      profile.activeRole = 'POSTER';
+    } catch (_) {}
+  }
   const isTasker = activeRole === 'TASKER';
 
   const secTasker = document.getElementById('role-section-tasker');
@@ -243,24 +252,16 @@ window.renderSettingsPage = async function () {
   const posterIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
 
   const switchRoleInSettings = async (targetRole) => {
-    profile.activeRole = targetRole;
-    window.__taskaProfile = profile;
+    if (btnSwitchMode) btnSwitchMode.disabled = true;
     try {
-      localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-      localStorage.setItem('taska_active_role', targetRole);
-    } catch (_) {}
-    if (window.supabaseClient) {
-      try {
-        await window.supabaseClient
-          .from('Profile')
-          .update({ activeRole: targetRole })
-          .eq('id', profile.id);
-      } catch (_) {}
+      if (typeof window.switchTaskaRole === 'function') {
+        await window.switchTaskaRole(targetRole, { reload: true });
+      } else {
+        window.location.reload();
+      }
+    } finally {
+      if (btnSwitchMode) btnSwitchMode.disabled = false;
     }
-    if (window.showToast) {
-      window.showToast(`Switched to ${targetRole === 'TASKER' ? 'Tasker' : 'Poster'} Profile`);
-    }
-    window.location.reload();
   };
 
   if (isTasker) {
@@ -273,7 +274,8 @@ window.renderSettingsPage = async function () {
       btnSwitchMode.innerHTML = 'Switch to Poster Profile &rarr;';
       btnSwitchMode.onclick = () => switchRoleInSettings('POSTER');
     }
-    if (btnViewActiveProfile) btnViewActiveProfile.href = `/tasker/profile?id=${profile.id}`;
+    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/tasker/profile?${uParam}`;
     if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Tasker Profile';
     if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Tasker Photo';
   } else {
@@ -286,7 +288,8 @@ window.renderSettingsPage = async function () {
       btnSwitchMode.innerHTML = 'Switch to Tasker Profile &rarr;';
       btnSwitchMode.onclick = () => switchRoleInSettings('TASKER');
     }
-    if (btnViewActiveProfile) btnViewActiveProfile.href = `/poster/profile?id=${profile.id}`;
+    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/poster/profile?${uParam}`;
     if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Poster Profile';
     if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Poster Photo / Logo';
   }
@@ -422,7 +425,7 @@ async function loadSettingsReviews(profileId) {
   const ratingBarsEl = document.getElementById('settingsRatingBars');
   const reviewsListEl = document.getElementById('settingsReviewsList');
 
-  const activeRole = localStorage.getItem('taska_active_role') || (window.__taskaProfile ? window.__taskaProfile.activeRole : 'POSTER');
+  const activeRole = (window.getTaskaRole ? window.getTaskaRole() : (localStorage.getItem('taska_active_role') || (window.__taskaProfile ? window.__taskaProfile.activeRole : 'POSTER'))).toUpperCase();
   const targetRole = activeRole === 'TASKER' ? 'TASKER' : 'POSTER';
 
   try {
@@ -596,9 +599,15 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
 
   if (avatarFile) {
     if (window.showToast) window.showToast('Uploading avatar...');
+    const oldAvatar = profile.avatarUrl || profile.taskerAvatarUrl || profile.posterAvatarUrl;
     newAvatarUrl = await window.uploadTaskaMedia(avatarFile);
-    if (newAvatarUrl && window.Clerk && window.Clerk.user) {
-      try { await window.Clerk.user.setProfileImage({ file: avatarFile }); } catch(_) {}
+    if (newAvatarUrl) {
+      if (oldAvatar && oldAvatar !== newAvatarUrl && typeof window.deleteCloudinaryMedia === 'function') {
+        window.deleteCloudinaryMedia(oldAvatar).catch(e => console.warn('[Cloudinary] Old avatar cleanup:', e));
+      }
+      if (window.Clerk && window.Clerk.user) {
+        try { await window.Clerk.user.setProfileImage({ file: avatarFile }); } catch(_) {}
+      }
     }
   }
 
@@ -645,7 +654,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
       posterCategories: posterCategories || null,
     };
 
-    const activeRole = localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER';
+    const activeRole = (window.getTaskaRole ? window.getTaskaRole() : (localStorage.getItem('taska_active_role') || profile.activeRole || profile.role || 'POSTER')).toUpperCase();
     const isTasker = activeRole === 'TASKER';
 
     if (newAvatarUrl) {
@@ -818,14 +827,39 @@ function setupPhoneVerificationAndEditing(profile) {
   function attachVerifyButtonListener() {
     const trigger = document.getElementById('btnVerifyPhoneTrigger');
     if (!trigger) return;
-    trigger.onclick = () => {
-      const entered = phoneInput.value.trim().replace(/\D/g, '');
-      if (!entered || entered.length < 10) {
-        if (window.showToast) window.showToast('Please enter a valid 10 or 11-digit Nigerian mobile number first', 'error');
+    trigger.onclick = async () => {
+      const entered = phoneInput.value.trim();
+      const parseFn = window.parseNigerianPhone;
+      const parsed = parseFn ? parseFn(entered) : null;
+
+      if (!parsed || !parsed.isValid) {
+        if (window.showToast) window.showToast(parsed?.error || 'Please enter a valid 11-digit Nigerian mobile number first', 'error');
         phoneInput.focus();
         return;
       }
-      const fullPhone = '+234' + (entered.startsWith('0') ? entered.substring(1) : entered);
+
+      // Check if phone number is already registered to ANY account in database
+      if (window.supabaseClient && parsed.core10) {
+        try {
+          const { data: match } = await window.supabaseClient
+            .from('Profile')
+            .select('id, username')
+            .ilike('phone', `%${parsed.core10}`)
+            .maybeSingle();
+
+          if (match) {
+            if (window.showToast) {
+              window.showToast('This phone number is already registered to an existing Taska account.', 'error');
+            }
+            phoneInput.focus();
+            return;
+          }
+        } catch (err) {
+          console.warn('Phone check error:', err);
+        }
+      }
+
+      const fullPhone = parsed.canonical;
 
       if (typeof window.openPhoneOtpModal === 'function') {
         window.openPhoneOtpModal({

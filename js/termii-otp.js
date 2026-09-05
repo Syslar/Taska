@@ -50,7 +50,30 @@
   // ── Core API Helpers ────────────────────────────────────────────────────────
   async function sendPhoneOtp(phone, userId, profileId) {
     const parsed = parseNigerianPhone(phone);
-    const targetPhone = parsed.isValid ? parsed.termiiFormat : phone;
+    if (!parsed.isValid) {
+      throw new Error(parsed.error || 'Please enter a valid Nigerian mobile number.');
+    }
+    const targetPhone = parsed.termiiFormat;
+
+    // Strict client-side pre-check: Never send request to Termii if number is already in database
+    if (window.supabaseClient && parsed.core10) {
+      try {
+        const { data: match } = await window.supabaseClient
+          .from('Profile')
+          .select('id, username')
+          .ilike('phone', `%${parsed.core10}`)
+          .maybeSingle();
+
+        if (match) {
+          throw new Error('This phone number is already registered to an existing Taska account.');
+        }
+      } catch (err) {
+        if (err.message && err.message.includes('already registered')) {
+          throw err;
+        }
+        console.warn('Pre-send phone uniqueness notice:', err);
+      }
+    }
 
     const res = await fetch(SUPABASE_FN_URL, {
       method: 'POST',
@@ -280,7 +303,7 @@
   // ── Open Interactive OTP Modal ──────────────────────────────────────────────
   let currentModalInstance = null;
 
-  function openPhoneOtpModal(options = {}) {
+  async function openPhoneOtpModal(options = {}) {
     injectModalStyles();
 
     const {
@@ -294,6 +317,33 @@
     if (!phone) {
       if (window.showToast) window.showToast('Please enter a valid phone number', 'error');
       return;
+    }
+
+    const parsed = parseNigerianPhone(phone);
+    if (!parsed.isValid) {
+      if (window.showToast) window.showToast(parsed.error || 'Please enter a valid 11-digit Nigerian phone number.', 'error');
+      return;
+    }
+
+    // STRICT Pre-check: If phone number is registered to ANY account, do NOT open modal and NEVER send to Termii
+    if (window.supabaseClient && parsed.core10) {
+      try {
+        const { data: match } = await window.supabaseClient
+          .from('Profile')
+          .select('id, username')
+          .ilike('phone', `%${parsed.core10}`)
+          .maybeSingle();
+
+        if (match) {
+          if (window.showToast) {
+            window.showToast('This phone number is already registered to an existing Taska account.', 'error');
+          }
+          if (typeof onCancel === 'function') onCancel();
+          return;
+        }
+      } catch (dbErr) {
+        console.warn('Pre-modal phone check notice:', dbErr);
+      }
     }
 
     // Remove existing modal if any
@@ -343,6 +393,10 @@
         <button type="button" class="taska-otp-verify-btn" id="taska-otp-submit-btn" disabled>
           Verify Phone Number
         </button>
+
+        <div style="margin-top:14px; font-size:0.8rem; color:var(--muted);">
+          Entered wrong number? <button type="button" id="taska-otp-change-phone-btn" style="background:none; border:none; color:#146C34; font-weight:600; cursor:pointer; text-decoration:underline; padding:0;">Change number</button>
+        </div>
       </div>
     `;
 
@@ -532,6 +586,16 @@
       if (e.target === overlay) closeModal();
     });
 
+    const changeBtn = overlay.querySelector('#taska-otp-change-phone-btn');
+    if (changeBtn) {
+      changeBtn.addEventListener('click', () => {
+        closeModal();
+        if (typeof options.onChangeNumber === 'function') {
+          options.onChangeNumber();
+        }
+      });
+    }
+
     // Auto-focus first input cell
     setTimeout(() => {
       if (cells[0]) cells[0].focus();
@@ -544,5 +608,6 @@
   window.verifyPhoneOtp = verifyPhoneOtp;
   window.checkPhoneVerificationStatus = checkPhoneVerificationStatus;
   window.openPhoneOtpModal = openPhoneOtpModal;
+  window.openPhoneVerificationModal = openPhoneOtpModal;
 
 })();
