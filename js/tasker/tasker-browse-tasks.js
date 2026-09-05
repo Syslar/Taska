@@ -125,7 +125,23 @@ async function loadBrowseTasks() {
 
   container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted); grid-column:1/-1;">Loading tasks…</div>';
 
-  if (!window.supabaseClient) return;
+  if (!window.supabaseClient && window.supabase && window.supabase.createClient) {
+    window.supabaseClient = window.supabase.createClient(
+      'https://nhittvkskzwpeinscxir.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oaXR0dmtza3p3cGVpbnNjeGlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNzY2MzQsImV4cCI6MjA5ODk1MjYzNH0.dII7qIobUbjdAAijn1mYQuu543djIL2sSROY5egQaMc'
+    );
+  }
+
+  let attempts = 0;
+  while (!window.supabaseClient && attempts < 30) {
+    await new Promise(r => setTimeout(r, 50));
+    attempts++;
+  }
+
+  if (!window.supabaseClient) {
+    container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--red); grid-column:1/-1;">Could not load tasks. Please try again.</div>';
+    return;
+  }
 
   try {
     const profile = await window.ensureTaskaProfile?.();
@@ -374,6 +390,7 @@ window.openTaskModal = async function (taskId) {
 
   const posterLink = document.getElementById('modal-poster-link');
   const checkIcon = window.TaskaIcons?.verified || '';
+  if (posterLink) {
     const posterParam = poster?.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster?.id || ''}`;
     posterLink.href = `/poster/profile?${posterParam}`;
     posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:2px;">${checkIcon} Verified</span>` : ''}`;
@@ -662,6 +679,12 @@ function closeTaskModal() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initBrowseTasksPage();
+    window.addEventListener('taska:ready', loadBrowseTasks);
+  });
+} else {
   initBrowseTasksPage();
-});
+  window.addEventListener('taska:ready', loadBrowseTasks);
+}
