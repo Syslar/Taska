@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
     return respond({ error: 'Invalid JSON body' }, 400);
   }
 
-  const { action, taskId, posterId, applicationId, revisionNotes } = body;
+  const { action, taskId, posterId, applicationId, revisionNotes, transactionPin } = body;
 
   if (!action) {
     return respond({ error: 'action is required' }, 400);
@@ -106,10 +106,59 @@ Deno.serve(async (req) => {
       return respond({ error: authResult.error }, authResult.status || 401);
     }
 
-    // 2. Lock Escrow on Hire
+    // 2. Lock Escrow on Hire (Requires Transaction PIN)
     if (action === 'lock') {
       if (!applicationId) {
         return respond({ error: 'applicationId required for escrow lock' }, 400);
+      }
+
+      // Enforce Transaction PIN Authentication
+      if (!transactionPin) {
+        return respond({ error: 'Transaction PIN is required to authorize hiring and lock funds in escrow', code: 'PIN_REQUIRED' }, 403);
+      }
+
+      const rawPin = String(transactionPin).trim();
+      if (!/^\d{4}$/.test(rawPin)) {
+        return respond({ error: 'Transaction PIN must be exactly 4 numeric digits', code: 'INVALID_PIN_FORMAT' }, 400);
+      }
+
+      const { data: pinCheck, error: pinErr } = await supabase.rpc('check_wallet_pin', {
+        p_profile_id: posterId,
+        p_raw_pin: rawPin,
+      });
+
+      if (pinErr) {
+        console.error('[task-escrow] check_wallet_pin error:', pinErr);
+        return respond({ error: 'Unable to verify transaction PIN' }, 500);
+      }
+
+      if (pinCheck?.status !== 'OK') {
+        if (pinCheck?.status === 'WALLET_FROZEN') {
+          dispatchNotification(supabase, {
+            type: 'WALLET_FROZEN',
+            profileId: posterId,
+            data: {},
+          });
+          return respond({
+            error: pinCheck.message || 'Wallet has been frozen due to 3 incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+            code: 'WALLET_FROZEN',
+            is_frozen: true,
+            attempts_remaining: 0,
+          }, 403);
+        }
+
+        if (pinCheck?.status === 'PIN_NOT_SET') {
+          return respond({
+            error: 'Please configure your 4-digit transaction PIN before hiring taskers.',
+            code: 'PIN_NOT_SET',
+          }, 403);
+        }
+
+        return respond({
+          error: pinCheck?.message || 'Incorrect transaction PIN',
+          code: pinCheck?.status || 'WRONG_PIN',
+          attempts_remaining: pinCheck?.attempts_remaining,
+        }, 403);
       }
 
       const { data, error } = await supabase.rpc('task_escrow_lock', {
@@ -120,6 +169,9 @@ Deno.serve(async (req) => {
 
       if (error) {
         const msg = error.message || '';
+        if (msg.includes('WALLET_FROZEN')) {
+          return respond({ error: 'Your wallet is frozen. Cannot lock funds in escrow.', code: 'WALLET_FROZEN' }, 403);
+        }
         if (msg.includes('INSUFFICIENT_BALANCE')) {
           return respond({ error: 'Insufficient wallet balance to secure this task in escrow' }, 400);
         }

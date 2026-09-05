@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     return respond({ error: 'Invalid JSON' }, 400);
   }
 
-  const { profileId, requestedAmountNaira, bankCode, accountNumber, accountName, bankName } = body;
+  const { profileId, requestedAmountNaira, bankCode, accountNumber, accountName, bankName, transactionPin } = body;
 
   if (!profileId || !requestedAmountNaira || !bankCode || !accountNumber) {
     return respond({ error: 'profileId, requestedAmountNaira, bankCode, accountNumber required' }, 400);
@@ -92,6 +92,55 @@ Deno.serve(async (req) => {
   const authResult = await authenticateCaller(req, supabase, profileId);
   if (authResult.error) {
     return respond({ error: authResult.error }, authResult.status || 401);
+  }
+
+  // Enforce Transaction PIN Authentication
+  if (!transactionPin) {
+    return respond({ error: 'Transaction PIN is required to authorize withdrawal', code: 'PIN_REQUIRED' }, 403);
+  }
+
+  const rawPin = String(transactionPin).trim();
+  if (!/^\d{4}$/.test(rawPin)) {
+    return respond({ error: 'Transaction PIN must be exactly 4 numeric digits', code: 'INVALID_PIN_FORMAT' }, 400);
+  }
+
+  const { data: pinCheck, error: pinErr } = await supabase.rpc('check_wallet_pin', {
+    p_profile_id: profileId,
+    p_raw_pin: rawPin,
+  });
+
+  if (pinErr) {
+    console.error('[wallet-withdraw] check_wallet_pin error:', pinErr);
+    return respond({ error: 'Unable to verify transaction PIN' }, 500);
+  }
+
+  if (pinCheck?.status !== 'OK') {
+    if (pinCheck?.status === 'WALLET_FROZEN') {
+      dispatchNotification(supabase, {
+        type: 'WALLET_FROZEN',
+        profileId,
+        data: {},
+      });
+      return respond({
+        error: pinCheck.message || 'Wallet has been frozen due to 3 incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+        code: 'WALLET_FROZEN',
+        is_frozen: true,
+        attempts_remaining: 0,
+      }, 403);
+    }
+
+    if (pinCheck?.status === 'PIN_NOT_SET') {
+      return respond({
+        error: 'Please configure your 4-digit transaction PIN before withdrawing funds.',
+        code: 'PIN_NOT_SET',
+      }, 403);
+    }
+
+    return respond({
+      error: pinCheck?.message || 'Incorrect transaction PIN',
+      code: pinCheck?.status || 'WRONG_PIN',
+      attempts_remaining: pinCheck?.attempts_remaining,
+    }, 403);
   }
 
   const requestedAmountKobo = Math.round(Number(requestedAmountNaira) * 100);

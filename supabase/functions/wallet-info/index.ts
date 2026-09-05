@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     // 1. Fetch wallet
     let { data: wallet, error: walletErr } = await supabase
       .from('Wallet')
-      .select('id, available_balance, locked_balance, currency, wallet_status, lifetimeEarned, lifetimeWithdrawn, escrowBalance, updatedAt')
+      .select('id, available_balance, locked_balance, currency, wallet_status, is_frozen, pin_is_set, lifetimeEarned, lifetimeWithdrawn, escrowBalance, updatedAt')
       .eq('profileId', profileId)
       .maybeSingle();
 
@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
           lifetimeWithdrawn: 0,
           currency: 'NGN',
           wallet_status: 'active',
+          is_frozen: false,
+          pin_is_set: false,
         })
         .select()
         .single();
@@ -133,16 +135,30 @@ Deno.serve(async (req) => {
 
     const normalizeAmount = (kobo: number) => (kobo || 0) / 100;
 
+    const isFrozen = Boolean(wallet?.is_frozen || wallet?.wallet_status === 'frozen');
+
     const walletNaira = wallet ? {
       available_balance: (wallet.available_balance ?? 0) / 100,
       locked_balance: (wallet.locked_balance ?? 0) / 100,
       currency: wallet.currency || 'NGN',
-      status: wallet.wallet_status || 'active',
+      status: isFrozen ? 'frozen' : (wallet.wallet_status || 'active'),
+      is_frozen: isFrozen,
+      pin_is_set: Boolean(wallet.pin_is_set),
       lifetime_earned: wallet.lifetimeEarned || 0,
       lifetime_withdrawn: wallet.lifetimeWithdrawn || 0,
       escrow_balance: wallet.escrowBalance || 0,
       updated_at: wallet.updatedAt,
     } : null;
+
+    // 5. Fetch refunds / unlocked funds returned to wallet (last 50)
+    const { data: refunds } = await supabase
+      .from('wallet_ledger_entries')
+      .select('id, amount, currency, reference, description, createdAt')
+      .eq('profileId', profileId)
+      .eq('direction', 'credit')
+      .in('entry_type', ['unlock', 'refund', 'escrow_refund'])
+      .order('createdAt', { ascending: false })
+      .limit(50);
 
     return respond({
       success: true,
@@ -163,6 +179,12 @@ Deno.serve(async (req) => {
         requested_naira: normalizeAmount(w.requested_amount),
         commission_naira: normalizeAmount(w.commission_amount),
         payout_naira: normalizeAmount(w.payout_amount),
+      })),
+      refunds: (refunds || []).map((r: any) => ({
+        ...r,
+        amount_naira: normalizeAmount(r.amount),
+        net_amount_naira: normalizeAmount(r.amount),
+        gross_amount_naira: normalizeAmount(r.amount),
       })),
     });
 

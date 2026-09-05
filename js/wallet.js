@@ -91,8 +91,11 @@ async function loadWalletData() {
       escrow_balance: info.wallet?.escrow_balance || 0,
       lifetime_earned: info.wallet?.lifetime_earned || 0,
       lifetime_withdrawn: info.wallet?.lifetime_withdrawn || 0,
+      is_frozen: Boolean(info.wallet?.is_frozen || info.wallet?.status === 'frozen'),
+      pin_is_set: Boolean(info.wallet?.pin_is_set),
       deposits: info.deposits || [],
       withdrawals: info.withdrawals || [],
+      refunds: info.refunds || [],
       deposit_fee_rate: info.settings?.deposit_fee_percentage ?? 0,
       withdrawal_fee_rate: info.settings?.withdrawal_fee_percentage ?? 0,
       task_commission_rate: info.settings?.task_commission_percentage ?? 10,
@@ -151,6 +154,22 @@ async function loadWalletData() {
         label: 'Bank Withdrawal',
         failure_reason: w.failure_reason || null
       })),
+      ...(_walletState.refunds || []).map(r => ({
+        id: String(r.id || r.reference),
+        type: 'refund',
+        category: 'Refund',
+        date: r.createdAt,
+        status: 'successful',
+        amount: r.amount_naira || (r.amount ? r.amount / 100 : 0) || 0,
+        gross: r.gross_amount_naira || r.amount_naira || (r.amount ? r.amount / 100 : 0) || 0,
+        fee: 0,
+        reference: r.reference || `TK-RFD-${r.id || Date.now()}`,
+        bank: 'Taska Wallet System',
+        accountOwner: ownerName,
+        accountNumber: 'Refund to Wallet Balance',
+        label: r.description || 'Funds Refunded to Wallet',
+        failure_reason: null
+      })),
       ...walletTxs
         .filter(tx => ['task_payout', 'escrow_release', 'credit'].includes(tx.type))
         .map(tx => ({
@@ -202,6 +221,36 @@ async function loadWalletData() {
     const depFeeRateEl = document.getElementById('deposit-fee-rate-display');
     if (depFeeRateEl) depFeeRateEl.textContent = `${_walletState.deposit_fee_rate}%`;
 
+    // Handle Frozen Wallet UI & Ice-block animation
+    const frozenBanner = document.getElementById('wallet-frozen-banner');
+    const heroActions = document.querySelector('.wallet-hero-actions');
+    const depositBtn = document.getElementById('wallet-deposit-btn');
+    const withdrawBtn = document.getElementById('wallet-withdraw-btn');
+    const walletHero = document.querySelector('.wallet-hero');
+    const frozenBadge = document.getElementById('wallet-hero-frozen-badge');
+    const iceParticles = document.getElementById('wallet-ice-particles');
+    const iceIcicles = document.getElementById('wallet-ice-icicles');
+
+    if (_walletState.is_frozen) {
+      if (walletHero) walletHero.classList.add('is-frozen');
+      if (frozenBadge) frozenBadge.style.display = 'inline-flex';
+      if (iceParticles) iceParticles.style.display = 'block';
+      if (iceIcicles) iceIcicles.style.display = 'block';
+      if (frozenBanner) frozenBanner.style.display = 'block';
+      if (heroActions) heroActions.style.display = 'none';
+      if (depositBtn) depositBtn.disabled = true;
+      if (withdrawBtn) withdrawBtn.disabled = true;
+    } else {
+      if (walletHero) walletHero.classList.remove('is-frozen');
+      if (frozenBadge) frozenBadge.style.display = 'none';
+      if (iceParticles) iceParticles.style.display = 'none';
+      if (iceIcicles) iceIcicles.style.display = 'none';
+      if (frozenBanner) frozenBanner.style.display = 'none';
+      if (heroActions) heroActions.style.display = 'flex';
+      if (depositBtn) depositBtn.disabled = false;
+      if (withdrawBtn) withdrawBtn.disabled = false;
+    }
+
     renderOverviewTransactions(_activeOverviewFilter);
     renderModalAllTransactions();
 
@@ -220,6 +269,8 @@ function filterTransactions(txList, filterType, searchQuery = '') {
     filtered = filtered.filter(t => t.type === 'earning');
   } else if (filterType === 'withdrawals') {
     filtered = filtered.filter(t => t.type === 'withdrawal');
+  } else if (filterType === 'refunds') {
+    filtered = filtered.filter(t => t.type === 'refund');
   }
 
   if (searchQuery) {
@@ -237,7 +288,7 @@ function filterTransactions(txList, filterType, searchQuery = '') {
 }
 
 function renderTransactionRowHTML(tx) {
-  const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
+  const isCredit = (tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'refund') && (tx.status === 'successful' || tx.status === 'success');
   const statusConfig = {
     successful: { label: 'Completed', cls: 'status-open' },
     success: { label: 'Completed', cls: 'status-open' },
@@ -254,6 +305,7 @@ function renderTransactionRowHTML(tx) {
   if (tx.type === 'deposit') desc = `Wallet Deposit${feeText}`;
   else if (tx.type === 'withdrawal') desc = `Bank Payout to ${tx.bank || 'Bank'}${feeText}`;
   else if (tx.type === 'earning') desc = tx.label || 'Task Completion Earning';
+  else if (tx.type === 'refund') desc = tx.label || 'Funds Refunded to Wallet';
 
   const safeDesc = window.escapeHtml?.(desc) || desc;
   const safeRef = window.escapeHtml?.(tx.reference) || tx.reference;
@@ -330,7 +382,7 @@ function openTransactionDetailModal(txId) {
   const modal = document.getElementById('tx-detail-modal');
   if (!modal) return;
 
-  const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
+  const isCredit = (tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'refund') && (tx.status === 'successful' || tx.status === 'success');
   const statusConfig = {
     successful: { label: 'Completed', cls: 'status-open' },
     success: { label: 'Completed', cls: 'status-open' },
@@ -484,6 +536,10 @@ function setupWalletListeners() {
 
   // Open & Close Deposit Modal
   document.getElementById('wallet-deposit-btn')?.addEventListener('click', () => {
+    if (_walletState.is_frozen) {
+      if (window.showToast) window.showToast('Your wallet is frozen. Funding is disabled. Please contact support@taska.com.ng to appeal.', 'error');
+      return;
+    }
     showModal(depositModal);
     updateDepositBreakdown();
   });
@@ -510,6 +566,10 @@ function setupWalletListeners() {
   // Submit Deposit Form — Launches Paystack Checkout Popup
   document.getElementById('wallet-deposit-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (_walletState.is_frozen) {
+      if (window.showToast) window.showToast('Your wallet is frozen. Funding is disabled.', 'error');
+      return;
+    }
     if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-deposit', 1500)) return;
 
     const grossAmt = parseFloat(depositAmountInput?.value || '0');
@@ -595,6 +655,10 @@ function setupWalletListeners() {
 
   // Open & Close Withdraw Modal
   document.getElementById('wallet-withdraw-btn')?.addEventListener('click', () => {
+    if (_walletState.is_frozen) {
+      if (window.showToast) window.showToast('Your wallet is frozen. Withdrawals are disabled. Please contact support@taska.com.ng to appeal.', 'error');
+      return;
+    }
     const bal = _walletState.available_balance;
     const withdrawAvailableBalEl = document.getElementById('withdraw-available-bal');
     if (withdrawAvailableBalEl) withdrawAvailableBalEl.textContent = formatNaira(bal);
@@ -658,9 +722,13 @@ function setupWalletListeners() {
   });
   withdrawBankSelect?.addEventListener('change', resolveAccount);
 
-  // Submit Withdrawal Form
+  // Submit Withdrawal Form — Authorizes via 4-Digit Transaction PIN
   document.getElementById('wallet-withdraw-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (_walletState.is_frozen) {
+      if (window.showToast) window.showToast('Your wallet is frozen. Withdrawals are disabled.', 'error');
+      return;
+    }
     if (window.TaskaRateLimiter && !window.TaskaRateLimiter.canExecute('wallet-withdraw', 2000)) return;
 
     const grossAmt = parseFloat(withdrawAmountInput?.value || '0');
@@ -696,54 +764,178 @@ function setupWalletListeners() {
     const profile = _currentProfile;
     if (!profile) return;
 
-    if (withdrawSubmitBtn) {
-      withdrawSubmitBtn.disabled = true;
-      withdrawSubmitBtn.textContent = 'Processing Payout...';
+    // Prompt for 4-Digit Transaction PIN before submitting
+    if (typeof window.promptTransactionPin !== 'function') {
+      if (window.showToast) window.showToast('Security module loading. Please try again.');
+      return;
     }
 
-    try {
-      const result = await edgeFetch('wallet-withdraw', {
-        method: 'POST',
-        body: JSON.stringify({
-          profileId: profile.id,
-          requestedAmountNaira: grossAmt,
-          bankCode,
-          accountNumber: accNum,
-          accountName: _resolvedAccountName,
-          bankName,
-        }),
-      });
+    window.promptTransactionPin({
+      title: 'Authorize Withdrawal',
+      description: `Enter your 4-digit PIN to authorize payout of ${formatNaira(grossAmt)} to ${_resolvedAccountName} (${bankName}).`,
+      submitText: 'Authorize Transfer',
+      onConfirm: async (pin, modalControls) => {
+        modalControls.setLoading(true, 'Processing Transfer...');
+        try {
+          const result = await edgeFetch('wallet-withdraw', {
+            method: 'POST',
+            body: JSON.stringify({
+              profileId: profile.id,
+              requestedAmountNaira: grossAmt,
+              bankCode,
+              accountNumber: accNum,
+              accountName: _resolvedAccountName,
+              bankName,
+              transactionPin: pin,
+            }),
+          });
 
-      if (!result.success) {
-        if (window.showToast) window.showToast(`Withdrawal failed: ${result.error || 'Please try again.'}`);
-        await loadWalletData();
-        return;
+          if (!result.success) {
+            if (result.code === 'WALLET_FROZEN') {
+              modalControls.showFrozen(result.error || 'Wallet has been frozen. Please contact support@taska.com.ng to appeal.');
+              await loadWalletData();
+              return;
+            }
+            if (result.code === 'WRONG_PIN') {
+              modalControls.showError(result.error || 'Incorrect Transaction PIN', result.attempts_remaining);
+              return;
+            }
+            modalControls.showError(result.error || 'Withdrawal failed. Please try again.');
+            return;
+          }
+
+          modalControls.close();
+          hideModal(withdrawModal);
+          if (withdrawAmountInput) withdrawAmountInput.value = '';
+          if (withdrawAccInput) withdrawAccInput.value = '';
+          if (withdrawNameBox) withdrawNameBox.style.display = 'none';
+          _resolvedAccountName = '';
+          updateWithdrawBreakdown();
+
+          if (window.showToast) {
+            window.showToast(result.message || `${formatNaira(result.payout_naira)} sent to your bank account!`, 'success');
+          }
+
+          await loadWalletData();
+
+        } catch (err) {
+          console.error('[wallet] Withdrawal error:', err);
+          modalControls.showError(err.message || 'Withdrawal request failed. Please try again.');
+        }
       }
+    });
+  });
 
-      hideModal(withdrawModal);
-      if (withdrawAmountInput) withdrawAmountInput.value = '';
-      if (withdrawAccInput) withdrawAccInput.value = '';
-      if (withdrawNameBox) withdrawNameBox.style.display = 'none';
-      _resolvedAccountName = '';
-      updateWithdrawBreakdown();
+  // Init Appeal Support Modal
+  initWalletAppealModal();
+}
 
-      if (window.showToast) {
-        window.showToast(result.message || `₦${formatNaira(result.payout_naira)} sent to your bank account!`);
+// ── Wallet Unfreeze Appeal Modal ──────────────────────────────────────────────
+
+function openWalletAppealModal() {
+  const modal = document.getElementById('wallet-appeal-modal');
+  if (!modal) return;
+
+  const profile = _currentProfile;
+  const email = profile?.email || 'Your registered email';
+  const userId = profile?.id || '—';
+  const emailEl = document.getElementById('appeal-account-email');
+  if (emailEl) emailEl.textContent = email;
+
+  const subject = encodeURIComponent('Wallet Unfreeze Appeal');
+  const bodyText = `Hello Taska Support Team,
+
+My wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts.
+I would like to request an unfreeze review and identity verification to restore access to my account.
+
+Account Details:
+- Registered Email: ${email}
+- User ID: ${userId}
+- Request Date: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+
+Thank you.`;
+
+  const msgArea = document.getElementById('appeal-message-text');
+  if (msgArea) msgArea.value = bodyText;
+
+  // Set mailto link
+  const mailtoBtn = document.getElementById('btn-appeal-send-mailto');
+  const mailtoUrl = `mailto:support@taska.com.ng?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+  if (mailtoBtn) {
+    mailtoBtn.href = mailtoUrl;
+    mailtoBtn.onclick = (e) => {
+      e.stopPropagation();
+      window.location.href = mailtoUrl;
+    };
+  }
+
+  showModal(modal);
+}
+
+function initWalletAppealModal() {
+  const modal = document.getElementById('wallet-appeal-modal');
+  if (!modal) return;
+
+  const closeBtn = document.getElementById('wallet-appeal-close-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => hideModal(modal));
+  }
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) hideModal(modal);
+  });
+
+  // Copy email button
+  const copyEmailBtn = document.getElementById('btn-copy-support-email');
+  if (copyEmailBtn) {
+    copyEmailBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('support@taska.com.ng');
+        const textSpan = document.getElementById('copy-email-btn-text');
+        if (textSpan) textSpan.textContent = '✓ Copied support@taska.com.ng!';
+        if (window.showToast) window.showToast('Support email copied to clipboard!', 'success');
+        setTimeout(() => {
+          if (textSpan) textSpan.textContent = 'Copy Support Email (support@taska.com.ng)';
+        }, 3000);
+      } catch (err) {
+        if (window.showToast) window.showToast('Please email: support@taska.com.ng');
       }
+    });
+  }
 
-      await loadWalletData();
-
-    } catch (err) {
-      console.error('[wallet] Withdrawal error:', err);
-      if (window.showToast) window.showToast('Withdrawal failed. Please try again.');
-    } finally {
-      if (withdrawSubmitBtn) {
-        withdrawSubmitBtn.disabled = false;
-        withdrawSubmitBtn.textContent = 'Confirm & Request Payout';
+  // Copy message button
+  const copyMsgBtn = document.getElementById('btn-copy-appeal-msg');
+  if (copyMsgBtn) {
+    copyMsgBtn.addEventListener('click', async () => {
+      const msgArea = document.getElementById('appeal-message-text');
+      if (msgArea) {
+        try {
+          await navigator.clipboard.writeText(msgArea.value);
+          const copyLabel = document.getElementById('copy-msg-text');
+          if (copyLabel) copyLabel.textContent = '✓ Copied!';
+          if (window.showToast) window.showToast('Appeal message copied to clipboard!', 'success');
+          setTimeout(() => {
+            if (copyLabel) copyLabel.textContent = 'Copy message';
+          }, 3000);
+        } catch (err) {
+          msgArea.select();
+          document.execCommand('copy');
+          if (window.showToast) window.showToast('Appeal message copied!');
+        }
       }
-    }
+    });
+  }
+
+  // Bind appeal button in frozen banner and anywhere on wallet page
+  document.querySelectorAll('#btn-wallet-appeal, .btn-wallet-appeal-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openWalletAppealModal();
+    });
   });
 }
+
+window.openWalletAppealModal = openWalletAppealModal;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 

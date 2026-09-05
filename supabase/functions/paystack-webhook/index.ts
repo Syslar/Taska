@@ -234,7 +234,7 @@ async function handleChargeSuccess(supabase: any, data: any) {
   const { data: result, error } = await supabase.rpc('process_deposit', {
     p_profile_id: profileId,
     p_paystack_reference: reference,
-    p_paystack_transaction_id: data.id,
+    p_paystack_transaction_id: Number(data.id),
     p_gross_amount_kobo: amountKobo,
     p_channel: channel || 'card',
     p_commission_rate: commissionRate,

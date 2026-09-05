@@ -412,51 +412,83 @@ async function handleAcceptAndLockEscrow(taskId, applicationId, taskerId, tasker
 
   if (!confirmed) return;
 
-  const token = window.getTaskaToken ? await window.getTaskaToken() : null;
-  const headers = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  try {
-    const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/task-escrow', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        action: 'lock',
-        taskId,
-        posterId: profile.id,
-        applicationId,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok || data.error) {
-      if (data.error && data.error.includes('Insufficient wallet balance')) {
-        const modal = document.getElementById('insufficientFundsModal');
-        const msgEl = document.getElementById('insufficientFundsMsg');
-        const budgetStr = window.formatNaira ? window.formatNaira(budget) : `₦${budget.toLocaleString()}`;
-        if (msgEl) {
-          msgEl.innerHTML = `
-            To hire <strong>${window.escapeHtml(taskerName)}</strong>, <strong>${budgetStr}</strong> must be secured in Escrow.<br><br>
-            Please top up your Taska Wallet balance to proceed.
-          `;
-        }
-        if (modal) {
-          modal.classList.add('is-open');
-          modal.style.display = 'flex';
-        }
-        return;
-      }
-      throw new Error(data.error || 'Failed to lock escrow');
-    }
-
-    if (window.showToast) window.showToast(`Hired ${taskerName}! ₦${budget.toLocaleString()} secured in Taska Escrow.`);
-    await fetchMyTasks();
-
-  } catch (err) {
-    console.error('handleAcceptAndLockEscrow error:', err);
-    if (window.showToast) window.showToast(err.message || 'Could not complete hiring.');
+  if (typeof window.promptTransactionPin !== 'function') {
+    if (window.showToast) window.showToast('Security module loading. Please try again.');
+    return;
   }
+
+  window.promptTransactionPin({
+    title: 'Authorize Escrow Lock',
+    description: `Enter your 4-digit PIN to hire ${taskerName} and lock ${budgetStr} in Taska Escrow.`,
+    submitText: 'Authorize & Hire',
+    onConfirm: async (pin, modalControls) => {
+      modalControls.setLoading(true, 'Securing Escrow...');
+      try {
+        const token = window.getTaskaToken ? await window.getTaskaToken() : null;
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/task-escrow', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            action: 'lock',
+            taskId,
+            posterId: profile.id,
+            applicationId,
+            transactionPin: pin,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          if (data.code === 'WALLET_FROZEN') {
+            modalControls.showFrozen(data.error || 'Wallet has been frozen. Please contact support@taska.com.ng to appeal.');
+            return;
+          }
+          if (data.code === 'WRONG_PIN') {
+            modalControls.showError(data.error || 'Incorrect Transaction PIN', data.attempts_remaining);
+            return;
+          }
+          if (data.code === 'PIN_NOT_SET') {
+            modalControls.close();
+            if (typeof window.promptTransactionPinSetupModal === 'function') {
+              window.promptTransactionPinSetupModal(profile);
+            }
+            return;
+          }
+          if (data.error && (data.error.includes('Insufficient wallet balance') || data.code === 'INSUFFICIENT_BALANCE')) {
+            modalControls.close();
+            const modal = document.getElementById('insufficientFundsModal');
+            const msgEl = document.getElementById('insufficientFundsMsg');
+            const budgetFormatted = window.formatNaira ? window.formatNaira(budget) : `₦${budget.toLocaleString()}`;
+            if (msgEl) {
+              msgEl.innerHTML = `
+                To hire <strong>${window.escapeHtml(taskerName)}</strong>, <strong>${budgetFormatted}</strong> must be secured in Escrow.<br><br>
+                Please top up your Taska Wallet balance to proceed.
+              `;
+            }
+            if (modal) {
+              modal.classList.add('is-open');
+              modal.style.display = 'flex';
+            }
+            return;
+          }
+          modalControls.showError(data.error || 'Failed to lock escrow');
+          return;
+        }
+
+        modalControls.close();
+        if (window.showToast) window.showToast(`Hired ${taskerName}! ₦${budget.toLocaleString()} secured in Taska Escrow.`, 'success');
+        await fetchMyTasks();
+
+      } catch (err) {
+        console.error('handleAcceptAndLockEscrow error:', err);
+        modalControls.showError(err.message || 'Could not complete hiring.');
+      }
+    }
+  });
 }
 
 // ─── STEP 2: APPROVE WORK & RELEASE PAYMENT ─────────────────────────────────

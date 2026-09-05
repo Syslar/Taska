@@ -482,6 +482,72 @@ function buildNotificationContent(req: NotificationRequest, profile: any) {
       break;
     }
 
+    case 'TRANSACTION_PIN_CHANGED': {
+      subject = 'Security Alert — Your Taska Transaction PIN was changed';
+      headline = 'Transaction PIN Changed';
+      body = 'Your 4-digit transaction PIN was successfully updated. If you made this change, no further action is required. If you did not authorize this change, please contact support immediately to secure your account.';
+      badgeText = 'SECURITY ALERT';
+      badgeBg = '#FEE2E2';
+      badgeColor = '#991B1B';
+      details = [
+        { label: 'Security Event', value: 'Transaction PIN Updated' },
+        { label: 'Date & Time', value: new Date().toLocaleString('en-NG') },
+        { label: 'Status', value: 'Active' },
+      ];
+      ctaText = 'Security Settings';
+      ctaUrl = `${appUrl}/settings/account.html`;
+      notice = 'For your security, never share your transaction PIN with anyone, including Taska staff.';
+      inAppTitle = 'Transaction PIN Changed';
+      inAppBody = 'Your 4-digit transaction PIN was updated recently. Contact support immediately if you did not make this change.';
+      break;
+    }
+
+    case 'TRANSACTION_PIN_RESET_OTP': {
+      const otp = d.otp || '------';
+      subject = `Taska Verification Code: ${otp}`;
+      headline = 'Reset Your Transaction PIN';
+      body = `We received a request to reset your 4-digit Taska Transaction PIN. Use the verification code below to authorize this change:<br><br>
+      <div style="margin: 20px 0; text-align: center;">
+        <div style="display: inline-block; padding: 14px 28px; background: #F0FDF4; border: 2px dashed #10B981; border-radius: 12px; font-family: 'IBM Plex Mono', monospace, sans-serif; font-size: 32px; font-weight: 700; letter-spacing: 6px; color: #047857;">
+          ${otp}
+        </div>
+      </div>
+      This verification code is valid for <strong>10 minutes</strong>. If you did not request this reset, please ignore this email or reach out to support if you suspect unauthorized activity.`;
+      badgeText = 'SECURITY CODE';
+      badgeBg = '#ECFDF5';
+      badgeColor = '#065F46';
+      details = [
+        { label: 'Action', value: 'Reset Transaction PIN' },
+        { label: 'Requested At', value: new Date().toLocaleString('en-NG') },
+        { label: 'Expires In', value: '10 minutes' },
+      ];
+      notice = 'Security Reminder: Taska staff will never ask for your verification code or transaction PIN.';
+      inAppTitle = 'Transaction PIN Reset Code Sent';
+      inAppBody = 'A 6-digit verification code was sent to your registered email to reset your Transaction PIN.';
+      break;
+    }
+
+    case 'WALLET_FROZEN': {
+      subject = 'Security Alert — Your Taska Wallet Has Been Frozen';
+      headline = 'Wallet Access Frozen';
+      body = 'Your Taska wallet has been automatically frozen following 3 consecutive incorrect PIN attempts. To safeguard your funds, withdrawals and funding have been paused. Your balance and transaction history remain safe. To appeal and unfreeze your wallet, please reach out to our team at support@taska.com.ng.';
+      badgeText = 'WALLET FROZEN';
+      badgeBg = '#FEE2E2';
+      badgeColor = '#991B1B';
+      details = [
+        { label: 'Account Status', value: 'Wallet Frozen' },
+        { label: 'Reason', value: '3 Incorrect PIN Attempts' },
+        { label: 'Support Email', value: 'support@taska.com.ng' },
+        { label: 'Date & Time', value: new Date().toLocaleString('en-NG') },
+      ];
+      ctaText = 'View Wallet';
+      ctaUrl = `${appUrl}/wallet`;
+      notice = 'Only Taska administrators can unfreeze your wallet following a security verification review.';
+      inAppTitle = 'Wallet Frozen';
+      inAppBody = 'Your wallet has been frozen after 3 failed PIN attempts. Contact support@taska.com.ng to submit an appeal.';
+      break;
+    }
+
     case 'CUSTOM':
     default: {
       subject = req.customSubject || d.subject || 'Taska Account Update';

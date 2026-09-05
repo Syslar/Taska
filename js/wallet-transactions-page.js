@@ -50,6 +50,7 @@ async function loadFullTransactionsPage() {
     const info = await edgeFetch(`wallet-info?profileId=${_pageProfile.id}`);
     const deposits = info?.deposits || [];
     const withdrawals = info?.withdrawals || [];
+    const refunds = info?.refunds || [];
 
     let walletTxs = [];
     if (window.supabaseClient && _pageProfile.id) {
@@ -102,6 +103,22 @@ async function loadFullTransactionsPage() {
         label: 'Bank Withdrawal',
         failure_reason: w.failure_reason || null
       })),
+      ...refunds.map(r => ({
+        id: String(r.id || r.reference),
+        type: 'refund',
+        category: 'Refund',
+        date: r.createdAt,
+        status: 'successful',
+        amount: r.amount_naira || (r.amount ? r.amount / 100 : 0) || 0,
+        gross: r.gross_amount_naira || r.amount_naira || (r.amount ? r.amount / 100 : 0) || 0,
+        fee: 0,
+        reference: r.reference || `TK-RFD-${r.id || Date.now()}`,
+        bank: 'Taska Wallet System',
+        accountOwner: ownerName,
+        accountNumber: 'Refund to Wallet Balance',
+        label: r.description || 'Funds Refunded to Wallet',
+        failure_reason: null
+      })),
       ...walletTxs
         .filter(tx => ['task_payout', 'escrow_release', 'credit'].includes(tx.type))
         .map(tx => ({
@@ -138,6 +155,7 @@ function renderPageTransactions() {
   if (_pageActiveFilter === 'deposits') filtered = filtered.filter(t => t.type === 'deposit');
   else if (_pageActiveFilter === 'earnings') filtered = filtered.filter(t => t.type === 'earning');
   else if (_pageActiveFilter === 'withdrawals') filtered = filtered.filter(t => t.type === 'withdrawal');
+  else if (_pageActiveFilter === 'refunds') filtered = filtered.filter(t => t.type === 'refund');
 
   if (_pageActiveSearch) {
     const q = _pageActiveSearch.toLowerCase().trim();
@@ -165,7 +183,7 @@ function renderPageTransactions() {
   };
 
   container.innerHTML = filtered.map(tx => {
-    const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
+    const isCredit = (tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'refund') && (tx.status === 'successful' || tx.status === 'success');
     const sc = statusConfig[tx.status] || { label: tx.status, cls: 'status-pending' };
     const dateStr = new Date(tx.date || Date.now()).toLocaleDateString('en-NG', { month: 'short', day: 'numeric', year: 'numeric' });
     const feeText = tx.fee > 0 ? ` — ${formatNaira(tx.fee)} fee` : '';
@@ -174,6 +192,7 @@ function renderPageTransactions() {
     if (tx.type === 'deposit') desc = `Wallet Deposit${feeText}`;
     else if (tx.type === 'withdrawal') desc = `Bank Payout to ${tx.bank || 'Bank'}${feeText}`;
     else if (tx.type === 'earning') desc = tx.label || 'Task Completion Earning';
+    else if (tx.type === 'refund') desc = tx.label || 'Funds Refunded to Wallet';
 
     const safeDesc = window.escapeHtml?.(desc) || desc;
     const safeRef = window.escapeHtml?.(tx.reference) || tx.reference;
@@ -215,7 +234,7 @@ function openTxDetailModal(txId) {
   const modal = document.getElementById('tx-detail-modal');
   if (!modal) return;
 
-  const isCredit = (tx.type === 'deposit' || tx.type === 'earning') && (tx.status === 'successful' || tx.status === 'success');
+  const isCredit = (tx.type === 'deposit' || tx.type === 'earning' || tx.type === 'refund') && (tx.status === 'successful' || tx.status === 'success');
   const statusConfig = {
     successful: { label: 'Completed', cls: 'status-open' },
     success: { label: 'Completed', cls: 'status-open' },

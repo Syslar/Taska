@@ -43,6 +43,220 @@
       align-items: center;
       gap: 10px;
     }
+
+    /* ==========================================================================
+       FROZEN ICE-BLOCK ANIMATION & AESTHETICS FOR WALLET HERO
+       ========================================================================== */
+    .wallet-hero {
+      position: relative;
+      transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+    }
+
+    .wallet-hero.is-frozen {
+      background: linear-gradient(135deg, #021822 0%, #063445 25%, #0c4d63 55%, #083344 80%, #021a24 100%) !important;
+      border: 2px solid rgba(186, 230, 253, 0.75) !important;
+      box-shadow: 
+        0 14px 40px rgba(2, 22, 31, 0.75),
+        0 0 35px rgba(56, 189, 248, 0.4),
+        inset 0 0 50px rgba(186, 230, 253, 0.22),
+        inset 0 2px 4px rgba(255, 255, 255, 0.8) !important;
+      animation: icePulseAura 4s ease-in-out infinite alternate !important;
+      overflow: hidden;
+    }
+
+    .wallet-hero.is-frozen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 18% 22%, rgba(186, 230, 253, 0.25) 0%, transparent 45%),
+        radial-gradient(circle at 82% 78%, rgba(56, 189, 248, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(224, 242, 254, 0.08) 0%, transparent 60%);
+      opacity: 0.95;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .wallet-hero.is-frozen::after {
+      content: '';
+      position: absolute;
+      top: -70%;
+      left: -70%;
+      width: 240%;
+      height: 240%;
+      background: linear-gradient(
+        65deg,
+        transparent 38%,
+        rgba(255, 255, 255, 0.03) 44%,
+        rgba(186, 230, 253, 0.3) 49%,
+        rgba(255, 255, 255, 0.65) 50%,
+        rgba(186, 230, 253, 0.3) 51%,
+        rgba(255, 255, 255, 0.03) 56%,
+        transparent 62%
+      );
+      transform: rotate(25deg) translateX(-100%);
+      animation: iceSheenSweep 4.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .ice-icicle-border {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, 
+        rgba(186, 230, 253, 0.2) 0%, 
+        rgba(255, 255, 255, 0.95) 45%, 
+        rgba(186, 230, 253, 0.9) 55%, 
+        rgba(255, 255, 255, 0.95) 60%, 
+        rgba(186, 230, 253, 0.2) 100%
+      );
+      box-shadow: 0 0 14px rgba(186, 230, 253, 0.95);
+      z-index: 3;
+    }
+
+    .ice-particles-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      overflow: hidden;
+    }
+
+    .ice-particle {
+      position: absolute;
+      color: rgba(224, 242, 254, 0.85);
+      user-select: none;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
+      animation: iceFloat 6s ease-in-out infinite alternate;
+    }
+
+    .ice-particle:nth-child(1) { top: 10%; left: 6%; font-size: 1.15rem; animation-duration: 5s; }
+    .ice-particle:nth-child(2) { top: 22%; right: 8%; font-size: 0.95rem; animation-duration: 6.5s; animation-delay: 0.7s; }
+    .ice-particle:nth-child(3) { bottom: 18%; left: 16%; font-size: 0.85rem; animation-duration: 5.5s; animation-delay: 1.4s; }
+    .ice-particle:nth-child(4) { top: 62%; right: 18%; font-size: 1.25rem; animation-duration: 7s; animation-delay: 0.3s; }
+    .ice-particle:nth-child(5) { top: 16%; left: 42%; font-size: 0.8rem; animation-duration: 4.8s; animation-delay: 2s; }
+
+    .wallet-hero.is-frozen .wallet-hero-balance {
+      background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 25%, #BAE6FD 65%, #38BDF8 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.85)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55)) !important;
+      animation: iceGlacialPulse 3.2s ease-in-out infinite alternate !important;
+      position: relative;
+      z-index: 3;
+    }
+
+    .wallet-hero.is-frozen .wallet-hero-label {
+      color: #BAE6FD !important;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+      position: relative;
+      z-index: 3;
+    }
+
+    .wallet-ice-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(14, 165, 233, 0.22);
+      border: 1px solid rgba(186, 230, 253, 0.75);
+      color: #E0F2FE;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.75px;
+      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.45);
+      animation: iceBadgePulse 2.5s ease-in-out infinite alternate;
+      position: relative;
+      z-index: 3;
+    }
+
+    .wallet-hero.is-frozen #wallet-frozen-banner {
+      background: rgba(254, 242, 242, 0.96) !important;
+      backdrop-filter: blur(12px) !important;
+      border: 1.5px solid #FCA5A5 !important;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
+      position: relative;
+      z-index: 3;
+    }
+
+    #btn-wallet-appeal:hover {
+      background: #B91C1C !important;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45) !important;
+      transform: translateY(-1px);
+    }
+    #btn-wallet-appeal:active {
+      transform: translateY(0);
+    }
+
+    @keyframes icePulseAura {
+      0% {
+        box-shadow: 
+          0 14px 40px rgba(2, 22, 31, 0.75),
+          0 0 30px rgba(56, 189, 248, 0.35),
+          inset 0 0 40px rgba(186, 230, 253, 0.18),
+          inset 0 2px 4px rgba(255, 255, 255, 0.7);
+      }
+      100% {
+        box-shadow: 
+          0 18px 48px rgba(2, 22, 31, 0.9),
+          0 0 60px rgba(56, 189, 248, 0.65),
+          inset 0 0 65px rgba(186, 230, 253, 0.38),
+          inset 0 2px 6px rgba(255, 255, 255, 0.95);
+      }
+    }
+
+    @keyframes iceSheenSweep {
+      0% {
+        transform: rotate(25deg) translateX(-160%);
+      }
+      38% {
+        transform: rotate(25deg) translateX(160%);
+      }
+      100% {
+        transform: rotate(25deg) translateX(160%);
+      }
+    }
+
+    @keyframes iceFloat {
+      0% {
+        transform: translateY(0) scale(1) rotate(0deg);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translateY(-8px) scale(1.08) rotate(14deg);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateY(6px) scale(0.94) rotate(-10deg);
+        opacity: 0.7;
+      }
+    }
+
+    @keyframes iceGlacialPulse {
+      0% {
+        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+      }
+      100% {
+        filter: drop-shadow(0 0 24px rgba(125, 211, 252, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.65));
+      }
+    }
+
+    @keyframes iceBadgePulse {
+      0% {
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+        border-color: rgba(186, 230, 253, 0.5);
+      }
+      100% {
+        box-shadow: 0 0 22px rgba(56, 189, 248, 0.75);
+        border-color: rgba(224, 242, 254, 0.95);
+      }
+    }
   </style>
 </head>
 <body>
@@ -60,17 +274,50 @@
 
     <!-- Wallet Hero Banner -->
     <div class="wallet-hero">
+      <!-- Frozen Ice Icicle Top Bar -->
+      <div class="ice-icicle-border" id="wallet-ice-icicles" style="display:none;"></div>
+
+      <!-- Frozen Ice Floating Particles Overlay -->
+      <div class="ice-particles-overlay" id="wallet-ice-particles" style="display:none;" aria-hidden="true">
+        <span class="ice-particle">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>
+        </span>
+        <span class="ice-particle">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="12" y1="22" x2="12" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
+        </span>
+        <span class="ice-particle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L14 10L24 12L14 14L12 24L10 14L0 12L10 10L12 0Z"/></svg>
+        </span>
+        <span class="ice-particle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 20 12 12 22 4 12 12 2"/></svg>
+        </span>
+        <span class="ice-particle">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
+        </span>
+      </div>
+
       <div class="wallet-hero-top">
         <div>
-          <div class="wallet-hero-label">Available Balance</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="wallet-hero-label">Available Balance</div>
+            <span class="wallet-ice-badge" id="wallet-hero-frozen-badge" style="display:none;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;">
+                <line x1="12" y1="2" x2="12" y2="22"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
+              </svg>
+              WALLET FROZEN
+            </span>
+          </div>
           <div class="wallet-hero-balance mono" id="wallet-hero-balance">₦0</div>
         </div>
-        <div class="wallet-hero-actions">
-          <button class="btn btn-primary" id="wallet-deposit-btn">
+        <div class="wallet-hero-actions" style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 140px;">
+          <button class="btn btn-primary" id="wallet-deposit-btn" style="justify-content: center; width: 100%;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block; margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Funds
           </button>
-          <button class="btn btn-secondary" id="wallet-withdraw-btn">
+          <button class="btn btn-secondary" id="wallet-withdraw-btn" style="justify-content: center; width: 100%;">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block; margin-right:4px;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             Withdraw
           </button>
@@ -78,6 +325,27 @@
       </div>
       <!-- Locked balance indicator -->
       <div id="wallet-locked-balance" style="display:none; font-size:0.82rem; color:var(--orange-600, #d97706); padding:6px 16px 0; font-weight:500;"></div>
+
+      <!-- Frozen Wallet Notice Banner -->
+      <div id="wallet-frozen-banner" style="display:none; margin-top:16px; padding:16px 20px; background:#FEF2F2; border:1.5px solid #F87171; border-radius:14px; color:#991B1B;">
+        <div style="display:flex; align-items:flex-start; gap:14px;">
+          <div style="width:40px; height:40px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div style="flex:1;">
+            <div style="font-weight:700; font-size:1rem; margin-bottom:4px; color:#7F1D1D;">Wallet Frozen</div>
+            <div style="font-size:0.86rem; line-height:1.5; color:#991B1B;">
+              Your wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts. To safeguard your funds, withdrawals and deposits are paused. Your balance and transaction history remain safe.
+            </div>
+            <div style="margin-top:12px;">
+              <button type="button" class="btn btn-sm btn-wallet-appeal-trigger" id="btn-wallet-appeal" style="background:#DC2626; color:#fff; font-size:0.84rem; font-weight:600; padding:8px 18px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border-radius:8px; box-shadow:0 2px 6px rgba(220,38,38,0.25); transition:all 0.15s ease;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Contact Support to Appeal
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Quick Stat Strip -->
@@ -117,6 +385,7 @@
         <button class="wallet-tab" data-wallet-filter="deposits" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Deposits</button>
         <button class="wallet-tab" data-wallet-filter="earnings" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Earnings</button>
         <button class="wallet-tab" data-wallet-filter="withdrawals" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Withdrawals</button>
+        <button class="wallet-tab" data-wallet-filter="refunds" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Refunds</button>
       </div>
 
       <div id="tx-container" style="margin-top: 12px;">
@@ -220,6 +489,7 @@
         <button class="wallet-tab" data-modal-filter="deposits" style="font-size:0.8rem; padding:5px 12px;">Deposits</button>
         <button class="wallet-tab" data-modal-filter="earnings" style="font-size:0.8rem; padding:5px 12px;">Earnings</button>
         <button class="wallet-tab" data-modal-filter="withdrawals" style="font-size:0.8rem; padding:5px 12px;">Withdrawals</button>
+        <button class="wallet-tab" data-modal-filter="refunds" style="font-size:0.8rem; padding:5px 12px;">Refunds</button>
       </div>
       <input type="text" id="modal-tx-search-input" placeholder="Search reference, bank..." style="padding:6px 12px; font-size:0.82rem; border-radius:var(--radius-pill); border:1px solid var(--line); outline:none; background:var(--surface); min-width:170px;">
     </div>
@@ -368,6 +638,76 @@
   </div>
 </div>
 
+<!-- ======================== WALLET APPEAL / CONTACT SUPPORT MODAL ======================== -->
+<div class="modal-backdrop" id="wallet-appeal-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(4px); overflow-y:auto;">
+  <div style="background:var(--paper, #FFFFFF); border-radius:18px; max-width:520px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; border:1px solid var(--line, #E2E8F0); box-shadow:0 20px 50px rgba(0,0,0,0.3); position:relative; box-sizing:border-box;">
+    
+    <!-- Header -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:44px; height:44px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:1.22rem; margin:0; color:#1E293B; font-weight:700;">Wallet Unfreeze Appeal</h3>
+          <div style="font-size:0.8rem; color:#64748B; margin-top:2px;">Taska Trust &amp; Security Desk</div>
+        </div>
+      </div>
+      <button type="button" id="wallet-appeal-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94A3B8; padding:4px; line-height:1;">✕</button>
+    </div>
+
+    <!-- Frozen explanation box -->
+    <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; padding:14px 16px; margin-bottom:18px;">
+      <div style="font-size:0.86rem; color:#991B1B; line-height:1.5;">
+        <strong>Your wallet is locked for security</strong> due to 3 consecutive incorrect Transaction PIN attempts. To restore withdrawals and funding, please submit an unfreeze appeal below. Our security team reviews all requests promptly.
+      </div>
+    </div>
+
+    <!-- Account Details Pill -->
+    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 16px; margin-bottom:18px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; margin-bottom:6px;">
+        <span style="color:#64748B;">Registered Account:</span>
+        <strong id="appeal-account-email" style="color:#0F172A; font-family:var(--font-mono, monospace);">Loading...</strong>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
+        <span style="color:#64748B;">Account Status:</span>
+        <span style="display:inline-flex; align-items:center; gap:5px; font-weight:700; color:#DC2626; font-size:0.76rem; background:#FEE2E2; padding:3px 8px; border-radius:6px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>
+          FROZEN
+        </span>
+      </div>
+    </div>
+
+    <!-- Appeal Message Template Preview -->
+    <div style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <label style="font-size:0.82rem; font-weight:600; color:#475569;">Appeal Message</label>
+        <button type="button" id="btn-copy-appeal-msg" style="background:none; border:none; color:#0284C7; font-size:0.78rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:2px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span id="copy-msg-text">Copy message</span>
+        </button>
+      </div>
+      <textarea id="appeal-message-text" rows="4" style="width:100%; box-sizing:border-box; padding:12px; font-size:0.84rem; line-height:1.45; border:1px solid #CBD5E1; border-radius:10px; background:#FFFFFF; color:#334155; font-family:inherit; resize:none;" readonly></textarea>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <!-- Primary: Send Email Appeal -->
+      <a id="btn-appeal-send-mailto" href="#" class="btn btn-primary btn-send-mailto" style="justify-content:center; padding:12px; font-size:0.92rem; font-weight:600; background:#DC2626; border-color:#DC2626; color:#FFF; display:flex; align-items:center; gap:8px; text-decoration:none; border-radius:10px; box-shadow:0 4px 12px rgba(220,38,38,0.3); cursor:pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Send Email Appeal
+      </a>
+
+      <!-- Secondary: Copy Email Button -->
+      <button type="button" id="btn-copy-support-email" class="btn btn-secondary" style="justify-content:center; padding:10px; font-size:0.84rem; font-weight:500; display:flex; align-items:center; gap:8px; border-radius:10px; border:1px dashed #CBD5E1; background:#FFFFFF; color:#475569;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span id="copy-email-btn-text">Copy Support Email (support@taska.com.ng)</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
 <!-- Paystack Inline Popup SDK -->
 <script src="https://js.paystack.co/v1/inline.js"></script>
 
@@ -383,8 +723,8 @@
   type="text/javascript">
 </script>
 <script src="/js/sidebar-component.js?v=29"></script>
-<script src="/js/auth-guard.js?v=29"></script>
-<script src="/js/wallet.js?v=21"></script>
+<script src="/js/auth-guard.js?v=30"></script>
+<script src="/js/wallet.js?v=22"></script>
 
 </body>
 </html>
