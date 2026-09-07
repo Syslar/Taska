@@ -123,7 +123,11 @@ async function loadBrowseTasks() {
   const container = document.getElementById('gig-grid-container');
   if (!container) return;
 
-  container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted); grid-column:1/-1;">Loading tasks…</div>';
+  if (window.TaskaSkeleton) {
+    window.TaskaSkeleton.render(container, 'card', 6);
+  } else {
+    container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--muted); grid-column:1/-1;">Loading tasks…</div>';
+  }
 
   if (!window.supabaseClient && window.supabase && window.supabase.createClient) {
     window.supabaseClient = window.supabase.createClient(

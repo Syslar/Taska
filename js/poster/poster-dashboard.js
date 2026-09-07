@@ -8,6 +8,19 @@ async function loadDashboardData() {
   const profile = await window.ensureTaskaProfile();
   if (!profile || !window.supabaseClient) return;
 
+  // Apply skeleton shimmers to stat elements
+  const _pstDashStatIds = ['stat-balance', 'stat-active-tasks', 'stat-completed-tasks', 'stat-rating'];
+  _pstDashStatIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.classList.add('taska-skeleton'); el.style.cssText += 'min-width:60px;min-height:1em;display:inline-block;border-radius:6px;'; }
+  });
+  function _clearPstDashStats() {
+    _pstDashStatIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('taska-skeleton'); el.style.minWidth = ''; el.style.minHeight = ''; }
+    });
+  }
+
   try {
     // 1. Greeting
     const firstName = profile.firstName || 'there';
@@ -25,6 +38,8 @@ async function loadDashboardData() {
 
     const balanceEl = document.getElementById('stat-balance');
     const escrowEl = document.getElementById('stat-escrow');
+
+    _clearPstDashStats();
 
     if (wallet) {
       if (balanceEl) balanceEl.textContent = window.formatNaira(wallet.balance || 0);

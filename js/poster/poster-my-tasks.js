@@ -54,6 +54,10 @@ async function fetchMyTasks() {
   const container = document.getElementById('my-tasks-list');
   if (!profile || !window.supabaseClient || !container) return;
 
+  if (window.TaskaSkeleton) {
+    window.TaskaSkeleton.render(container, 'card', 3);
+  }
+
   try {
     const { data: tasks, error } = await window.supabaseClient
       .from('Task')

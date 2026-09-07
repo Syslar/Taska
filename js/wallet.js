@@ -78,9 +78,41 @@ async function loadWalletData() {
   const profile = _currentProfile;
   if (!profile) return;
 
+  const txContainer = document.getElementById('tx-container');
+  if (txContainer && window.TaskaSkeleton) {
+    window.TaskaSkeleton.render(txContainer, 'tableRows', 5);
+  }
+
+  // Apply skeleton shimmers to balance & stat elements
+  const _walletSkeletonIds = ['wallet-hero-balance', 'stat-earned', 'stat-wallet-escrow', 'stat-withdrawn', 'stat-month'];
+  _walletSkeletonIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.dataset.originalText = el.textContent;
+      el.textContent = '';
+      el.classList.add('taska-skeleton');
+      el.style.minWidth = '80px';
+      el.style.minHeight = '1em';
+      el.style.display = 'inline-block';
+      el.style.borderRadius = '6px';
+    }
+  });
+
+  function _clearWalletSkeletons() {
+    _walletSkeletonIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('taska-skeleton');
+        el.style.minWidth = '';
+        el.style.minHeight = '';
+      }
+    });
+  }
+
   try {
     const info = await edgeFetch(`wallet-info?profileId=${profile.id}`);
     if (!info.success) {
+      _clearWalletSkeletons();
       console.error('[wallet] Failed to load wallet info:', info.error);
       return;
     }
@@ -189,6 +221,9 @@ async function loadWalletData() {
           failure_reason: null
         }))
     ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Clear skeleton shimmers before updating
+    _clearWalletSkeletons();
 
     // Hero Balance
     const balEl = document.getElementById('wallet-hero-balance');

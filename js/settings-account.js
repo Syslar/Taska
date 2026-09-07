@@ -54,6 +54,11 @@
     const badge = document.getElementById('pinStatusBadge');
     if (!badge) return;
 
+    // Remove skeleton shimmer
+    badge.classList.remove('taska-skeleton');
+    badge.style.minWidth = '';
+    badge.style.minHeight = '';
+
     if (status === 'FROZEN') {
       badge.style.background = '#FEE2E2';
       badge.style.color = '#DC2626';
@@ -87,6 +92,12 @@
 
   async function loadPinStatus() {
     try {
+      const badge = document.getElementById('pinStatusBadge');
+      if (badge) {
+        badge.classList.add('taska-skeleton');
+        badge.style.cssText += 'min-width:120px;min-height:1.5em;border-radius:20px;display:inline-block;';
+        badge.innerHTML = '';
+      }
       renderStatusBadge('LOADING');
       if (!currentProfile) {
         currentProfile = await window.ensureTaskaProfile();
@@ -309,10 +320,15 @@
     loadPinStatus();
   });
 
-  document.addEventListener('DOMContentLoaded', () => {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPinStatus();
+      setupPinFormHandlers();
+    });
+  } else {
     loadPinStatus();
     setupPinFormHandlers();
-  });
+  }
 
   window.reloadAccountPinSecurity = loadPinStatus;
 })();

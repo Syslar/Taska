@@ -72,6 +72,19 @@ window.getTaskaToken = async function () {
   }
 };
 
+window.getClerkToken = async function () {
+  if (typeof window.getTaskaToken === 'function') {
+    const t = await window.getTaskaToken();
+    if (t) return t;
+  }
+  if (window.Clerk?.session) {
+    try {
+      return await window.Clerk.session.getToken();
+    } catch (_) {}
+  }
+  return null;
+};
+
 window.getTaskaProfile = function () {
   return window.__taskaProfile || null;
 };
@@ -1172,7 +1185,8 @@ window.promptTransactionPin = function ({
       boxes.forEach(b => b.value = '');
       boxes[0].focus();
       let alertMsg = msg;
-      if (typeof attemptsRemaining === 'number') {
+      // Only append attempts count if not already included in the message from the server
+      if (typeof attemptsRemaining === 'number' && !String(msg).toLowerCase().includes('remaining')) {
         alertMsg = `${msg} (${attemptsRemaining} attempt${attemptsRemaining === 1 ? '' : 's'} remaining)`;
       }
       errorEl.textContent = alertMsg;
@@ -1228,8 +1242,8 @@ window.openForgotPinModal = function(options = {}) {
   const card = document.createElement('div');
   card.className = 'taska-pin-reset-card';
   card.style.cssText = `
-    background: #FFFFFF; border-radius: 20px; max-width: 440px; width: 100%;
-    padding: 32px 28px; border: 1px solid #E2E8F0;
+    background: #FFFFFF; border-radius: 18px; max-width: 420px; width: 100%;
+    padding: 26px 22px; border: 1px solid #E2E8F0;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); text-align: center;
     transform: scale(0.95); transition: transform 0.2s ease;
     font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1254,6 +1268,24 @@ window.openForgotPinModal = function(options = {}) {
     if (e.target === backdrop) close();
   };
 
+  // Safe Token Retrieval
+  const getAuthToken = async () => {
+    if (typeof window.getTaskaToken === 'function') {
+      const t = await window.getTaskaToken();
+      if (t) return t;
+    }
+    if (typeof window.getClerkToken === 'function') {
+      const t = await window.getClerkToken();
+      if (t) return t;
+    }
+    if (window.Clerk?.session) {
+      try {
+        return await window.Clerk.session.getToken();
+      } catch (_) {}
+    }
+    return null;
+  };
+
   // Internal State
   let resetState = {
     selectedChannel: 'email',
@@ -1267,9 +1299,9 @@ window.openForgotPinModal = function(options = {}) {
   // View: Loading
   function renderLoading(msg = 'Checking account details...') {
     card.innerHTML = `
-      <div style="padding: 30px 10px;">
-        <div style="width: 48px; height: 48px; border: 3.5px solid #E2E8F0; border-top-color: #059669; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 18px auto;"></div>
-        <p style="font-size: 0.95rem; color: #475569; font-weight: 500; margin: 0;">${msg}</p>
+      <div style="padding: 24px 10px;">
+        <div style="width: 42px; height: 42px; border: 3px solid #E2E8F0; border-top-color: #059669; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px auto;"></div>
+        <p style="font-size: 0.9rem; color: #475569; font-weight: 500; margin: 0;">${msg}</p>
       </div>
       <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     `;
@@ -1284,8 +1316,8 @@ window.openForgotPinModal = function(options = {}) {
 
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-        <div style="width:48px; height:48px; border-radius:14px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div style="width:40px; height:40px; border-radius:12px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
@@ -1293,42 +1325,61 @@ window.openForgotPinModal = function(options = {}) {
         <button type="button" id="btnResetClose" style="background:none; border:none; color:#94A3B8; font-size:22px; cursor:pointer; line-height:1; padding:4px;">&times;</button>
       </div>
 
-      <h3 style="font-size:1.25rem; font-weight:700; color:#0F172A; margin:0 0 6px 0; text-align:left;">Reset Transaction PIN</h3>
-      <p style="font-size:0.86rem; color:#64748B; margin:0 0 20px 0; line-height:1.5; text-align:left;">
-        To secure your account, we will send a 6-digit verification code. Select where you want to receive it:
+      <h3 style="font-size:1.15rem; font-weight:700; color:#0F172A; margin:0 0 4px 0; text-align:left;">Reset Transaction PIN</h3>
+      <p style="font-size:0.82rem; color:#64748B; margin:0 0 16px 0; line-height:1.45; text-align:left;">
+        To verify your identity, select whether you want to receive your 6-digit OTP via Email or SMS:
       </p>
 
-      <div id="resetChannelError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.82rem; border-radius:10px; margin-bottom:16px; text-align:left; font-weight:500;"></div>
+      <div id="resetChannelError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.8rem; border-radius:10px; margin-bottom:14px; text-align:left; font-weight:500;"></div>
 
-      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:24px; text-align:left;">
-        <label id="optEmailCard" style="display:flex; align-items:center; gap:12px; padding:14px 16px; border:2px solid #059669; background:#F0FDF4; border-radius:12px; cursor:pointer; transition:all 0.15s;">
-          <input type="radio" name="pinResetChannel" value="email" checked style="accent-color:#059669; width:18px; height:18px;" />
+      <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px; text-align:left;">
+        <label id="optEmailCard" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:2px solid #059669; background:#F0FDF4; border-radius:12px; cursor:pointer; transition:all 0.15s; user-select:none;">
+          <input type="radio" name="pinResetChannel" value="email" checked style="accent-color:#059669; width:18px; height:18px; cursor:pointer;" />
           <div style="flex:1;">
-            <div style="font-size:0.9rem; font-weight:600; color:#0F172A;">✉️ Registered Email</div>
-            <div style="font-size:0.82rem; color:#475569; font-weight:500; font-family:monospace; margin-top:2px;">${channelsData.emailMasked || 'Your registered email'}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <span style="font-size:0.88rem; font-weight:700; color:#0F172A;">Registered Email</span>
+            </div>
+            <div style="font-size:0.82rem; color:#334155; font-weight:600; font-family:monospace; margin-top:2px;">${channelsData.emailMasked || 'Your registered email'}</div>
+            <div style="font-size:0.74rem; color:#64748B; margin-top:1px;">Verification code will be sent to your registered email</div>
           </div>
         </label>
 
         ${hasPhone ? `
-        <label id="optSmsCard" style="display:flex; align-items:center; gap:12px; padding:14px 16px; border:2px solid #E2E8F0; background:#FFFFFF; border-radius:12px; cursor:pointer; transition:all 0.15s;">
-          <input type="radio" name="pinResetChannel" value="sms" style="accent-color:#059669; width:18px; height:18px;" />
+        <label id="optSmsCard" style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:2px solid #E2E8F0; background:#FFFFFF; border-radius:12px; cursor:pointer; transition:all 0.15s; user-select:none;">
+          <input type="radio" name="pinResetChannel" value="sms" style="accent-color:#059669; width:18px; height:18px; cursor:pointer;" />
           <div style="flex:1;">
-            <div style="font-size:0.9rem; font-weight:600; color:#0F172A;">📱 Phone Number (SMS)</div>
-            <div style="font-size:0.82rem; color:#475569; font-weight:500; font-family:monospace; margin-top:2px;">${channelsData.phoneMasked}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0284C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              <span style="font-size:0.88rem; font-weight:700; color:#0F172A;">Phone Number</span>
+            </div>
+            <div style="font-size:0.82rem; color:#334155; font-weight:600; font-family:monospace; margin-top:2px;">${channelsData.phoneMasked}</div>
+            <div style="font-size:0.74rem; color:#64748B; margin-top:1px;">SMS verification code sent directly to your registered Nigerian phone</div>
           </div>
         </label>
         ` : `
-        <div style="padding:10px 14px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; font-size:0.8rem; color:#64748B; line-height:1.45;">
-          ℹ️ No mobile phone number is linked to your account. The code will be sent to your registered email.
+        <div style="display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; font-size:0.78rem; color:#64748B; line-height:1.45;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:2px;">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span>No mobile phone number is linked to your account. Code will be sent to your registered email.</span>
         </div>
         `}
       </div>
 
       <div style="display:flex; gap:10px;">
-        <button type="button" id="btnCancelReset" style="flex:1; padding:12px 16px; background:#F1F5F9; color:#475569; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
+        <button type="button" id="btnCancelReset" style="flex:1; padding:10px 14px; background:#F1F5F9; color:#475569; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
           Cancel
         </button>
-        <button type="button" id="btnSendResetCode" style="flex:1.6; padding:12px 18px; background:#059669; color:#FFFFFF; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+        <button type="button" id="btnSendResetCode" style="flex:1.5; padding:10px 16px; background:#059669; color:#FFFFFF; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
           Send Code &rarr;
         </button>
       </div>
@@ -1341,37 +1392,53 @@ window.openForgotPinModal = function(options = {}) {
     const smsCard = card.querySelector('#optSmsCard');
     const radios = card.querySelectorAll('input[name="pinResetChannel"]');
 
-    radios.forEach(radio => {
-      radio.onchange = () => {
-        resetState.selectedChannel = radio.value;
-        if (radio.value === 'email') {
+    function selectChannel(ch) {
+      resetState.selectedChannel = ch;
+      radios.forEach(r => { r.checked = (r.value === ch); });
+      if (ch === 'email') {
+        if (emailCard) {
           emailCard.style.borderColor = '#059669';
           emailCard.style.background = '#F0FDF4';
-          if (smsCard) {
-            smsCard.style.borderColor = '#E2E8F0';
-            smsCard.style.background = '#FFFFFF';
-          }
-        } else {
+        }
+        if (smsCard) {
+          smsCard.style.borderColor = '#E2E8F0';
+          smsCard.style.background = '#FFFFFF';
+        }
+      } else {
+        if (emailCard) {
           emailCard.style.borderColor = '#E2E8F0';
           emailCard.style.background = '#FFFFFF';
-          if (smsCard) {
-            smsCard.style.borderColor = '#059669';
-            smsCard.style.background = '#F0FDF4';
-          }
         }
-      };
+        if (smsCard) {
+          smsCard.style.borderColor = '#059669';
+          smsCard.style.background = '#F0FDF4';
+        }
+      }
+    }
+
+    radios.forEach(radio => {
+      radio.onchange = () => selectChannel(radio.value);
     });
+
+    if (emailCard) {
+      emailCard.onclick = () => selectChannel('email');
+    }
+    if (smsCard) {
+      smsCard.onclick = () => selectChannel('sms');
+    }
 
     const sendBtn = card.querySelector('#btnSendResetCode');
     const errEl = card.querySelector('#resetChannelError');
 
     sendBtn.onclick = async () => {
       sendBtn.disabled = true;
-      sendBtn.innerHTML = `Sending...`;
+      sendBtn.innerHTML = `Sending OTP...`;
       errEl.style.display = 'none';
 
       try {
-        const token = await window.getClerkToken();
+        const token = await getAuthToken();
+        if (!token) throw new Error('Authentication session not ready. Please refresh or log in again.');
+        const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
         const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
           method: 'POST',
           headers: {
@@ -1381,6 +1448,7 @@ window.openForgotPinModal = function(options = {}) {
           body: JSON.stringify({
             action: 'send_reset_otp',
             channel: resetState.selectedChannel,
+            profileId: profile?.id,
           }),
         });
 
@@ -1404,38 +1472,38 @@ window.openForgotPinModal = function(options = {}) {
   function renderOtpStep() {
     card.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
-        <button type="button" id="btnBackToChannels" style="background:none; border:none; color:#059669; font-size:0.84rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; padding:0;">
+        <button type="button" id="btnBackToChannels" style="background:none; border:none; color:#059669; font-size:0.82rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; padding:0;">
           &larr; Change Method
         </button>
         <button type="button" id="btnResetClose2" style="background:none; border:none; color:#94A3B8; font-size:22px; cursor:pointer; line-height:1; padding:4px;">&times;</button>
       </div>
 
-      <h3 style="font-size:1.25rem; font-weight:700; color:#0F172A; margin:0 0 6px 0;">Enter Verification Code</h3>
-      <p style="font-size:0.86rem; color:#64748B; margin:0 0 20px 0; line-height:1.5;">
-        We sent a 6-digit code to <br><strong style="color:#0F172A; font-family:monospace; font-size:0.92rem;">${resetState.targetMasked}</strong>
+      <h3 style="font-size:1.15rem; font-weight:700; color:#0F172A; margin:0 0 4px 0;">Enter Verification Code</h3>
+      <p style="font-size:0.82rem; color:#64748B; margin:0 0 16px 0; line-height:1.45;">
+        We sent a 6-digit verification code via ${resetState.selectedChannel === 'email' ? 'email' : 'SMS'} to <br><strong style="color:#0F172A; font-family:monospace; font-size:0.88rem;">${resetState.targetMasked}</strong>
       </p>
 
-      <form id="otpVerifyForm" onsubmit="return false;">
-        <div style="display:flex; gap:8px; justify-content:center; margin-bottom:16px;" id="otpBoxesContainer">
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="0" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="1" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="2" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="3" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="4" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="5" style="width:44px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+      <form id="otpVerifyForm" onsubmit="event.preventDefault(); return false;">
+        <div style="display:flex; gap:6px; justify-content:center; margin-bottom:14px;" id="otpBoxesContainer">
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="0" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="1" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="2" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="3" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="4" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+          <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="otp-box" data-idx="5" style="width:42px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
         </div>
 
-        <div id="otpVerifyError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.82rem; border-radius:10px; margin-bottom:16px; text-align:center; font-weight:500;"></div>
+        <div id="otpVerifyError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.8rem; border-radius:8px; margin-bottom:14px; text-align:center; font-weight:500;"></div>
 
-        <div style="margin-bottom:20px; font-size:0.82rem; color:#64748B;">
+        <div style="margin-bottom:18px; font-size:0.8rem; color:#64748B;">
           Didn't receive code? <button type="button" id="btnResendOtp" style="background:none; border:none; padding:0; color:#059669; font-weight:600; cursor:pointer;" disabled>Resend in <span id="resendCountdown">60</span>s</button>
         </div>
 
         <div style="display:flex; gap:10px;">
-          <button type="button" id="btnCancelOtp" style="flex:1; padding:12px 16px; background:#F1F5F9; color:#475569; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
+          <button type="button" id="btnCancelOtp" style="flex:1; padding:10px 14px; background:#F1F5F9; color:#475569; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
             Cancel
           </button>
-          <button type="submit" id="btnVerifyOtp" style="flex:1.6; padding:12px 18px; background:#059669; color:#FFFFFF; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <button type="button" id="btnVerifyOtp" style="flex:1.5; padding:10px 16px; background:#059669; color:#FFFFFF; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
             Verify Code
           </button>
         </div>
@@ -1466,7 +1534,9 @@ window.openForgotPinModal = function(options = {}) {
       resendBtn.disabled = true;
       resendBtn.innerHTML = `Sending...`;
       try {
-        const token = await window.getClerkToken();
+        const token = await getAuthToken();
+        if (!token) throw new Error('Session expired. Please log in again.');
+        const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
         const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
           method: 'POST',
           headers: {
@@ -1476,6 +1546,7 @@ window.openForgotPinModal = function(options = {}) {
           body: JSON.stringify({
             action: 'send_reset_otp',
             channel: resetState.selectedChannel,
+            profileId: profile?.id,
           }),
         });
         const data = await res.json();
@@ -1504,6 +1575,60 @@ window.openForgotPinModal = function(options = {}) {
     };
 
     const otpBoxes = Array.from(card.querySelectorAll('.otp-box'));
+    const otpForm = card.querySelector('#otpVerifyForm');
+    const verifyBtn = card.querySelector('#btnVerifyOtp');
+    const errEl = card.querySelector('#otpVerifyError');
+
+    let isVerifying = false;
+
+    async function doVerifyOtp() {
+      if (isVerifying) return;
+      const code = otpBoxes.map(b => b.value).join('');
+      if (code.length !== 6) {
+        errEl.textContent = 'Please enter the complete 6-digit code.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      isVerifying = true;
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #FFFFFF; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle; margin-right:6px;"></span>Verifying...`;
+      errEl.style.display = 'none';
+
+      try {
+        const token = await getAuthToken();
+        if (!token) throw new Error('Session expired. Please log in again.');
+        const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
+        const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            action: 'verify_reset_otp',
+            otp: code,
+            profileId: profile?.id,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Verification failed');
+        }
+
+        if (resetState.resendInterval) clearInterval(resetState.resendInterval);
+        resetState.resetToken = data.resetToken;
+        renderNewPinStep();
+      } catch (err) {
+        isVerifying = false;
+        verifyBtn.disabled = false;
+        verifyBtn.innerHTML = `Verify Code`;
+        errEl.textContent = err.message || 'Verification failed. Please try again.';
+        errEl.style.display = 'block';
+      }
+    }
+
     otpBoxes.forEach((box, i) => {
       box.addEventListener('focus', () => {
         box.style.borderColor = '#10B981';
@@ -1525,6 +1650,10 @@ window.openForgotPinModal = function(options = {}) {
           otpBoxes[i - 1].focus();
         } else if (e.key === 'ArrowRight' && i < otpBoxes.length - 1) {
           otpBoxes[i + 1].focus();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          e.stopPropagation();
+          doVerifyOtp();
         } else if (!/^[0-9]$/.test(e.key) && !['Tab', 'Delete'].includes(e.key)) {
           e.preventDefault();
         }
@@ -1535,113 +1664,116 @@ window.openForgotPinModal = function(options = {}) {
           box.value = box.value.slice(-1);
           if (i < otpBoxes.length - 1) {
             otpBoxes[i + 1].focus();
+          } else {
+            const allFilled = otpBoxes.every(b => b.value.length === 1);
+            if (allFilled) {
+              setTimeout(() => doVerifyOtp(), 150);
+            }
           }
         }
       });
       box.addEventListener('paste', (e) => {
-        e.preventDefault();
-        const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
-        if (text.length >= 6) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (e && e.stopPropagation) e.stopPropagation();
+        const clipboardData = e.clipboardData || window.clipboardData;
+        const text = (clipboardData ? clipboardData.getData('text') : '').replace(/\D/g, '');
+        if (text.length >= 1) {
           for (let j = 0; j < 6; j++) {
             otpBoxes[j].value = text[j] || '';
           }
-          otpBoxes[5].focus();
+          if (text.length >= 6) {
+            otpBoxes[5].focus();
+            setTimeout(() => doVerifyOtp(), 180);
+          } else {
+            const nextIdx = Math.min(text.length, 5);
+            otpBoxes[nextIdx].focus();
+          }
         }
       });
     });
 
     setTimeout(() => otpBoxes[0]?.focus(), 150);
 
-    const otpForm = card.querySelector('#otpVerifyForm');
-    const verifyBtn = card.querySelector('#btnVerifyOtp');
-    const errEl = card.querySelector('#otpVerifyError');
+    otpForm.onsubmit = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (e && e.stopPropagation) e.stopPropagation();
+      doVerifyOtp();
+      return false;
+    };
 
-    otpForm.onsubmit = async () => {
-      const code = otpBoxes.map(b => b.value).join('');
-      if (code.length !== 6) {
-        errEl.textContent = 'Please enter the complete 6-digit code.';
-        errEl.style.display = 'block';
-        return;
-      }
-
-      verifyBtn.disabled = true;
-      verifyBtn.innerHTML = `Verifying...`;
-      errEl.style.display = 'none';
-
-      try {
-        const token = await window.getClerkToken();
-        const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            action: 'verify_reset_otp',
-            otp: code,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || 'Verification failed');
-        }
-
-        if (resetState.resendInterval) clearInterval(resetState.resendInterval);
-        resetState.resetToken = data.resetToken;
-        renderNewPinStep();
-      } catch (err) {
-        verifyBtn.disabled = false;
-        verifyBtn.innerHTML = `Verify Code`;
-        errEl.textContent = err.message;
-        errEl.style.display = 'block';
-      }
+    verifyBtn.onclick = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      doVerifyOtp();
     };
   }
 
   // View: Step 3 - Set & Confirm New 4-digit PIN
   function renderNewPinStep() {
     card.innerHTML = `
-      <div style="width:48px; height:48px; border-radius:14px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <div style="width:42px; height:42px; border-radius:12px; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
         </svg>
       </div>
 
-      <h3 style="font-size:1.25rem; font-weight:700; color:#0F172A; margin:0 0 6px 0;">Set New Transaction PIN</h3>
-      <p style="font-size:0.86rem; color:#64748B; margin:0 0 20px 0; line-height:1.5;">
-        Enter a secure 4-digit PIN to authorize future transfers and withdrawals.
+      <h3 style="font-size:1.15rem; font-weight:700; color:#0F172A; margin:0 0 4px 0;">Create New Transaction PIN</h3>
+      <p style="font-size:0.82rem; color:#64748B; margin:0 0 16px 0; line-height:1.45;">
+        Enter and confirm your new 4-digit PIN below to secure your Taska wallet.
       </p>
 
-      <form id="newPinForm" onsubmit="return false;">
-        <div style="margin-bottom:16px; text-align:left;">
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:8px;">New 4-Digit PIN</label>
-          <div style="display:flex; gap:10px; justify-content:center;" id="newPinBoxes">
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-new" data-idx="0" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-new" data-idx="1" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-new" data-idx="2" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-new" data-idx="3" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+      <form id="newPinForm" onsubmit="event.preventDefault(); return false;">
+        <!-- Box 1: New PIN -->
+        <div style="margin-bottom:14px; text-align:left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="font-size:0.78rem; font-weight:600; color:#334155; margin:0;">New 4-Digit PIN</label>
+            <button type="button" id="btnTogglePinVisibility" style="background:none; border:none; padding:0; font-size:0.75rem; color:#059669; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>Show digits</span>
+            </button>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:center;" id="newPinBoxes">
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-new" data-idx="0" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-new" data-idx="1" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-new" data-idx="2" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-new" data-idx="3" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
           </div>
         </div>
 
-        <div style="margin-bottom:20px; text-align:left;">
-          <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:8px;">Confirm New PIN</label>
-          <div style="display:flex; gap:10px; justify-content:center;" id="confirmPinBoxes">
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-confirm" data-idx="0" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-confirm" data-idx="1" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-confirm" data-idx="2" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
-            <input type="password" inputmode="numeric" maxlength="1" class="pin-box-confirm" data-idx="3" style="width:48px; height:52px; font-size:22px; text-align:center; font-weight:700; border-radius:10px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+        <!-- Box 2: Confirm PIN -->
+        <div style="margin-bottom:12px; text-align:left;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label style="font-size:0.78rem; font-weight:600; color:#334155; margin:0;">Confirm New PIN</label>
+            <span id="pinMatchStatus" style="font-size:0.75rem; font-weight:600; display:none;"></span>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:center;" id="confirmPinBoxes">
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-confirm" data-idx="0" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-confirm" data-idx="1" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-confirm" data-idx="2" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
+            <input type="password" inputmode="numeric" maxlength="1" autocomplete="off" class="pin-box-confirm" data-idx="3" style="width:44px; height:48px; font-size:20px; text-align:center; font-weight:700; border-radius:8px; border:1.5px solid #CBD5E1; background:#F8FAFC; outline:none; transition:all 0.2s;" />
           </div>
         </div>
 
-        <div id="newPinResetError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.82rem; border-radius:10px; margin-bottom:16px; text-align:center; font-weight:500;"></div>
+        <!-- Confirmation Notice & Checkbox Box -->
+        <div style="background:#F8FAFC; border:1.5px solid #E2E8F0; border-radius:10px; padding:12px 14px; margin:14px 0; text-align:left;">
+          <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; user-select:none; margin:0;">
+            <input type="checkbox" id="chkConfirmNewPin" style="accent-color:#059669; width:17px; height:17px; margin-top:2px; cursor:pointer; flex-shrink:0;" />
+            <div>
+              <div style="font-size:0.82rem; font-weight:700; color:#0F172A;">I confirm this is my new Transaction PIN</div>
+              <div style="font-size:0.74rem; color:#64748B; line-height:1.4; margin-top:2px;">
+                This PIN will be required for all future withdrawals, escrow commitments, and wallet transfers.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <div id="newPinResetError" style="display:none; padding:10px 12px; background:#FEF2F2; border:1px solid #FCA5A5; color:#B91C1C; font-size:0.8rem; border-radius:8px; margin-bottom:14px; text-align:center; font-weight:500;"></div>
 
         <div style="display:flex; gap:10px;">
-          <button type="button" id="btnCancelNewPin" style="flex:1; padding:12px 16px; background:#F1F5F9; color:#475569; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
+          <button type="button" id="btnCancelNewPin" style="flex:1; padding:10px 14px; background:#F1F5F9; color:#475569; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
             Cancel
           </button>
-          <button type="submit" id="btnSaveNewPin" style="flex:1.6; padding:12px 18px; background:#059669; color:#FFFFFF; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-            Save &amp; Activate PIN
+          <button type="button" id="btnSaveNewPin" style="flex:1.5; padding:10px 16px; background:#059669; color:#FFFFFF; font-size:0.88rem; font-weight:600; border-radius:10px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+            Set New PIN &rarr;
           </button>
         </div>
       </form>
@@ -1649,7 +1781,55 @@ window.openForgotPinModal = function(options = {}) {
 
     card.querySelector('#btnCancelNewPin').onclick = close;
 
-    const setupBoxList = (boxes) => {
+    const newBoxes = Array.from(card.querySelectorAll('.pin-box-new'));
+    const confirmBoxes = Array.from(card.querySelectorAll('.pin-box-confirm'));
+    const form = card.querySelector('#newPinForm');
+    const saveBtn = card.querySelector('#btnSaveNewPin');
+    const errEl = card.querySelector('#newPinResetError');
+    const matchStatusEl = card.querySelector('#pinMatchStatus');
+    const chkConfirm = card.querySelector('#chkConfirmNewPin');
+    const toggleBtn = card.querySelector('#btnTogglePinVisibility');
+
+    let isPasswordHidden = true;
+    toggleBtn.onclick = () => {
+      isPasswordHidden = !isPasswordHidden;
+      const newType = isPasswordHidden ? 'password' : 'text';
+      newBoxes.forEach(b => b.type = newType);
+      confirmBoxes.forEach(b => b.type = newType);
+      const eyeIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+      const eyeOffIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+      toggleBtn.innerHTML = isPasswordHidden
+        ? `${eyeIcon} <span>Show digits</span>`
+        : `${eyeOffIcon} <span>Hide digits</span>`;
+    };
+
+    function checkMatchStatus() {
+      const p1 = newBoxes.map(b => b.value).join('');
+      const p2 = confirmBoxes.map(b => b.value).join('');
+      if (p2.length === 0) {
+        matchStatusEl.style.display = 'none';
+        return;
+      }
+      matchStatusEl.style.display = 'inline-flex';
+      matchStatusEl.style.alignItems = 'center';
+      matchStatusEl.style.gap = '4px';
+      if (p1.length === 4 && p2.length === 4) {
+        if (p1 === p2) {
+          matchStatusEl.style.color = '#059669';
+          matchStatusEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>PINs match</span>`;
+        } else {
+          matchStatusEl.style.color = '#DC2626';
+          matchStatusEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>PINs do not match</span>`;
+        }
+      } else if (p2.length > 0 && !p1.startsWith(p2)) {
+        matchStatusEl.style.color = '#DC2626';
+        matchStatusEl.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Does not match</span>`;
+      } else {
+        matchStatusEl.style.display = 'none';
+      }
+    }
+
+    const setupBoxList = (boxes, nextBoxes) => {
       boxes.forEach((box, i) => {
         box.addEventListener('focus', () => {
           box.style.borderColor = '#10B981';
@@ -1666,11 +1846,16 @@ window.openForgotPinModal = function(options = {}) {
             if (!box.value && i > 0) {
               boxes[i - 1].focus();
               boxes[i - 1].value = '';
+              checkMatchStatus();
             }
           } else if (e.key === 'ArrowLeft' && i > 0) {
             boxes[i - 1].focus();
           } else if (e.key === 'ArrowRight' && i < boxes.length - 1) {
             boxes[i + 1].focus();
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            doSaveNewPin();
           } else if (!/^[0-9]$/.test(e.key) && !['Tab', 'Delete'].includes(e.key)) {
             e.preventDefault();
           }
@@ -1681,49 +1866,75 @@ window.openForgotPinModal = function(options = {}) {
             box.value = box.value.slice(-1);
             if (i < boxes.length - 1) {
               boxes[i + 1].focus();
+            } else if (nextBoxes && nextBoxes.length > 0) {
+              nextBoxes[0].focus();
             }
+          }
+          checkMatchStatus();
+        });
+        box.addEventListener('paste', (e) => {
+          if (e && e.preventDefault) e.preventDefault();
+          const clipboardData = e.clipboardData || window.clipboardData;
+          const text = (clipboardData ? clipboardData.getData('text') : '').replace(/\D/g, '');
+          if (text.length >= 1) {
+            for (let j = 0; j < 4; j++) {
+              boxes[j].value = text[j] || '';
+            }
+            if (text.length >= 4 && nextBoxes && nextBoxes.length > 0) {
+              nextBoxes[0].focus();
+            }
+            checkMatchStatus();
           }
         });
       });
     };
 
-    const newBoxes = Array.from(card.querySelectorAll('.pin-box-new'));
-    const confirmBoxes = Array.from(card.querySelectorAll('.pin-box-confirm'));
-    setupBoxList(newBoxes);
-    setupBoxList(confirmBoxes);
+    setupBoxList(newBoxes, confirmBoxes);
+    setupBoxList(confirmBoxes, null);
 
     setTimeout(() => newBoxes[0]?.focus(), 150);
 
-    const form = card.querySelector('#newPinForm');
-    const saveBtn = card.querySelector('#btnSaveNewPin');
-    const errEl = card.querySelector('#newPinResetError');
+    let isSaving = false;
 
-    form.onsubmit = async () => {
+    async function doSaveNewPin() {
+      if (isSaving) return;
       const p1 = newBoxes.map(b => b.value).join('');
       const p2 = confirmBoxes.map(b => b.value).join('');
 
       if (p1.length !== 4) {
         errEl.textContent = 'Please enter your complete 4-digit new PIN.';
         errEl.style.display = 'block';
+        newBoxes[p1.length || 0]?.focus();
         return;
       }
       if (p2.length !== 4) {
-        errEl.textContent = 'Please confirm your 4-digit new PIN.';
+        errEl.textContent = 'Please confirm your 4-digit new PIN in the confirmation box.';
         errEl.style.display = 'block';
+        confirmBoxes[p2.length || 0]?.focus();
         return;
       }
       if (p1 !== p2) {
-        errEl.textContent = 'The two PIN entries do not match. Please re-enter.';
+        errEl.textContent = 'The confirmation PIN does not match. Please check and re-enter.';
         errEl.style.display = 'block';
+        confirmBoxes[0]?.focus();
+        return;
+      }
+      if (!chkConfirm.checked) {
+        errEl.textContent = 'Please check the confirmation box below to confirm setting your new PIN.';
+        errEl.style.display = 'block';
+        chkConfirm.focus();
         return;
       }
 
+      isSaving = true;
       saveBtn.disabled = true;
-      saveBtn.innerHTML = `Saving PIN...`;
+      saveBtn.innerHTML = `<span style="display:inline-block; width:14px; height:14px; border:2px solid #FFFFFF; border-top-color:transparent; border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle; margin-right:6px;"></span>Saving PIN...`;
       errEl.style.display = 'none';
 
       try {
-        const token = await window.getClerkToken();
+        const token = await getAuthToken();
+        if (!token) throw new Error('Session expired. Please log in again.');
+        const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
         const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
           method: 'POST',
           headers: {
@@ -1734,6 +1945,7 @@ window.openForgotPinModal = function(options = {}) {
             action: 'reset_pin_with_token',
             resetToken: resetState.resetToken,
             newPin: p1,
+            profileId: profile?.id,
           }),
         });
 
@@ -1744,29 +1956,42 @@ window.openForgotPinModal = function(options = {}) {
 
         renderSuccessStep();
       } catch (err) {
+        isSaving = false;
         saveBtn.disabled = false;
-        saveBtn.innerHTML = `Save &amp; Activate PIN`;
-        errEl.textContent = err.message;
+        saveBtn.innerHTML = `Set New PIN &rarr;`;
+        errEl.textContent = err.message || 'Failed to save new PIN. Please try again.';
         errEl.style.display = 'block';
       }
+    }
+
+    form.onsubmit = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      if (e && e.stopPropagation) e.stopPropagation();
+      doSaveNewPin();
+      return false;
+    };
+
+    saveBtn.onclick = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      doSaveNewPin();
     };
   }
 
   // View: Step 4 - Success
   function renderSuccessStep() {
     card.innerHTML = `
-      <div style="width:56px; height:56px; border-radius:50%; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; margin:0 auto 16px auto;">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <div style="width:48px; height:48px; border-radius:50%; background:#ECFDF5; color:#059669; display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
 
-      <h3 style="font-size:1.3rem; font-weight:700; color:#0F172A; margin:0 0 8px 0;">Transaction PIN Activated!</h3>
-      <p style="font-size:0.88rem; color:#64748B; margin:0 0 24px 0; line-height:1.55;">
+      <h3 style="font-size:1.2rem; font-weight:700; color:#0F172A; margin:0 0 6px 0;">Transaction PIN Activated!</h3>
+      <p style="font-size:0.84rem; color:#64748B; margin:0 0 20px 0; line-height:1.5;">
         Your new 4-digit PIN is active and your wallet has been unlocked. You can now authorize transfers and withdrawals.
       </p>
 
-      <button type="button" id="btnDoneReset" style="width:100%; padding:12px 18px; background:#059669; color:#FFFFFF; font-size:0.92rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
+      <button type="button" id="btnDoneReset" style="width:100%; padding:10px 16px; background:#059669; color:#FFFFFF; font-size:0.9rem; font-weight:600; border-radius:10px; border:none; cursor:pointer;">
         Done &rarr;
       </button>
     `;
@@ -1777,7 +2002,11 @@ window.openForgotPinModal = function(options = {}) {
         options.onSuccess();
       } else {
         if (window.location.pathname.includes('/wallet') || window.location.pathname.includes('/settings/account')) {
-          window.location.reload();
+          if (typeof window.reloadAccountPinSecurity === 'function') {
+            window.reloadAccountPinSecurity();
+          } else {
+            window.location.reload();
+          }
         }
       }
     };
@@ -1788,29 +2017,36 @@ window.openForgotPinModal = function(options = {}) {
 
   (async () => {
     try {
-      const token = await window.getClerkToken();
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Authentication session not ready. Please log in again.');
+      }
+      const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
       const res = await fetch('https://nhittvkskzwpeinscxir.supabase.co/functions/v1/wallet-pin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ action: 'get_reset_channels' }),
+        body: JSON.stringify({
+          action: 'get_reset_channels',
+          profileId: profile?.id,
+        }),
       });
 
       const data = await res.json();
       if (!res.ok) {
         if (data.code === 'WALLET_FROZEN' || data.is_frozen) {
           card.innerHTML = `
-            <div style="padding: 20px 10px;">
-              <div style="width:48px; height:48px; border-radius:50%; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div style="padding: 16px 8px;">
+              <div style="width:44px; height:44px; border-radius:50%; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
-              <h3 style="font-size:1.2rem; color:#991B1B; font-weight:700; margin:0 0 6px 0;">Wallet is Frozen</h3>
-              <p style="font-size:0.86rem; color:#64748B; margin:0 0 22px 0; line-height:1.5;">${data.error || 'Your wallet has been frozen due to 3 incorrect attempts. You cannot reset your PIN. Please contact support to submit an appeal.'}</p>
+              <h3 style="font-size:1.15rem; color:#991B1B; font-weight:700; margin:0 0 6px 0;">Wallet is Frozen</h3>
+              <p style="font-size:0.82rem; color:#64748B; margin:0 0 18px 0; line-height:1.45;">${data.error || 'Your wallet has been frozen due to 3 incorrect attempts. You cannot reset your PIN. Please contact support to submit an appeal.'}</p>
               <div style="display:flex; gap:10px; justify-content:center;">
-                <button type="button" id="btnErrClose" style="padding:10px 18px; background:#F1F5F9; color:#475569; font-size:0.88rem; font-weight:600; border-radius:8px; border:none; cursor:pointer;">Close</button>
-                <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20due%20to%20failed%20PIN%20attempts.%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" style="padding:10px 20px; background:#DC2626; color:#FFF; font-size:0.88rem; font-weight:600; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">Contact Support to Appeal &rarr;</a>
+                <button type="button" id="btnErrClose" style="padding:8px 16px; background:#F1F5F9; color:#475569; font-size:0.84rem; font-weight:600; border-radius:8px; border:none; cursor:pointer;">Close</button>
+                <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20due%20to%20failed%20PIN%20attempts.%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" style="padding:8px 16px; background:#DC2626; color:#FFF; font-size:0.84rem; font-weight:600; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">Contact Support to Appeal &rarr;</a>
               </div>
             </div>
           `;
@@ -1823,13 +2059,13 @@ window.openForgotPinModal = function(options = {}) {
       renderChannelStep(data);
     } catch (err) {
       card.innerHTML = `
-        <div style="padding: 20px 10px;">
-          <div style="width:48px; height:48px; border-radius:50%; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; margin:0 auto 14px auto;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="padding: 16px 8px;">
+          <div style="width:44px; height:44px; border-radius:50%; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; margin:0 auto 12px auto;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
-          <h3 style="font-size:1.15rem; color:#0F172A; margin:0 0 6px 0;">Error Loading Options</h3>
-          <p style="font-size:0.86rem; color:#64748B; margin:0 0 20px 0;">${err.message || 'Unable to check reset options at this time.'}</p>
-          <button type="button" id="btnErrClose" style="padding:10px 20px; background:#F1F5F9; color:#475569; font-size:0.88rem; font-weight:600; border-radius:8px; border:none; cursor:pointer;">Close</button>
+          <h3 style="font-size:1.1rem; color:#0F172A; margin:0 0 6px 0;">Error Loading Options</h3>
+          <p style="font-size:0.82rem; color:#64748B; margin:0 0 18px 0; line-height:1.45;">${err.message || 'Unable to check reset options at this time.'}</p>
+          <button type="button" id="btnErrClose" style="padding:8px 18px; background:#F1F5F9; color:#475569; font-size:0.84rem; font-weight:600; border-radius:8px; border:none; cursor:pointer;">Close</button>
         </div>
       `;
       card.querySelector('#btnErrClose').onclick = close;
@@ -2508,6 +2744,117 @@ document.addEventListener('click', (e) => {
     }
   }
 });
+
+// Universal Taska Skeleton Loader Layout & Template Engine
+if (!window.TaskaSkeleton) {
+  window.TaskaSkeleton = {
+    card(count = 4) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="taska-skeleton-card" style="animation-delay:${i * 0.08}s;">
+            <div class="taska-skeleton-card-header">
+              <div class="taska-skeleton taska-skeleton-avatar"></div>
+              <div style="flex:1;">
+                <div class="taska-skeleton taska-skeleton-line medium" style="height:14px; margin-bottom:6px;"></div>
+                <div class="taska-skeleton taska-skeleton-line short" style="height:11px;"></div>
+              </div>
+              <div class="taska-skeleton taska-skeleton-badge"></div>
+            </div>
+            <div class="taska-skeleton-card-body">
+              <div class="taska-skeleton taska-skeleton-line full" style="height:16px; margin-bottom:8px;"></div>
+              <div class="taska-skeleton taska-skeleton-line long" style="height:12px; margin-bottom:6px;"></div>
+              <div class="taska-skeleton taska-skeleton-line medium" style="height:12px;"></div>
+            </div>
+            <div class="taska-skeleton-card-footer">
+              <div class="taska-skeleton taska-skeleton-line short" style="height:14px; margin:0;"></div>
+              <div class="taska-skeleton taska-skeleton-badge" style="width:84px; height:26px;"></div>
+            </div>
+          </div>
+        `;
+      }
+      return html;
+    },
+
+    tableRows(count = 5) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="taska-skeleton-row" style="animation-delay:${i * 0.06}s;">
+            <div class="taska-skeleton-row-left">
+              <div class="taska-skeleton taska-skeleton-avatar sm"></div>
+              <div style="flex:1;">
+                <div class="taska-skeleton taska-skeleton-line medium" style="height:14px; margin-bottom:6px;"></div>
+                <div class="taska-skeleton taska-skeleton-line short" style="height:11px;"></div>
+              </div>
+            </div>
+            <div class="taska-skeleton-row-right">
+              <div class="taska-skeleton taska-skeleton-line" style="width:80px; height:15px; margin-bottom:4px;"></div>
+              <div class="taska-skeleton taska-skeleton-line" style="width:50px; height:10px;"></div>
+            </div>
+          </div>
+        `;
+      }
+      return html;
+    },
+
+    taskRows(count = 4) {
+      return this.tableRows(count);
+    },
+
+    statCards(count = 4) {
+      let html = '';
+      for (let i = 0; i < count; i++) {
+        html += `
+          <div class="taska-skeleton-stat" style="animation-delay:${i * 0.08}s;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="taska-skeleton taska-skeleton-line short" style="height:13px; margin:0;"></div>
+              <div class="taska-skeleton taska-skeleton-avatar sm" style="width:28px; height:28px;"></div>
+            </div>
+            <div class="taska-skeleton taska-skeleton-line medium" style="height:26px; margin:4px 0;"></div>
+            <div class="taska-skeleton taska-skeleton-line short" style="height:11px; margin:0;"></div>
+          </div>
+        `;
+      }
+      return html;
+    },
+
+    profileSummary() {
+      return `
+        <div style="display:flex; gap:20px; align-items:center; padding:20px; background:#fff; border-radius:14px; border:1px solid #E2E8F0;">
+          <div class="taska-skeleton taska-skeleton-avatar lg"></div>
+          <div style="flex:1;">
+            <div class="taska-skeleton taska-skeleton-line medium" style="height:20px; margin-bottom:10px;"></div>
+            <div class="taska-skeleton taska-skeleton-line short" style="height:14px; margin-bottom:8px;"></div>
+            <div class="taska-skeleton taska-skeleton-line long" style="height:12px;"></div>
+          </div>
+        </div>
+      `;
+    },
+
+    applicationCard(count = 3) {
+      return this.card(count);
+    },
+
+    render(target, templateType = 'card', count = 4) {
+      const el = typeof target === 'string' ? document.querySelector(target) : target;
+      if (!el) return null;
+      let markup = '';
+      if (typeof this[templateType] === 'function') {
+        markup = this[templateType](count);
+      } else {
+        markup = this.card(count);
+      }
+      el.innerHTML = markup;
+      return el;
+    },
+
+    clear(target) {
+      const el = typeof target === 'string' ? document.querySelector(target) : target;
+      if (el) el.innerHTML = '';
+    }
+  };
+}
 
 // Boot auth guard on DOMReady
 if (document.readyState === 'loading') {

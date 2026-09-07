@@ -156,6 +156,28 @@ async function loadDashboardData() {
   const profile = await window.ensureTaskaProfile();
   if (!profile || !window.supabaseClient) return;
 
+  // Show skeleton shimmer placeholders immediately
+  const _dashStatIds = ['stat-balance', 'stat-active-tasks', 'stat-completed-tasks', 'stat-rating'];
+  _dashStatIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.textContent = '';
+      el.classList.add('taska-skeleton');
+      el.style.cssText += 'min-width:70px;min-height:1em;display:inline-block;border-radius:6px;';
+    }
+  });
+  function _clearDashStats() {
+    _dashStatIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('taska-skeleton'); el.style.minWidth = ''; el.style.minHeight = ''; }
+    });
+  }
+
+  if (window.TaskaSkeleton) {
+    window.TaskaSkeleton.render('#active-tasks-list', 'taskRows', 3);
+    window.TaskaSkeleton.render('#activity-list', 'tableRows', 3);
+  }
+
   try {
     // 1. Greeting
     const firstName = profile.firstName || 'there';
@@ -171,6 +193,8 @@ async function loadDashboardData() {
 
     const balanceEl = document.getElementById('stat-balance');
     const escrowEl = document.getElementById('stat-escrow');
+
+    _clearDashStats();
 
     if (wallet) {
       if (balanceEl) balanceEl.textContent = formatNaira(wallet.balance || 0);
@@ -283,7 +307,11 @@ async function loadBrowseGigsData(append = false) {
   if (!grid) return;
 
   if (!append) {
-    grid.innerHTML = `<div class="gig-grid-loading">${Array(4).fill('<div class="skeleton skeleton-card"></div>').join('')}</div>`;
+    if (window.TaskaSkeleton) {
+      window.TaskaSkeleton.render(grid, 'card', 4);
+    } else {
+      grid.innerHTML = `<div class="gig-grid-loading">${Array(4).fill('<div class="taska-skeleton-card"></div>').join('')}</div>`;
+    }
   }
 
   try {

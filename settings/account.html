@@ -36,40 +36,40 @@
     </div>
 
     <!-- Transaction PIN & Wallet Security Panel -->
-    <div class="panel" style="margin-bottom: 24px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:14px;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <div style="width:44px; height:44px; border-radius:12px; background:var(--green-50, #ECFDF5); color:var(--primary, #059669); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="panel" style="margin-bottom: 20px; padding: 18px 22px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:var(--green-50, #ECFDF5); color:var(--primary, #059669); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </div>
           <div>
-            <h2 style="font-size:1.15rem; margin:0 0 4px 0; color:var(--green-900);">Transaction PIN & Wallet Security</h2>
-            <p style="font-size:0.86rem; color:var(--muted); margin:0;">Authorizes bank withdrawals, escrow locks, and wallet transfers.</p>
+            <h2 style="font-size:1.05rem; margin:0 0 2px 0; color:var(--green-900); font-weight:700;">Transaction PIN &amp; Wallet Security</h2>
+            <p style="font-size:0.82rem; color:var(--muted); margin:0;">Authorizes bank withdrawals, escrow locks, and wallet transfers.</p>
           </div>
         </div>
         <div id="pinStatusContainer">
-          <span id="pinStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:20px; font-size:0.8rem; font-weight:600; background:#F1F5F9; color:#475569;">
-            <span style="width:7px; height:7px; border-radius:50%; background:#94A3B8;"></span>
+          <span id="pinStatusBadge" style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; background:#F1F5F9; color:#475569;">
+            <span style="width:6px; height:6px; border-radius:50%; background:#94A3B8;"></span>
             Checking PIN status...
           </span>
         </div>
       </div>
 
       <!-- Wallet Frozen Notice (shown if is_frozen === true) -->
-      <div id="settingsWalletFrozenNotice" style="display:none; background:#FEF2F2; border:1.5px solid #F87171; border-radius:12px; padding:16px 18px; margin-bottom:20px;">
-        <div style="display:flex; gap:12px; align-items:flex-start;">
+      <div id="settingsWalletFrozenNotice" style="display:none; background:#FEF2F2; border:1.5px solid #F87171; border-radius:10px; padding:14px 16px; margin-bottom:14px;">
+        <div style="display:flex; gap:10px; align-items:flex-start;">
           <div style="color:#DC2626; flex-shrink:0; margin-top:2px;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           </div>
           <div>
-            <div style="font-weight:700; color:#991B1B; font-size:0.95rem; margin-bottom:4px;">Wallet Is Frozen</div>
-            <div style="font-size:0.86rem; color:#7F1D1D; line-height:1.5; margin-bottom:12px;">
-              Your wallet has been locked due to 3 consecutive failed PIN attempts. Withdrawals and escrow funding are temporarily disabled for your protection.
+            <div style="font-weight:700; color:#991B1B; font-size:0.9rem; margin-bottom:2px;">Wallet Is Frozen</div>
+            <div style="font-size:0.82rem; color:#7F1D1D; line-height:1.45; margin-bottom:10px;">
+              Your wallet has been locked due to 3 consecutive failed PIN attempts. Withdrawals and escrow funding are temporarily disabled.
             </div>
-            <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20and%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" class="btn btn-sm" style="background:#DC2626; color:#FFF; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20and%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" class="btn btn-sm" style="background:#DC2626; color:#FFF; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; padding:6px 12px;">
               Submit Appeal to Support &rarr;
             </a>
           </div>
@@ -77,51 +77,55 @@
       </div>
 
       <!-- PIN Setup State (if PIN is not set yet) -->
-      <div id="settingsPinSetupContainer" style="display:none; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:12px; padding:20px; text-align:center;">
-        <p style="font-size:0.9rem; color:#475569; margin:0 0 14px 0;">You have not created your 4-digit transaction PIN yet. You must set it up to perform withdrawals or escrow commitments.</p>
-        <button type="button" class="btn btn-primary" id="btnOpenPinSetupModal">
-          Set Up 4-Digit PIN Now
+      <div id="settingsPinSetupContainer" style="display:none; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; padding:14px 18px; text-align:left; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-size:0.88rem; font-weight:600; color:#1E293B; margin-bottom:2px;">No Transaction PIN Created Yet</div>
+          <p style="font-size:0.8rem; color:#64748B; margin:0;">Create a 4-digit PIN to authorize withdrawals and escrow commitments.</p>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="btnOpenPinSetupModal" style="padding:8px 16px; font-weight:600; font-size:0.84rem;">
+          Set Up PIN Now
         </button>
       </div>
 
       <!-- PIN Change Form (if PIN is set and not frozen) -->
       <div id="settingsPinChangeContainer" style="display:none;">
-        <form id="changePinForm" style="max-width:540px;" onsubmit="return false;">
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:16px; margin-bottom:16px;">
-            <div>
-              <label for="currentPinInput" style="display:block; font-size:0.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;">Current PIN</label>
-              <input type="password" inputmode="numeric" maxlength="4" id="currentPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:44px; font-size:1.25rem; font-weight:700; text-align:center; letter-spacing:0.35em; border:1.5px solid var(--line); border-radius:10px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
+        <form id="changePinForm" onsubmit="return false;">
+          <div style="display:flex; align-items:flex-end; flex-wrap:wrap; gap:12px; margin-bottom:12px;">
+            <div style="flex:1; min-width:105px; max-width:145px;">
+              <label for="currentPinInput" style="display:block; font-size:0.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:4px;">Current PIN</label>
+              <input type="password" inputmode="numeric" maxlength="4" id="currentPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:38px; font-size:1.15rem; font-weight:700; text-align:center; letter-spacing:0.3em; border:1.5px solid var(--line); border-radius:8px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
+            </div>
+            <div style="flex:1; min-width:105px; max-width:145px;">
+              <label for="newPinInput" style="display:block; font-size:0.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:4px;">New PIN</label>
+              <input type="password" inputmode="numeric" maxlength="4" id="newPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:38px; font-size:1.15rem; font-weight:700; text-align:center; letter-spacing:0.3em; border:1.5px solid var(--line); border-radius:8px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
+            </div>
+            <div style="flex:1; min-width:105px; max-width:145px;">
+              <label for="confirmNewPinInput" style="display:block; font-size:0.78rem; font-weight:600; color:var(--ink-soft); margin-bottom:4px;">Confirm New PIN</label>
+              <input type="password" inputmode="numeric" maxlength="4" id="confirmNewPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:38px; font-size:1.15rem; font-weight:700; text-align:center; letter-spacing:0.3em; border:1.5px solid var(--line); border-radius:8px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
             </div>
             <div>
-              <label for="newPinInput" style="display:block; font-size:0.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;">New PIN</label>
-              <input type="password" inputmode="numeric" maxlength="4" id="newPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:44px; font-size:1.25rem; font-weight:700; text-align:center; letter-spacing:0.35em; border:1.5px solid var(--line); border-radius:10px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
-            </div>
-            <div>
-              <label for="confirmNewPinInput" style="display:block; font-size:0.82rem; font-weight:600; color:var(--ink-soft); margin-bottom:6px;">Confirm New PIN</label>
-              <input type="password" inputmode="numeric" maxlength="4" id="confirmNewPinInput" placeholder="••••" autocomplete="off" style="width:100%; height:44px; font-size:1.25rem; font-weight:700; text-align:center; letter-spacing:0.35em; border:1.5px solid var(--line); border-radius:10px; background:#F8FAFC; outline:none; transition:border 0.2s;" />
+              <button type="submit" class="btn btn-primary" id="btnUpdatePin" style="height:38px; padding:0 20px; font-size:0.85rem; font-weight:600; border-radius:8px; white-space:nowrap;">
+                Update PIN
+              </button>
             </div>
           </div>
 
           <!-- Alert message box -->
-          <div id="changePinAlert" style="display:none; padding:10px 14px; border-radius:10px; font-size:0.84rem; margin-bottom:16px; font-weight:500;"></div>
+          <div id="changePinAlert" style="display:none; padding:8px 12px; border-radius:8px; font-size:0.8rem; margin-bottom:10px; font-weight:500;"></div>
 
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-            <div style="font-size:0.78rem; color:var(--muted);">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:3px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:0.78rem;">
+            <div style="color:var(--muted); display:inline-flex; align-items:center; gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               Rate limit: Maximum 3 changes every 24 hours.
             </div>
-            <button type="submit" class="btn btn-primary" id="btnUpdatePin" style="padding:10px 22px; font-weight:600;">
-              Update PIN
-            </button>
+            <div>
+              <span style="color:var(--muted); margin-right:4px;">Don't remember your current PIN?</span>
+              <button type="button" id="btnForgotPinSettings" style="background:none; border:none; padding:0; color:var(--primary, #059669); font-weight:600; cursor:pointer; font-size:0.8rem; text-decoration:underline;">
+                Forgot PIN? Reset via OTP &rarr;
+              </button>
+            </div>
           </div>
         </form>
-
-        <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:0.82rem; align-items:center;">
-          <span style="color:var(--muted);">Don't remember your current PIN?</span>
-          <button type="button" id="btnForgotPinSettings" style="background:none; border:none; padding:0; color:var(--primary, #059669); font-weight:600; cursor:pointer; font-size:0.84rem; text-decoration:underline;">
-            Forgot PIN? Reset via OTP &rarr;
-          </button>
-        </div>
       </div>
     </div>
 
