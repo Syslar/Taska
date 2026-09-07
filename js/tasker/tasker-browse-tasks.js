@@ -248,7 +248,9 @@ function renderTasksGrid() {
 
     // Criteria indicators
     const hasKycReq = task.criteriaKycOnly === true;
-    const genderReq = task.criteriaGender && task.criteriaGender !== 'ANY' ? `${task.criteriaGender === 'MALE' ? 'Male' : 'Female'} Only` : null;
+    const genderReq = task.criteriaGender && task.criteriaGender !== 'ANY' 
+      ? `${task.criteriaGender === 'MALE' ? 'Male' : task.criteriaGender === 'FEMALE' ? 'Female' : 'Others'} Only` 
+      : null;
     const ageReq = (task.criteriaMinAge && task.criteriaMaxAge)
       ? `Age ${task.criteriaMinAge}–${task.criteriaMaxAge}`
       : task.criteriaMinAge ? `Age ${task.criteriaMinAge}+`
@@ -338,7 +340,10 @@ window.openTaskModal = async function (taskId) {
   if (criteriaBox && criteriaBadges) {
     const badges = [];
     if (task.criteriaKycOnly) badges.push('<span style="font-size:0.78rem; color:#1E40AF; background:#EFF6FF; border:1px solid #BFDBFE; padding:3px 9px; border-radius:12px; font-weight:600;">✓ KYC Verified Taskers Only</span>');
-    if (task.criteriaGender && task.criteriaGender !== 'ANY') badges.push(`<span style="font-size:0.78rem; color:#6B21A8; background:#FAF5FF; border:1px solid #E9D5FF; padding:3px 9px; border-radius:12px; font-weight:600;">⚥ ${task.criteriaGender === 'MALE' ? 'Male Taskers' : 'Female Taskers'} Only</span>`);
+    if (task.criteriaGender && task.criteriaGender !== 'ANY') {
+      const gLabel = task.criteriaGender === 'MALE' ? 'Male Taskers' : task.criteriaGender === 'FEMALE' ? 'Female Taskers' : 'Other Taskers';
+      badges.push(`<span style="font-size:0.78rem; color:#6B21A8; background:#FAF5FF; border:1px solid #E9D5FF; padding:3px 9px; border-radius:12px; font-weight:600;">⚥ ${gLabel} Only</span>`);
+    }
     if (task.criteriaMinAge || task.criteriaMaxAge) {
       const ageStr = (task.criteriaMinAge && task.criteriaMaxAge)
         ? `${task.criteriaMinAge}–${task.criteriaMaxAge} years old`
@@ -462,7 +467,8 @@ window.openTaskModal = async function (taskId) {
           if (!profile.gender || profile.gender.toUpperCase() !== task.criteriaGender.toUpperCase()) {
             applyBtn._isCriteriaBlocked = true;
             applyBtn.disabled = true;
-            applyBtn.textContent = `Requires ${task.criteriaGender === 'MALE' ? 'Male' : 'Female'} Tasker`;
+            const reqG = task.criteriaGender === 'MALE' ? 'Male' : task.criteriaGender === 'FEMALE' ? 'Female' : 'Other';
+            applyBtn.textContent = `Requires ${reqG} Tasker`;
             return;
           }
         }

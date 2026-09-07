@@ -329,7 +329,13 @@ function renderMyTasksList() {
             </div>
             
             ${t.status === 'OPEN' ? `
-              <button class="btn btn-ghost btn-sm btn-cancel-task" data-task-id="${t.id}" style="color:var(--red); margin-top:10px;">Cancel Task</button>
+              <div style="display:flex; flex-direction:column; gap:6px; margin-top:10px; align-items:flex-end;">
+                <a href="/post-task?taskId=${t.id}" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:5px; text-decoration:none; padding:5px 12px; font-size:0.8rem;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Task
+                </a>
+                <button class="btn btn-ghost btn-sm btn-cancel-task" data-task-id="${t.id}" style="color:var(--red); font-size:0.78rem; padding:4px 8px;">Cancel Task</button>
+              </div>
             ` : ''}
           </div>
         </div>

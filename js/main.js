@@ -114,6 +114,58 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  /* ---- Password visibility toggle (Eye button with Open/Close animation) ---- */
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-toggle-password, [data-toggle-password]');
+    if (!btn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const targetId = btn.dataset.target;
+    const input = targetId ? document.getElementById(targetId) : btn.parentElement.querySelector('input');
+    if (!input) return;
+
+    const willBeVisible = (input.type === 'password');
+    input.type = willBeVisible ? 'text' : 'password';
+
+    const eyeOpen = btn.querySelector('.icon-eye-open, .eye-open');
+    const eyeClosed = btn.querySelector('.icon-eye-closed, .eye-closed');
+
+    if (willBeVisible) {
+      // Password is now VIEWABLE -> Eye is OPEN
+      if (eyeClosed) eyeClosed.style.display = 'none';
+      if (eyeOpen) {
+        eyeOpen.style.display = 'block';
+        eyeOpen.classList.remove('eye-animate-pop');
+        void eyeOpen.offsetWidth; // trigger reflow for animation restart
+        eyeOpen.classList.add('eye-animate-pop');
+      }
+      btn.classList.add('is-active');
+      btn.style.color = 'var(--green-700, #047857)';
+      btn.setAttribute('aria-label', 'Hide password');
+    } else {
+      // Password is now HIDDEN -> Eye is CLOSED
+      if (eyeOpen) eyeOpen.style.display = 'none';
+      if (eyeClosed) {
+        eyeClosed.style.display = 'block';
+        eyeClosed.classList.remove('eye-animate-pop');
+        void eyeClosed.offsetWidth; // trigger reflow for animation restart
+        eyeClosed.classList.add('eye-animate-pop');
+      }
+      btn.classList.remove('is-active');
+      btn.style.color = 'var(--muted, #94A3B8)';
+      btn.setAttribute('aria-label', 'Show password');
+    }
+
+    // Preserve focus & cursor position at the end of input
+    try {
+      const valLen = input.value.length;
+      input.focus();
+      input.setSelectionRange(valLen, valLen);
+    } catch (_) {}
+  });
+
   /* ---- Modal open / close (task detail) ---- */
   const modalOverlay = document.querySelector('[data-modal]');
   if (modalOverlay) {

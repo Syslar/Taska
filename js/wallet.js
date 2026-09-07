@@ -221,32 +221,27 @@ async function loadWalletData() {
     const depFeeRateEl = document.getElementById('deposit-fee-rate-display');
     if (depFeeRateEl) depFeeRateEl.textContent = `${_walletState.deposit_fee_rate}%`;
 
-    // Handle Frozen Wallet UI & Ice-block animation
+    // Handle Frozen Wallet UI & Under Investigation Lockdown Animation
     const frozenBanner = document.getElementById('wallet-frozen-banner');
     const heroActions = document.querySelector('.wallet-hero-actions');
     const depositBtn = document.getElementById('wallet-deposit-btn');
     const withdrawBtn = document.getElementById('wallet-withdraw-btn');
     const walletHero = document.querySelector('.wallet-hero');
     const frozenBadge = document.getElementById('wallet-hero-frozen-badge');
-    const iceParticles = document.getElementById('wallet-ice-particles');
-    const iceIcicles = document.getElementById('wallet-ice-icicles');
+    const crimeSceneOverlay = document.getElementById('wallet-crime-scene-overlay');
 
     if (_walletState.is_frozen) {
       if (walletHero) walletHero.classList.add('is-frozen');
       if (frozenBadge) frozenBadge.style.display = 'inline-flex';
-      if (iceParticles) iceParticles.style.display = 'block';
-      if (iceIcicles) iceIcicles.style.display = 'block';
+      if (crimeSceneOverlay) crimeSceneOverlay.style.display = 'block';
       if (frozenBanner) frozenBanner.style.display = 'block';
-      if (heroActions) heroActions.style.display = 'none';
       if (depositBtn) depositBtn.disabled = true;
       if (withdrawBtn) withdrawBtn.disabled = true;
     } else {
       if (walletHero) walletHero.classList.remove('is-frozen');
       if (frozenBadge) frozenBadge.style.display = 'none';
-      if (iceParticles) iceParticles.style.display = 'none';
-      if (iceIcicles) iceIcicles.style.display = 'none';
+      if (crimeSceneOverlay) crimeSceneOverlay.style.display = 'none';
       if (frozenBanner) frozenBanner.style.display = 'none';
-      if (heroActions) heroActions.style.display = 'flex';
       if (depositBtn) depositBtn.disabled = false;
       if (withdrawBtn) withdrawBtn.disabled = false;
     }

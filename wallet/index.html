@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,10 @@
   <link rel="canonical" href="https://taska.com.ng/wallet">
   <link rel="stylesheet" href="/css/styles.css?v=20">
   <style>
-    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    .mono {
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+
     .amount-chip {
       padding: 7px 14px;
       border: 1px solid var(--line);
@@ -24,15 +28,18 @@
       transition: all 0.15s ease;
       color: var(--green-900);
     }
+
     .amount-chip:hover {
       border-color: var(--green-700);
       background: var(--mint-050);
     }
+
     .amount-chip.is-selected {
       background: var(--green-700);
       color: #ffffff;
       border-color: var(--green-700);
     }
+
     .verified-account-box {
       background: var(--mint-050);
       border: 1px solid var(--mint-150);
@@ -45,7 +52,7 @@
     }
 
     /* ==========================================================================
-       FROZEN ICE-BLOCK ANIMATION & AESTHETICS FOR WALLET HERO
+       Under Investigation YELLOW TAPE & PADLOCKED CHAINS LOCKDOWN FOR WALLET HERO
        ========================================================================== */
     .wallet-hero {
       position: relative;
@@ -53,136 +60,175 @@
     }
 
     .wallet-hero.is-frozen {
-      background: linear-gradient(135deg, #021822 0%, #063445 25%, #0c4d63 55%, #083344 80%, #021a24 100%) !important;
-      border: 2px solid rgba(186, 230, 253, 0.75) !important;
-      box-shadow: 
-        0 14px 40px rgba(2, 22, 31, 0.75),
-        0 0 35px rgba(56, 189, 248, 0.4),
-        inset 0 0 50px rgba(186, 230, 253, 0.22),
-        inset 0 2px 4px rgba(255, 255, 255, 0.8) !important;
-      animation: icePulseAura 4s ease-in-out infinite alternate !important;
+      background: linear-gradient(135deg, #090D14 0%, #111827 50%, #0B0F19 100%) !important;
+      border: 2.5px solid rgba(234, 179, 8, 0.75) !important;
+      box-shadow:
+        0 20px 48px rgba(0, 0, 0, 0.8),
+        0 0 30px rgba(234, 179, 8, 0.25),
+        inset 0 0 50px rgba(0, 0, 0, 0.6) !important;
       overflow: hidden;
+      animation: hazardBorderPulse 3.5s ease-in-out infinite alternate !important;
     }
 
+    /* Subtle hazard line across top and bottom edges */
     .wallet-hero.is-frozen::before {
       content: '';
-      position: absolute;
-      inset: 0;
-      background-image: 
-        radial-gradient(circle at 18% 22%, rgba(186, 230, 253, 0.25) 0%, transparent 45%),
-        radial-gradient(circle at 82% 78%, rgba(56, 189, 248, 0.2) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(224, 242, 254, 0.08) 0%, transparent 60%);
-      opacity: 0.95;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .wallet-hero.is-frozen::after {
-      content: '';
-      position: absolute;
-      top: -70%;
-      left: -70%;
-      width: 240%;
-      height: 240%;
-      background: linear-gradient(
-        65deg,
-        transparent 38%,
-        rgba(255, 255, 255, 0.03) 44%,
-        rgba(186, 230, 253, 0.3) 49%,
-        rgba(255, 255, 255, 0.65) 50%,
-        rgba(186, 230, 253, 0.3) 51%,
-        rgba(255, 255, 255, 0.03) 56%,
-        transparent 62%
-      );
-      transform: rotate(25deg) translateX(-100%);
-      animation: iceSheenSweep 4.8s cubic-bezier(0.25, 1, 0.5, 1) infinite;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    .ice-icicle-border {
       position: absolute;
       top: 0;
       left: 0;
       right: 0;
       height: 4px;
-      background: linear-gradient(90deg, 
-        rgba(186, 230, 253, 0.2) 0%, 
-        rgba(255, 255, 255, 0.95) 45%, 
-        rgba(186, 230, 253, 0.9) 55%, 
-        rgba(255, 255, 255, 0.95) 60%, 
-        rgba(186, 230, 253, 0.2) 100%
-      );
-      box-shadow: 0 0 14px rgba(186, 230, 253, 0.95);
-      z-index: 3;
+      background: repeating-linear-gradient(-45deg, #000 0px, #000 10px, #FACC15 10px, #FACC15 20px);
+      z-index: 10;
     }
 
-    .ice-particles-overlay {
+    .wallet-hero.is-frozen::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: repeating-linear-gradient(-45deg, #000 0px, #000 10px, #FACC15 10px, #FACC15 20px);
+      z-index: 10;
+    }
+
+    /* Under Investigation Overlay Container */
+    .crime-scene-overlay {
       position: absolute;
       inset: 0;
       pointer-events: none;
-      z-index: 2;
+      z-index: 6;
       overflow: hidden;
     }
 
-    .ice-particle {
+    /* Diagonal Yellow Caution Tapes */
+    .caution-tape {
       position: absolute;
-      color: rgba(224, 242, 254, 0.85);
+      top: 50%;
+      left: 50%;
+      width: 140%;
+      height: 38px;
+      background: #FACC15;
+      color: #000000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Impact', 'Arial Black', -apple-system, sans-serif;
+      font-size: 0.84rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
       user-select: none;
-      text-shadow: 0 0 8px rgba(56, 189, 248, 0.9);
-      animation: iceFloat 6s ease-in-out infinite alternate;
+      border-top: 3.5px solid #000000;
+      border-bottom: 3.5px solid #000000;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+      z-index: 7;
+      overflow: hidden;
+      white-space: nowrap;
     }
 
-    .ice-particle:nth-child(1) { top: 10%; left: 6%; font-size: 1.15rem; animation-duration: 5s; }
-    .ice-particle:nth-child(2) { top: 22%; right: 8%; font-size: 0.95rem; animation-duration: 6.5s; animation-delay: 0.7s; }
-    .ice-particle:nth-child(3) { bottom: 18%; left: 16%; font-size: 0.85rem; animation-duration: 5.5s; animation-delay: 1.4s; }
-    .ice-particle:nth-child(4) { top: 62%; right: 18%; font-size: 1.25rem; animation-duration: 7s; animation-delay: 0.3s; }
-    .ice-particle:nth-child(5) { top: 16%; left: 42%; font-size: 0.8rem; animation-duration: 4.8s; animation-delay: 2s; }
+    .caution-tape-1 {
+      transform: translate(-50%, -50%) rotate(-10deg) translateY(-8px);
+      animation: tapeSnapAcross1 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
 
+    .caution-tape-2 {
+      transform: translate(-50%, -50%) rotate(11deg) translateY(10px);
+      animation: tapeSnapAcross2 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+    }
+
+    .tape-scroll-track {
+      display: inline-flex;
+      white-space: nowrap;
+      animation: tapeMarquee 28s linear infinite;
+    }
+
+    .tape-chunk {
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Heavy Metal Chains Layer */
+    .heavy-chains-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      pointer-events: none;
+    }
+
+    .heavy-chains-svg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.85));
+      animation: chainSettle 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Heavy Padlock Container */
+    .heavy-padlock-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 9;
+      pointer-events: none;
+      filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.95));
+      animation: padlockSlamIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, padlockSway 4.5s ease-in-out 0.8s infinite alternate;
+    }
+
+    .wallet-hero.is-frozen .wallet-hero-actions {
+      opacity: 0.35;
+      filter: grayscale(0.85);
+      pointer-events: none;
+    }
+
+    /* Locked Balance Typography */
     .wallet-hero.is-frozen .wallet-hero-balance {
-      background: linear-gradient(180deg, #FFFFFF 0%, #F0F9FF 25%, #BAE6FD 65%, #38BDF8 100%) !important;
-      -webkit-background-clip: text !important;
-      -webkit-text-fill-color: transparent !important;
-      filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.85)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55)) !important;
-      animation: iceGlacialPulse 3.2s ease-in-out infinite alternate !important;
+      color: #E2E8F0 !important;
+      text-shadow: 0 0 16px rgba(234, 179, 8, 0.45), 0 2px 5px rgba(0, 0, 0, 0.85) !important;
+      opacity: 0.65;
       position: relative;
-      z-index: 3;
+      z-index: 4;
     }
 
     .wallet-hero.is-frozen .wallet-hero-label {
-      color: #BAE6FD !important;
-      text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+      color: #FDE047 !important;
+      text-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
       position: relative;
-      z-index: 3;
+      z-index: 4;
     }
 
-    .wallet-ice-badge {
+    /* Under Investigation Badge */
+    .wallet-crime-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(14, 165, 233, 0.22);
-      border: 1px solid rgba(186, 230, 253, 0.75);
-      color: #E0F2FE;
-      padding: 3px 12px;
-      border-radius: 9999px;
+      background: #FACC15;
+      color: #000000;
+      font-family: 'Impact', 'Arial Black', sans-serif;
       font-size: 0.72rem;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: 0.75px;
-      text-transform: uppercase;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.45);
-      animation: iceBadgePulse 2.5s ease-in-out infinite alternate;
+      padding: 3px 9px;
+      border-radius: 4px;
+      border: 1px solid #EAB308;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      animation: crimeBadgePulse 2.2s ease-in-out infinite alternate;
       position: relative;
-      z-index: 3;
+      z-index: 10;
     }
 
     .wallet-hero.is-frozen #wallet-frozen-banner {
-      background: rgba(254, 242, 242, 0.96) !important;
-      backdrop-filter: blur(12px) !important;
-      border: 1.5px solid #FCA5A5 !important;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25) !important;
-      position: relative;
-      z-index: 3;
+      background: #FEF2F2 !important;
+      border: 1.5px solid #F87171 !important;
+      border-radius: 14px !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55) !important;
+      position: relative !important;
+      z-index: 12 !important;
     }
 
     #btn-wallet-appeal:hover {
@@ -190,541 +236,922 @@
       box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45) !important;
       transform: translateY(-1px);
     }
+
     #btn-wallet-appeal:active {
       transform: translateY(0);
     }
 
-    @keyframes icePulseAura {
+    /* Keyframes */
+    @keyframes hazardBorderPulse {
       0% {
-        box-shadow: 
-          0 14px 40px rgba(2, 22, 31, 0.75),
-          0 0 30px rgba(56, 189, 248, 0.35),
-          inset 0 0 40px rgba(186, 230, 253, 0.18),
-          inset 0 2px 4px rgba(255, 255, 255, 0.7);
+        box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 20px rgba(234, 179, 8, 0.2), inset 0 0 40px rgba(0, 0, 0, 0.6);
+        border-color: rgba(234, 179, 8, 0.65);
       }
+
       100% {
-        box-shadow: 
-          0 18px 48px rgba(2, 22, 31, 0.9),
-          0 0 60px rgba(56, 189, 248, 0.65),
-          inset 0 0 65px rgba(186, 230, 253, 0.38),
-          inset 0 2px 6px rgba(255, 255, 255, 0.95);
+        box-shadow: 0 20px 52px rgba(0, 0, 0, 0.9), 0 0 35px rgba(234, 179, 8, 0.45), inset 0 0 50px rgba(0, 0, 0, 0.7);
+        border-color: rgba(250, 204, 21, 0.95);
       }
     }
 
-    @keyframes iceSheenSweep {
+    @keyframes tapeSnapAcross1 {
       0% {
-        transform: rotate(25deg) translateX(-160%);
+        transform: translate(-50%, -50%) rotate(-10deg) translateY(-10px) scaleX(0);
+        opacity: 0;
       }
-      38% {
-        transform: rotate(25deg) translateX(160%);
+
+      70% {
+        transform: translate(-50%, -50%) rotate(-10deg) translateY(-10px) scaleX(1.04);
+        opacity: 1;
       }
+
       100% {
-        transform: rotate(25deg) translateX(160%);
+        transform: translate(-50%, -50%) rotate(-10deg) translateY(-10px) scaleX(1);
+        opacity: 0.96;
       }
     }
 
-    @keyframes iceFloat {
+    @keyframes tapeSnapAcross2 {
       0% {
-        transform: translateY(0) scale(1) rotate(0deg);
-        opacity: 0.6;
+        transform: translate(-50%, -50%) rotate(11deg) translateY(12px) scaleX(0);
+        opacity: 0;
       }
-      50% {
-        transform: translateY(-8px) scale(1.08) rotate(14deg);
-        opacity: 0.95;
+
+      70% {
+        transform: translate(-50%, -50%) rotate(11deg) translateY(12px) scaleX(1.04);
+        opacity: 1;
       }
+
       100% {
-        transform: translateY(6px) scale(0.94) rotate(-10deg);
-        opacity: 0.7;
+        transform: translate(-50%, -50%) rotate(11deg) translateY(12px) scaleX(1);
+        opacity: 0.96;
       }
     }
 
-    @keyframes iceGlacialPulse {
+    @keyframes tapeMarquee {
       0% {
-        filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.65)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+        transform: translateX(0);
       }
+
       100% {
-        filter: drop-shadow(0 0 24px rgba(125, 211, 252, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.65));
+        transform: translateX(-50%);
       }
     }
 
-    @keyframes iceBadgePulse {
+    @keyframes chainSettle {
       0% {
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
-        border-color: rgba(186, 230, 253, 0.5);
+        transform: translateY(-24px);
+        opacity: 0;
       }
+
+      65% {
+        transform: translateY(3px);
+        opacity: 1;
+      }
+
       100% {
-        box-shadow: 0 0 22px rgba(56, 189, 248, 0.75);
-        border-color: rgba(224, 242, 254, 0.95);
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes padlockSlamIn {
+      0% {
+        transform: translate(-50%, -85%) scale(1.5);
+        opacity: 0;
+      }
+
+      55% {
+        transform: translate(-50%, -46%) scale(0.94);
+        opacity: 1;
+      }
+
+      75% {
+        transform: translate(-50%, -52%) scale(1.03);
+      }
+
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes padlockSway {
+
+      0%,
+      100% {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      30% {
+        transform: translate(-50%, -50%) rotate(-2.5deg);
+      }
+
+      70% {
+        transform: translate(-50%, -50%) rotate(2.5deg);
+      }
+    }
+
+    @keyframes crimeBadgePulse {
+      0% {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      }
+
+      100% {
+        box-shadow: 0 4px 14px rgba(250, 204, 21, 0.7);
       }
     }
   </style>
 </head>
+
 <body>
 
-<div class="dashboard-layout">
-  <aside class="sidebar" id="sidebar"></aside>
+  <div class="dashboard-layout">
+    <aside class="sidebar" id="sidebar"></aside>
 
-  <main class="main-content">
-    <div class="app-header">
-      <div>
-        <h1>My Wallet</h1>
-        <p class="sub">Manage earnings, withdrawals, escrow balances, and transaction history.</p>
-      </div>
-    </div>
-
-    <!-- Wallet Hero Banner -->
-    <div class="wallet-hero">
-      <!-- Frozen Ice Icicle Top Bar -->
-      <div class="ice-icicle-border" id="wallet-ice-icicles" style="display:none;"></div>
-
-      <!-- Frozen Ice Floating Particles Overlay -->
-      <div class="ice-particles-overlay" id="wallet-ice-particles" style="display:none;" aria-hidden="true">
-        <span class="ice-particle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>
-        </span>
-        <span class="ice-particle">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><line x1="12" y1="22" x2="12" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/></svg>
-        </span>
-        <span class="ice-particle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L14 10L24 12L14 14L12 24L10 14L0 12L10 10L12 0Z"/></svg>
-        </span>
-        <span class="ice-particle">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 20 12 12 22 4 12 12 2"/></svg>
-        </span>
-        <span class="ice-particle">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
-        </span>
-      </div>
-
-      <div class="wallet-hero-top">
+    <main class="main-content">
+      <div class="app-header">
         <div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div class="wallet-hero-label">Available Balance</div>
-            <span class="wallet-ice-badge" id="wallet-hero-frozen-badge" style="display:none;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;">
-                <line x1="12" y1="2" x2="12" y2="22"/>
-                <line x1="2" y1="12" x2="22" y2="12"/>
-                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
-                <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/>
-              </svg>
-              WALLET FROZEN
-            </span>
-          </div>
-          <div class="wallet-hero-balance mono" id="wallet-hero-balance">₦0</div>
-        </div>
-        <div class="wallet-hero-actions" style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 140px;">
-          <button class="btn btn-primary" id="wallet-deposit-btn" style="justify-content: center; width: 100%;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block; margin-right:4px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Funds
-          </button>
-          <button class="btn btn-secondary" id="wallet-withdraw-btn" style="justify-content: center; width: 100%;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block; margin-right:4px;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-            Withdraw
-          </button>
+          <h1>My Wallet</h1>
+          <p class="sub">Manage earnings, withdrawals, escrow balances, and transaction history.</p>
         </div>
       </div>
-      <!-- Locked balance indicator -->
-      <div id="wallet-locked-balance" style="display:none; font-size:0.82rem; color:var(--orange-600, #d97706); padding:6px 16px 0; font-weight:500;"></div>
+
+      <!-- Wallet Hero Banner -->
+      <div class="wallet-hero">
+        <!-- Under Investigation Yellow Tape & Heavy Padlocked Chains Overlay -->
+        <div class="crime-scene-overlay" id="wallet-crime-scene-overlay" style="display:none;" aria-hidden="true">
+          <!-- Diagonal Yellow Under Investigation Caution Tapes -->
+          <div class="caution-tape caution-tape-1">
+            <div class="tape-scroll-track">
+              <span class="tape-chunk">⚠ Under Investigation · DO NOT CROSS ⚠ WALLET LOCKED ⚠ RESTRICTED ACCESS ⚠ POLICE
+                LINE · DO NOT CROSS</span>
+              <span class="tape-chunk">⚠ Under Investigation · DO NOT CROSS ⚠ WALLET LOCKED ⚠ RESTRICTED ACCESS ⚠ POLICE
+                LINE · DO NOT CROSS</span>
+            </div>
+          </div>
+          <div class="caution-tape caution-tape-2">
+            <div class="tape-scroll-track">
+              <span class="tape-chunk">⚠ RESTRICTED AREA ⚠ SECURITY LOCKDOWN ⚠ DO NOT TAMPER ⚠ AUTHORIZED PERSONNEL
+                ONLY</span>
+              <span class="tape-chunk">⚠ RESTRICTED AREA ⚠ SECURITY LOCKDOWN ⚠ DO NOT TAMPER ⚠ AUTHORIZED PERSONNEL
+                ONLY</span>
+            </div>
+          </div>
+
+          <!-- Heavy Steel Chains Crossing the Hero -->
+          <div class="heavy-chains-layer">
+            <svg class="heavy-chains-svg" viewBox="0 0 800 220" fill="none" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chainSteel" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#F8FAFC" />
+                  <stop offset="25%" stop-color="#CBD5E1" />
+                  <stop offset="55%" stop-color="#64748B" />
+                  <stop offset="85%" stop-color="#334155" />
+                  <stop offset="100%" stop-color="#0F172A" />
+                </linearGradient>
+                <linearGradient id="chainSteelCross" x1="0%" y1="100%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#94A3B8" />
+                  <stop offset="35%" stop-color="#E2E8F0" />
+                  <stop offset="70%" stop-color="#475569" />
+                  <stop offset="100%" stop-color="#1E293B" />
+                </linearGradient>
+                <filter id="chainHeavyShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#000000" flood-opacity="0.85" />
+                </filter>
+              </defs>
+
+              <!-- Diagonal Chain 1: Top-Left to Bottom-Right -->
+              <g filter="url(#chainHeavyShadow)">
+                <!-- Link 1 -->
+                <rect x="15" y="10" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 38, 21)" />
+                <rect x="52" y="12" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 60, 28)" />
+                <!-- Link 2 -->
+                <rect x="80" y="24" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 103, 35)" />
+                <rect x="117" y="27" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 125, 43)" />
+                <!-- Link 3 -->
+                <rect x="145" y="38" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 168, 49)" />
+                <rect x="182" y="41" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 190, 57)" />
+                <!-- Link 4 -->
+                <rect x="210" y="52" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 233, 63)" />
+                <rect x="247" y="55" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 255, 71)" />
+                <!-- Link 5 (Near Center) -->
+                <rect x="275" y="66" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 298, 77)" />
+                <rect x="312" y="69" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 320, 85)" />
+                <!-- Link 6 (Past Center) -->
+                <rect x="470" y="105" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 493, 116)" />
+                <rect x="507" y="108" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 515, 124)" />
+                <!-- Link 7 -->
+                <rect x="535" y="119" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 558, 130)" />
+                <rect x="572" y="122" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 580, 138)" />
+                <!-- Link 8 -->
+                <rect x="600" y="133" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 623, 144)" />
+                <rect x="637" y="136" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 645, 152)" />
+                <!-- Link 9 -->
+                <rect x="665" y="147" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 688, 158)" />
+                <rect x="702" y="150" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(11, 710, 166)" />
+                <!-- Link 10 -->
+                <rect x="730" y="161" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(11, 753, 172)" />
+              </g>
+
+              <!-- Diagonal Chain 2: Bottom-Left to Top-Right -->
+              <g filter="url(#chainHeavyShadow)">
+                <!-- Link 1 -->
+                <rect x="15" y="168" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 38, 179)" />
+                <rect x="52" y="156" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 60, 172)" />
+                <!-- Link 2 -->
+                <rect x="80" y="146" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 103, 157)" />
+                <rect x="117" y="134" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 125, 150)" />
+                <!-- Link 3 -->
+                <rect x="145" y="124" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 168, 135)" />
+                <rect x="182" y="112" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 190, 128)" />
+                <!-- Link 4 -->
+                <rect x="210" y="102" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 233, 113)" />
+                <rect x="247" y="90" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 255, 106)" />
+                <!-- Link 5 (Near Center) -->
+                <rect x="275" y="80" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 298, 91)" />
+                <rect x="312" y="68" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 320, 84)" />
+                <!-- Link 6 (Past Center) -->
+                <rect x="470" y="42" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 493, 53)" />
+                <rect x="507" y="30" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 515, 46)" />
+                <!-- Link 7 -->
+                <rect x="535" y="20" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 558, 31)" />
+                <rect x="572" y="8" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 580, 24)" />
+                <!-- Link 8 -->
+                <rect x="600" y="-2" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 623, 9)" />
+                <rect x="637" y="-14" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 645, 2)" />
+                <!-- Link 9 -->
+                <rect x="665" y="-24" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 688, -13)" />
+                <rect x="702" y="-36" width="16" height="32" rx="6" fill="url(#chainSteelCross)" stroke="#0F172A"
+                  stroke-width="1.5" transform="rotate(-11, 710, -20)" />
+                <!-- Link 10 -->
+                <rect x="730" y="-46" width="46" height="22" rx="10" stroke="url(#chainSteel)" stroke-width="6"
+                  fill="none" transform="rotate(-11, 753, -35)" />
+              </g>
+            </svg>
+          </div>
+
+          <!-- Central Heavy Padlock -->
+          <div class="heavy-padlock-container">
+            <svg width="92" height="106" viewBox="0 0 92 106" fill="none">
+              <defs>
+                <linearGradient id="shackleSteel" x1="0" y1="0" x2="92" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#475569" />
+                  <stop offset="20%" stop-color="#F1F5F9" />
+                  <stop offset="45%" stop-color="#94A3B8" />
+                  <stop offset="75%" stop-color="#E2E8F0" />
+                  <stop offset="100%" stop-color="#334155" />
+                </linearGradient>
+                <linearGradient id="brassBodyGrad" x1="0" y1="42" x2="92" y2="106" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FEF08A" />
+                  <stop offset="20%" stop-color="#FACC15" />
+                  <stop offset="55%" stop-color="#CA8A04" />
+                  <stop offset="85%" stop-color="#854D0E" />
+                  <stop offset="100%" stop-color="#451A03" />
+                </linearGradient>
+                <linearGradient id="lockPlateGrad" x1="0" y1="50" x2="92" y2="98" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#334155" />
+                  <stop offset="50%" stop-color="#1E293B" />
+                  <stop offset="100%" stop-color="#0F172A" />
+                </linearGradient>
+                <filter id="padlockShadow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#000000" flood-opacity="0.9" />
+                </filter>
+              </defs>
+
+              <!-- Hardened Steel Shackle (Arch) -->
+              <path d="M 28 50 V 26 C 28 15 36 7 46 7 C 56 7 64 15 64 26 V 50" stroke="url(#shackleSteel)"
+                stroke-width="12" stroke-linecap="round" />
+
+              <!-- Shackle Collar Bushings -->
+              <rect x="20" y="42" width="16" height="10" rx="3" fill="#334155" stroke="#64748B" stroke-width="1" />
+              <rect x="56" y="42" width="16" height="10" rx="3" fill="#334155" stroke="#64748B" stroke-width="1" />
+
+              <!-- Padlock Body with Heavy 3D Shadow -->
+              <g filter="url(#padlockShadow)">
+                <!-- Main Brass Body -->
+                <rect x="12" y="46" width="68" height="54" rx="12" fill="url(#brassBodyGrad)" stroke="#FEF08A"
+                  stroke-width="2" />
+
+                <!-- Inset Heavy Security Plate -->
+                <rect x="18" y="52" width="56" height="42" rx="8" fill="url(#lockPlateGrad)" stroke="#A16207"
+                  stroke-width="1.2" />
+
+                <!-- Corner Security Rivets -->
+                <circle cx="23" cy="57" r="2.5" fill="#E2E8F0" stroke="#0F172A" stroke-width="1" />
+                <circle cx="69" cy="57" r="2.5" fill="#E2E8F0" stroke="#0F172A" stroke-width="1" />
+                <circle cx="23" cy="89" r="2.5" fill="#E2E8F0" stroke="#0F172A" stroke-width="1" />
+                <circle cx="69" cy="89" r="2.5" fill="#E2E8F0" stroke="#0F172A" stroke-width="1" />
+
+                <!-- Red Security Warning Indicator -->
+                <circle cx="46" cy="59" r="2.8" fill="#EF4444" />
+                <circle cx="46" cy="59" r="1.2" fill="#FFFFFF" />
+
+                <!-- Keyhole Slot -->
+                <ellipse cx="46" cy="71" rx="5.5" ry="5.5" fill="#000000" />
+                <polygon points="43,72 49,72 48,83 44,83" fill="#000000" />
+                <circle cx="46" cy="71" r="2" fill="#64748B" />
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="wallet-hero-top">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="wallet-hero-label">Available Balance</div>
+              <span class="wallet-crime-badge" id="wallet-hero-frozen-badge" style="display:none;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L1 21h22L12 2zm0 3.5L20.2 19H3.8L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z" />
+                </svg>
+                Under Investigation · WALLET LOCKED
+              </span>
+            </div>
+            <div class="wallet-hero-balance mono" id="wallet-hero-balance">₦0</div>
+          </div>
+          <div class="wallet-hero-actions"
+            style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 140px;">
+            <button class="btn btn-primary" id="wallet-deposit-btn" style="justify-content: center; width: 100%;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round"
+                style="vertical-align:middle; display:inline-block; margin-right:4px;">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Funds
+            </button>
+            <button class="btn btn-secondary" id="wallet-withdraw-btn" style="justify-content: center; width: 100%;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round"
+                style="vertical-align:middle; display:inline-block; margin-right:4px;">
+                <line x1="12" y1="19" x2="12" y2="5" />
+                <polyline points="5 12 12 5 19 12" />
+              </svg>
+              Withdraw
+            </button>
+          </div>
+        </div>
+        <!-- Locked balance indicator -->
+        <div id="wallet-locked-balance"
+          style="display:none; font-size:0.82rem; color:var(--orange-600, #d97706); padding:6px 16px 0; font-weight:500;">
+        </div>
+      </div>
 
       <!-- Frozen Wallet Notice Banner -->
-      <div id="wallet-frozen-banner" style="display:none; margin-top:16px; padding:16px 20px; background:#FEF2F2; border:1.5px solid #F87171; border-radius:14px; color:#991B1B;">
+      <div id="wallet-frozen-banner"
+        style="display:none; margin-top:20px; margin-bottom:24px; padding:16px 20px; background:#FEF2F2; border:1.5px solid #F87171; border-radius:14px; color:#991B1B; box-shadow:0 4px 16px rgba(220,38,38,0.08);">
         <div style="display:flex; align-items:flex-start; gap:14px;">
-          <div style="width:40px; height:40px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div
+            style="width:40px; height:40px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
           </div>
           <div style="flex:1;">
             <div style="font-weight:700; font-size:1rem; margin-bottom:4px; color:#7F1D1D;">Wallet Frozen</div>
             <div style="font-size:0.86rem; line-height:1.5; color:#991B1B;">
-              Your wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts. To safeguard your funds, withdrawals and deposits are paused. Your balance and transaction history remain safe.
+              Your wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts. To
+              safeguard your funds, withdrawals and deposits are paused. Your balance and transaction history remain
+              safe.
             </div>
             <div style="margin-top:12px;">
-              <button type="button" class="btn btn-sm btn-wallet-appeal-trigger" id="btn-wallet-appeal" style="background:#DC2626; color:#fff; font-size:0.84rem; font-weight:600; padding:8px 18px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border-radius:8px; box-shadow:0 2px 6px rgba(220,38,38,0.25); transition:all 0.15s ease;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <button type="button" class="btn btn-sm btn-wallet-appeal-trigger" id="btn-wallet-appeal"
+                style="background:#DC2626; color:#fff; font-size:0.84rem; font-weight:600; padding:8px 18px; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; border-radius:8px; box-shadow:0 2px 6px rgba(220,38,38,0.25); transition:all 0.15s ease;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
                 Contact Support to Appeal
               </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Quick Stat Strip -->
-    <div class="stat-grid" style="margin-bottom: 28px;">
-      <div class="stat-card">
-        <div class="stat-label">Total earned</div>
-        <div class="stat-value mono" id="stat-earned">₦0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">In escrow</div>
-        <div class="stat-value mono" id="stat-wallet-escrow">₦0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total withdrawn</div>
-        <div class="stat-value mono" id="stat-withdrawn">₦0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">This month</div>
-        <div class="stat-value mono" id="stat-month">₦0</div>
-      </div>
-    </div>
-
-    <!-- Transaction Ledger -->
-    <div class="panel">
-      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
-        <div>
-          <h2 style="font-size: 1.1rem; margin:0;">Transaction history</h2>
-          <span style="font-size: 0.78rem; color: var(--muted);">Showing 5 most recent transactions</span>
+      <!-- Quick Stat Strip -->
+      <div class="stat-grid" style="margin-bottom: 28px;">
+        <div class="stat-card">
+          <div class="stat-label">Total earned</div>
+          <div class="stat-value mono" id="stat-earned">₦0</div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm" id="btn-open-all-tx-top" style="font-size:0.8rem; padding:6px 14px;">
-          View All Transactions
-        </button>
+        <div class="stat-card">
+          <div class="stat-label">In escrow</div>
+          <div class="stat-value mono" id="stat-wallet-escrow">₦0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total withdrawn</div>
+          <div class="stat-value mono" id="stat-withdrawn">₦0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This month</div>
+          <div class="stat-value mono" id="stat-month">₦0</div>
+        </div>
       </div>
 
-      <div class="wallet-tabs" id="wallet-tabs-bar" style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:6px; margin-bottom:16px; width:100%; box-sizing:border-box;">
-        <button class="wallet-tab is-active" data-wallet-filter="all" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">All</button>
-        <button class="wallet-tab" data-wallet-filter="deposits" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Deposits</button>
-        <button class="wallet-tab" data-wallet-filter="earnings" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Earnings</button>
-        <button class="wallet-tab" data-wallet-filter="withdrawals" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Withdrawals</button>
-        <button class="wallet-tab" data-wallet-filter="refunds" style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Refunds</button>
-      </div>
+      <!-- Transaction Ledger -->
+      <div class="panel">
+        <div
+          style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <h2 style="font-size: 1.1rem; margin:0;">Transaction history</h2>
+            <span style="font-size: 0.78rem; color: var(--muted);">Showing 5 most recent transactions</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-open-all-tx-top"
+            style="font-size:0.8rem; padding:6px 14px;">
+            View All Transactions
+          </button>
+        </div>
 
-      <div id="tx-container" style="margin-top: 12px;">
-        <div style="padding:40px; text-align:center; color:var(--muted);">Loading transactions…</div>
-      </div>
+        <div class="wallet-tabs" id="wallet-tabs-bar"
+          style="display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; touch-action:pan-x; padding-bottom:6px; margin-bottom:16px; width:100%; box-sizing:border-box;">
+          <button class="wallet-tab is-active" data-wallet-filter="all"
+            style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">All</button>
+          <button class="wallet-tab" data-wallet-filter="deposits"
+            style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Deposits</button>
+          <button class="wallet-tab" data-wallet-filter="earnings"
+            style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Earnings</button>
+          <button class="wallet-tab" data-wallet-filter="withdrawals"
+            style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Withdrawals</button>
+          <button class="wallet-tab" data-wallet-filter="refunds"
+            style="flex:0 0 auto; flex-shrink:0; white-space:nowrap; min-width:max-content;">Refunds</button>
+        </div>
 
-      <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); text-align:center;">
-        <button type="button" class="btn btn-secondary" id="btn-open-all-tx-bottom" style="font-size:0.85rem; width:100%; max-width:280px;">
-          View All Transactions →
-        </button>
-      </div>
-    </div>
-  </main>
-</div>
+        <div id="tx-container" style="margin-top: 12px;">
+          <div style="padding:40px; text-align:center; color:var(--muted);">Loading transactions…</div>
+        </div>
 
-<!-- ======================== TRANSACTION DETAILS MODAL ======================== -->
-<div class="modal-backdrop" id="tx-detail-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(3px); overflow-y:auto;">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:480px; width:100%; max-height:90vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 14px 40px rgba(0,0,0,0.24); position:relative; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-      <span class="status status-open" id="tx-detail-status" style="font-size:0.75rem; padding:3px 10px; font-weight:600;">Completed</span>
-      <button type="button" id="tx-detail-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
-    </div>
-
-    <div style="text-align:center; padding:12px 0 20px; border-bottom:1px solid var(--line-soft);">
-      <div style="font-size:0.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:600;" id="tx-detail-type-badge">Deposit</div>
-      <div class="mono" id="tx-detail-amount" style="font-size:1.85rem; font-weight:700; color:var(--green-900); margin:4px 0 2px;">₦0</div>
-      <div style="font-size:0.82rem; color:var(--muted);" id="tx-detail-date">Date</div>
-    </div>
-
-    <div style="margin:18px 0; display:flex; flex-direction:column; gap:12px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-        <span style="color:var(--muted);">Transaction No.</span>
-        <div style="display:inline-flex; align-items:center; gap:6px;">
-          <span class="mono" id="tx-detail-ref" style="font-weight:600; color:var(--ink); font-size:0.82rem; word-break:break-all;">—</span>
-          <button type="button" id="btn-copy-tx-ref" style="background:none; border:none; cursor:pointer; color:var(--green-700); padding:2px; font-size:0.75rem;" title="Copy reference">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--line); text-align:center;">
+          <button type="button" class="btn btn-secondary" id="btn-open-all-tx-bottom"
+            style="font-size:0.85rem; width:100%; max-width:280px;">
+            View All Transactions →
           </button>
         </div>
       </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-        <span style="color:var(--muted);">Transaction Type</span>
-        <span style="font-weight:600; color:var(--green-900);" id="tx-detail-category">Deposit</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-        <span style="color:var(--muted);">Bank Name</span>
-        <span style="font-weight:600; color:var(--ink); text-align:right;" id="tx-detail-bank">—</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
-        <span style="color:var(--muted);">Account Owner</span>
-        <span style="font-weight:600; color:var(--ink); text-align:right;" id="tx-detail-owner">—</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;" id="tx-detail-accnum-row">
-        <span style="color:var(--muted);">Account / Channel</span>
-        <span class="mono" style="font-weight:600; color:var(--ink);" id="tx-detail-accnum">—</span>
-      </div>
-
-      <div style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; margin-top:4px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:4px;">
-          <span>Gross Amount</span>
-          <span class="mono" id="tx-detail-gross">₦0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:4px;">
-          <span>Platform Fee</span>
-          <span class="mono" id="tx-detail-fee">-₦0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.86rem; font-weight:700; color:var(--green-900); padding-top:4px; border-top:1px dashed var(--line-soft);">
-          <span>Net Amount</span>
-          <span class="mono" id="tx-detail-net">₦0</span>
-        </div>
-      </div>
-
-      <div id="tx-detail-failure-box" style="display:none; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--radius-sm); padding:10px 14px; font-size:0.82rem; color:#991B1B;">
-        <strong>Failure reason:</strong> <span id="tx-detail-failure-reason">—</span>
-      </div>
-    </div>
-
-    <button type="button" class="btn btn-secondary" id="tx-detail-dismiss-btn" style="width:100%; padding:10px; font-size:0.9rem;">
-      Close
-    </button>
+    </main>
   </div>
-</div>
 
-<!-- ======================== ALL TRANSACTIONS IN-APP MODAL ======================== -->
-<div class="modal-backdrop" id="all-tx-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(3px); overflow-y:auto;">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:680px; width:100%; max-height:88vh; overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--line); box-shadow:0 14px 44px rgba(0,0,0,0.25); position:relative; box-sizing:border-box;">
-    <div style="padding:18px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; background:var(--surface);">
-      <div>
-        <h3 style="font-size:1.2rem; margin:0; color:var(--green-900);">All Transactions</h3>
-        <span style="font-size:0.8rem; color:var(--muted);">Complete ledger history · Click any transaction for full details</span>
-      </div>
-      <button type="button" id="all-tx-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
-    </div>
-
-    <div style="padding:12px 22px; background:var(--surface-2); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center;">
-      <div class="wallet-tabs" id="modal-tx-tabs-bar" style="display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto;">
-        <button class="wallet-tab is-active" data-modal-filter="all" style="font-size:0.8rem; padding:5px 12px;">All</button>
-        <button class="wallet-tab" data-modal-filter="deposits" style="font-size:0.8rem; padding:5px 12px;">Deposits</button>
-        <button class="wallet-tab" data-modal-filter="earnings" style="font-size:0.8rem; padding:5px 12px;">Earnings</button>
-        <button class="wallet-tab" data-modal-filter="withdrawals" style="font-size:0.8rem; padding:5px 12px;">Withdrawals</button>
-        <button class="wallet-tab" data-modal-filter="refunds" style="font-size:0.8rem; padding:5px 12px;">Refunds</button>
-      </div>
-      <input type="text" id="modal-tx-search-input" placeholder="Search reference, bank..." style="padding:6px 12px; font-size:0.82rem; border-radius:var(--radius-pill); border:1px solid var(--line); outline:none; background:var(--surface); min-width:170px;">
-    </div>
-
-    <div id="modal-all-tx-container" style="flex:1; overflow-y:auto; padding:12px 22px;">
-      <div style="padding:40px; text-align:center; color:var(--muted);">Loading…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ======================== DEPOSIT / ADD FUNDS MODAL ======================== -->
-<div class="modal-backdrop" id="wallet-deposit-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:440px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-      <div>
-        <h3 style="font-size:1.18rem; margin:0; color:var(--green-900);">Add Funds to Wallet</h3>
-        <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Instant top-up via Paystack (Cards, Bank Transfer, USSD)</div>
-      </div>
-      <button type="button" id="wallet-deposit-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
-    </div>
-
-    <!-- Quick Preset Amount Chips -->
-    <div style="margin-bottom:16px;">
-      <label class="field-label" style="margin-bottom:8px;">Select Quick Amount</label>
-      <div style="display:flex; flex-wrap:wrap; gap:8px;" id="depositQuickChips">
-        <button type="button" class="amount-chip" data-amt="2000">₦2,000</button>
-        <button type="button" class="amount-chip is-selected" data-amt="5000">₦5,000</button>
-        <button type="button" class="amount-chip" data-amt="10000">₦10,000</button>
-        <button type="button" class="amount-chip" data-amt="25000">₦25,000</button>
-        <button type="button" class="amount-chip" data-amt="50000">₦50,000</button>
-        <button type="button" class="amount-chip" data-amt="100000">₦100,000</button>
-      </div>
-    </div>
-
-    <form id="wallet-deposit-form">
-      <div class="field-group" style="margin-bottom:14px;">
-        <label class="field-label" for="deposit-amount">Custom Amount (NGN)</label>
-        <input class="text-input mono" type="number" id="deposit-amount" min="500" max="2000000" step="any" value="5000" placeholder="e.g. 5000" required style="font-size:1.05rem; font-weight:600;">
-        <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Minimum deposit is ₦500.</div>
+  <!-- ======================== TRANSACTION DETAILS MODAL ======================== -->
+  <div class="modal-backdrop" id="tx-detail-modal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:99999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(3px); overflow-y:auto;">
+    <div
+      style="background:var(--paper); border-radius:var(--radius-md); max-width:480px; width:100%; max-height:90vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 14px 40px rgba(0,0,0,0.24); position:relative; box-sizing:border-box;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span class="status status-open" id="tx-detail-status"
+          style="font-size:0.75rem; padding:3px 10px; font-weight:600;">Completed</span>
+        <button type="button" id="tx-detail-close-btn"
+          style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
       </div>
 
-      <!-- Live Deposit Fee Breakdown -->
-      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
-          <span>Net Credited to Wallet:</span>
-          <span class="mono" id="deposit-net-display">₦5,000</span>
+      <div style="text-align:center; padding:12px 0 20px; border-bottom:1px solid var(--line-soft);">
+        <div
+          style="font-size:0.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; font-weight:600;"
+          id="tx-detail-type-badge">Deposit</div>
+        <div class="mono" id="tx-detail-amount"
+          style="font-size:1.85rem; font-weight:700; color:var(--green-900); margin:4px 0 2px;">₦0</div>
+        <div style="font-size:0.82rem; color:var(--muted);" id="tx-detail-date">Date</div>
+      </div>
+
+      <div style="margin:18px 0; display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span style="color:var(--muted);">Transaction No.</span>
+          <div style="display:inline-flex; align-items:center; gap:6px;">
+            <span class="mono" id="tx-detail-ref"
+              style="font-weight:600; color:var(--ink); font-size:0.82rem; word-break:break-all;">—</span>
+            <button type="button" id="btn-copy-tx-ref"
+              style="background:none; border:none; cursor:pointer; color:var(--green-700); padding:2px; font-size:0.75rem;"
+              title="Copy reference">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
-          Taska does not collect funding charges. Extra payment gateway / bank charges may apply on the checkout screen.
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span style="color:var(--muted);">Transaction Type</span>
+          <span style="font-weight:600; color:var(--green-900);" id="tx-detail-category">Deposit</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span style="color:var(--muted);">Bank Name</span>
+          <span style="font-weight:600; color:var(--ink); text-align:right;" id="tx-detail-bank">—</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+          <span style="color:var(--muted);">Account Owner</span>
+          <span style="font-weight:600; color:var(--ink); text-align:right;" id="tx-detail-owner">—</span>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;"
+          id="tx-detail-accnum-row">
+          <span style="color:var(--muted);">Account / Channel</span>
+          <span class="mono" style="font-weight:600; color:var(--ink);" id="tx-detail-accnum">—</span>
+        </div>
+
+        <div
+          style="background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; margin-top:4px;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:4px;">
+            <span>Gross Amount</span>
+            <span class="mono" id="tx-detail-gross">₦0</span>
+          </div>
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--muted); margin-bottom:4px;">
+            <span>Platform Fee</span>
+            <span class="mono" id="tx-detail-fee">-₦0</span>
+          </div>
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.86rem; font-weight:700; color:var(--green-900); padding-top:4px; border-top:1px dashed var(--line-soft);">
+            <span>Net Amount</span>
+            <span class="mono" id="tx-detail-net">₦0</span>
+          </div>
+        </div>
+
+        <div id="tx-detail-failure-box"
+          style="display:none; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:var(--radius-sm); padding:10px 14px; font-size:0.82rem; color:#991B1B;">
+          <strong>Failure reason:</strong> <span id="tx-detail-failure-reason">—</span>
         </div>
       </div>
 
-      <div style="background:var(--surface-2); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px; margin-bottom:20px; display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--ink-soft);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green-700); flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <span>Secured 256-bit encrypted checkout handled by <strong>Paystack</strong>.</span>
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="deposit-submit-btn" style="width:100%; padding:12px; font-size:0.95rem; font-weight:600;">
-        Proceed to Paystack
+      <button type="button" class="btn btn-secondary" id="tx-detail-dismiss-btn"
+        style="width:100%; padding:10px; font-size:0.9rem;">
+        Close
       </button>
-    </form>
-  </div>
-</div>
-
-<!-- ======================== WITHDRAWAL MODAL ======================== -->
-<div class="modal-backdrop" id="wallet-withdraw-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
-  <div style="background:var(--paper); border-radius:var(--radius-md); max-width:460px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-      <div>
-        <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);">Withdraw Funds to Bank</h3>
-        <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Payouts settle within 5–15 minutes directly to your bank account</div>
-      </div>
-      <button type="button" id="wallet-withdraw-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
     </div>
-
-    <!-- Available Balance Callout -->
-    <div style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
-      <div>
-        <div style="font-size:0.75rem; color:var(--green-700); font-weight:600; text-transform:uppercase;">Available for Withdrawal</div>
-        <div class="mono" id="withdraw-available-bal" style="font-size:1.15rem; font-weight:700; color:var(--green-900);">₦0</div>
-      </div>
-      <button type="button" id="withdraw-max-btn" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 10px; border-radius:12px;">Withdraw All</button>
-    </div>
-
-    <form id="wallet-withdraw-form">
-      <div class="field-group" style="margin-bottom:14px;">
-        <label class="field-label" for="withdraw-amount">Amount (NGN)</label>
-        <input class="text-input mono" type="number" id="withdraw-amount" min="1000" step="any" placeholder="e.g. 5000" required style="font-size:1.02rem; font-weight:600;">
-        <div style="font-size:0.74rem; color:var(--muted); margin-top:3px;">Minimum withdrawal is ₦1,000.</div>
-      </div>
-
-      <!-- Live Withdrawal Fee Breakdown -->
-      <div style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
-          <span>Net Disbursed to Bank:</span>
-          <span class="mono" id="withdraw-net-display">₦0</span>
-        </div>
-        <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
-          Taska does not collect withdrawal charges. Standard bank transfer settlements apply.
-        </div>
-      </div>
-
-      <div class="field-group" style="margin-bottom:14px;">
-        <label class="field-label" for="withdraw-bank-select">Select Bank</label>
-        <select class="text-input" id="withdraw-bank-select" required style="cursor:pointer;">
-          <option value="" disabled selected>-- Select Destination Bank --</option>
-          <option value="044">Access Bank</option>
-          <option value="058">Guaranty Trust Bank (GTBank)</option>
-          <option value="057">Zenith Bank</option>
-          <option value="011">First Bank of Nigeria</option>
-          <option value="033">United Bank for Africa (UBA)</option>
-          <option value="50211">Kuda Bank</option>
-          <option value="999992">OPay (Paycom)</option>
-          <option value="999991">PalmPay</option>
-          <option value="221">Stanbic IBTC Bank</option>
-          <option value="232">Sterling Bank</option>
-          <option value="070">Fidelity Bank</option>
-          <option value="214">First City Monument Bank (FCMB)</option>
-          <option value="035">Wema Bank (ALAT)</option>
-          <option value="032">Union Bank of Nigeria</option>
-          <option value="076">Polaris Bank</option>
-          <option value="50515">Moniepoint MFB</option>
-          <option value="565">Carbon</option>
-          <option value="566">VFD Microfinance Bank</option>
-        </select>
-      </div>
-
-      <div class="field-group" style="margin-bottom:14px;">
-        <label class="field-label" for="withdraw-account-number">10-Digit Account Number</label>
-        <input class="text-input mono" type="text" id="withdraw-account-number" maxlength="10" placeholder="0123456789" required style="letter-spacing:1px;">
-      </div>
-
-      <!-- Resolved Account Name Display Box -->
-      <div class="verified-account-box" id="withdraw-account-name-box" style="display:none;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green-700); flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
-        <div style="font-size:0.84rem; color:var(--green-900);">
-          <span style="font-size:0.72rem; color:var(--green-700); display:block; font-weight:600;">VERIFIED ACCOUNT HOLDER</span>
-          <strong id="withdraw-resolved-name">ACCOUNT NAME</strong>
-        </div>
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="withdraw-submit-btn" style="width:100%; padding:12px; font-size:0.95rem; font-weight:600;">
-        Confirm &amp; Request Payout
-      </button>
-    </form>
   </div>
-</div>
 
-<!-- ======================== WALLET APPEAL / CONTACT SUPPORT MODAL ======================== -->
-<div class="modal-backdrop" id="wallet-appeal-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(4px); overflow-y:auto;">
-  <div style="background:var(--paper, #FFFFFF); border-radius:18px; max-width:520px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; border:1px solid var(--line, #E2E8F0); box-shadow:0 20px 50px rgba(0,0,0,0.3); position:relative; box-sizing:border-box;">
-    
-    <!-- Header -->
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px;">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div style="width:44px; height:44px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </div>
+  <!-- ======================== ALL TRANSACTIONS IN-APP MODAL ======================== -->
+  <div class="modal-backdrop" id="all-tx-modal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(3px); overflow-y:auto;">
+    <div
+      style="background:var(--paper); border-radius:var(--radius-md); max-width:680px; width:100%; max-height:88vh; overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--line); box-shadow:0 14px 44px rgba(0,0,0,0.25); position:relative; box-sizing:border-box;">
+      <div
+        style="padding:18px 22px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; background:var(--surface);">
         <div>
-          <h3 style="font-size:1.22rem; margin:0; color:#1E293B; font-weight:700;">Wallet Unfreeze Appeal</h3>
-          <div style="font-size:0.8rem; color:#64748B; margin-top:2px;">Taska Trust &amp; Security Desk</div>
+          <h3 style="font-size:1.2rem; margin:0; color:var(--green-900);">All Transactions</h3>
+          <span style="font-size:0.8rem; color:var(--muted);">Complete ledger history · Click any transaction for full
+            details</span>
+        </div>
+        <button type="button" id="all-tx-close-btn"
+          style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
+      </div>
+
+      <div
+        style="padding:12px 22px; background:var(--surface-2); border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; align-items:center;">
+        <div class="wallet-tabs" id="modal-tx-tabs-bar"
+          style="display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto;">
+          <button class="wallet-tab is-active" data-modal-filter="all"
+            style="font-size:0.8rem; padding:5px 12px;">All</button>
+          <button class="wallet-tab" data-modal-filter="deposits"
+            style="font-size:0.8rem; padding:5px 12px;">Deposits</button>
+          <button class="wallet-tab" data-modal-filter="earnings"
+            style="font-size:0.8rem; padding:5px 12px;">Earnings</button>
+          <button class="wallet-tab" data-modal-filter="withdrawals"
+            style="font-size:0.8rem; padding:5px 12px;">Withdrawals</button>
+          <button class="wallet-tab" data-modal-filter="refunds"
+            style="font-size:0.8rem; padding:5px 12px;">Refunds</button>
+        </div>
+        <input type="text" id="modal-tx-search-input" placeholder="Search reference, bank..."
+          style="padding:6px 12px; font-size:0.82rem; border-radius:var(--radius-pill); border:1px solid var(--line); outline:none; background:var(--surface); min-width:170px;">
+      </div>
+
+      <div id="modal-all-tx-container" style="flex:1; overflow-y:auto; padding:12px 22px;">
+        <div style="padding:40px; text-align:center; color:var(--muted);">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== DEPOSIT / ADD FUNDS MODAL ======================== -->
+  <div class="modal-backdrop" id="wallet-deposit-modal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
+    <div
+      style="background:var(--paper); border-radius:var(--radius-md); max-width:440px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h3 style="font-size:1.18rem; margin:0; color:var(--green-900);">Add Funds to Wallet</h3>
+          <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Instant top-up via Paystack (Cards, Bank
+            Transfer, USSD)</div>
+        </div>
+        <button type="button" id="wallet-deposit-close-btn"
+          style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
+      </div>
+
+      <!-- Quick Preset Amount Chips -->
+      <div style="margin-bottom:16px;">
+        <label class="field-label" style="margin-bottom:8px;">Select Quick Amount</label>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;" id="depositQuickChips">
+          <button type="button" class="amount-chip" data-amt="2000">₦2,000</button>
+          <button type="button" class="amount-chip is-selected" data-amt="5000">₦5,000</button>
+          <button type="button" class="amount-chip" data-amt="10000">₦10,000</button>
+          <button type="button" class="amount-chip" data-amt="25000">₦25,000</button>
+          <button type="button" class="amount-chip" data-amt="50000">₦50,000</button>
+          <button type="button" class="amount-chip" data-amt="100000">₦100,000</button>
         </div>
       </div>
-      <button type="button" id="wallet-appeal-close-btn" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94A3B8; padding:4px; line-height:1;">✕</button>
-    </div>
 
-    <!-- Frozen explanation box -->
-    <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; padding:14px 16px; margin-bottom:18px;">
-      <div style="font-size:0.86rem; color:#991B1B; line-height:1.5;">
-        <strong>Your wallet is locked for security</strong> due to 3 consecutive incorrect Transaction PIN attempts. To restore withdrawals and funding, please submit an unfreeze appeal below. Our security team reviews all requests promptly.
-      </div>
-    </div>
+      <form id="wallet-deposit-form">
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label" for="deposit-amount">Custom Amount (NGN)</label>
+          <input class="text-input mono" type="number" id="deposit-amount" min="500" max="2000000" step="any"
+            value="5000" placeholder="e.g. 5000" required style="font-size:1.05rem; font-weight:600;">
+          <div style="font-size:0.75rem; color:var(--muted); margin-top:4px;">Minimum deposit is ₦500.</div>
+        </div>
 
-    <!-- Account Details Pill -->
-    <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 16px; margin-bottom:18px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem; margin-bottom:6px;">
-        <span style="color:#64748B;">Registered Account:</span>
-        <strong id="appeal-account-email" style="color:#0F172A; font-family:var(--font-mono, monospace);">Loading...</strong>
-      </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.82rem;">
-        <span style="color:#64748B;">Account Status:</span>
-        <span style="display:inline-flex; align-items:center; gap:5px; font-weight:700; color:#DC2626; font-size:0.76rem; background:#FEE2E2; padding:3px 8px; border-radius:6px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>
-          FROZEN
-        </span>
-      </div>
-    </div>
+        <!-- Live Deposit Fee Breakdown -->
+        <div
+          style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:16px;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
+            <span>Net Credited to Wallet:</span>
+            <span class="mono" id="deposit-net-display">₦5,000</span>
+          </div>
+          <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
+            Taska does not collect funding charges. Extra payment gateway / bank charges may apply on the checkout
+            screen.
+          </div>
+        </div>
 
-    <!-- Appeal Message Template Preview -->
-    <div style="margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-        <label style="font-size:0.82rem; font-weight:600; color:#475569;">Appeal Message</label>
-        <button type="button" id="btn-copy-appeal-msg" style="background:none; border:none; color:#0284C7; font-size:0.78rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:2px;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          <span id="copy-msg-text">Copy message</span>
+        <div
+          style="background:var(--surface-2); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px; margin-bottom:20px; display:flex; align-items:center; gap:10px; font-size:0.8rem; color:var(--ink-soft);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" style="color:var(--green-700); flex-shrink:0;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>Secured 256-bit encrypted checkout handled by <strong>Paystack</strong>.</span>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="deposit-submit-btn"
+          style="width:100%; padding:12px; font-size:0.95rem; font-weight:600;">
+          Proceed to Paystack
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================== WITHDRAWAL MODAL ======================== -->
+  <div class="modal-backdrop" id="wallet-withdraw-modal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(2px); overflow-y:auto;">
+    <div
+      style="background:var(--paper); border-radius:var(--radius-md); max-width:460px; width:100%; max-height:88vh; overflow-y:auto; padding:26px; border:1px solid var(--line); box-shadow:0 12px 36px rgba(0,0,0,0.22); position:relative; box-sizing:border-box;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+        <div>
+          <h3 style="font-size:1.15rem; margin:0; color:var(--green-900);">Withdraw Funds to Bank</h3>
+          <div style="font-size:0.8rem; color:var(--muted); margin-top:2px;">Payouts settle within 5–15 minutes directly
+            to your bank account</div>
+        </div>
+        <button type="button" id="wallet-withdraw-close-btn"
+          style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--muted); padding:4px;">✕</button>
+      </div>
+
+      <!-- Available Balance Callout -->
+      <div
+        style="background:var(--mint-050); border:1px solid var(--mint-150); border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:0.75rem; color:var(--green-700); font-weight:600; text-transform:uppercase;">Available
+            for Withdrawal</div>
+          <div class="mono" id="withdraw-available-bal"
+            style="font-size:1.15rem; font-weight:700; color:var(--green-900);">₦0</div>
+        </div>
+        <button type="button" id="withdraw-max-btn" class="btn btn-secondary btn-sm"
+          style="font-size:0.75rem; padding:4px 10px; border-radius:12px;">Withdraw All</button>
+      </div>
+
+      <form id="wallet-withdraw-form">
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label" for="withdraw-amount">Amount (NGN)</label>
+          <input class="text-input mono" type="number" id="withdraw-amount" min="1000" step="any"
+            placeholder="e.g. 5000" required style="font-size:1.02rem; font-weight:600;">
+          <div style="font-size:0.74rem; color:var(--muted); margin-top:3px;">Minimum withdrawal is ₦1,000.</div>
+        </div>
+
+        <!-- Live Withdrawal Fee Breakdown -->
+        <div
+          style="background:var(--paper); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;">
+          <div
+            style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:700; color:var(--green-900);">
+            <span>Net Disbursed to Bank:</span>
+            <span class="mono" id="withdraw-net-display">₦0</span>
+          </div>
+          <div style="font-size:0.76rem; color:var(--muted); margin-top:6px; line-height:1.4;">
+            Taska does not collect withdrawal charges. Standard bank transfer settlements apply.
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label" for="withdraw-bank-select">Select Bank</label>
+          <select class="text-input" id="withdraw-bank-select" required style="cursor:pointer;">
+            <option value="" disabled selected>-- Select Destination Bank --</option>
+            <option value="044">Access Bank</option>
+            <option value="058">Guaranty Trust Bank (GTBank)</option>
+            <option value="057">Zenith Bank</option>
+            <option value="011">First Bank of Nigeria</option>
+            <option value="033">United Bank for Africa (UBA)</option>
+            <option value="50211">Kuda Bank</option>
+            <option value="999992">OPay (Paycom)</option>
+            <option value="999991">PalmPay</option>
+            <option value="221">Stanbic IBTC Bank</option>
+            <option value="232">Sterling Bank</option>
+            <option value="070">Fidelity Bank</option>
+            <option value="214">First City Monument Bank (FCMB)</option>
+            <option value="035">Wema Bank (ALAT)</option>
+            <option value="032">Union Bank of Nigeria</option>
+            <option value="076">Polaris Bank</option>
+            <option value="50515">Moniepoint MFB</option>
+            <option value="565">Carbon</option>
+            <option value="566">VFD Microfinance Bank</option>
+          </select>
+        </div>
+
+        <div class="field-group" style="margin-bottom:14px;">
+          <label class="field-label" for="withdraw-account-number">10-Digit Account Number</label>
+          <input class="text-input mono" type="text" id="withdraw-account-number" maxlength="10"
+            placeholder="0123456789" required style="letter-spacing:1px;">
+        </div>
+
+        <!-- Resolved Account Name Display Box -->
+        <div class="verified-account-box" id="withdraw-account-name-box" style="display:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round" style="color:var(--green-700); flex-shrink:0;">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <div style="font-size:0.84rem; color:var(--green-900);">
+            <span style="font-size:0.72rem; color:var(--green-700); display:block; font-weight:600;">VERIFIED ACCOUNT
+              HOLDER</span>
+            <strong id="withdraw-resolved-name">ACCOUNT NAME</strong>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="withdraw-submit-btn"
+          style="width:100%; padding:12px; font-size:0.95rem; font-weight:600;">
+          Confirm &amp; Request Payout
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================== WALLET APPEAL / CONTACT SUPPORT MODAL ======================== -->
+  <div class="modal-backdrop" id="wallet-appeal-modal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:999999; align-items:center; justify-content:center; padding:20px; backdrop-filter: blur(4px); overflow-y:auto;">
+    <div
+      style="background:var(--paper, #FFFFFF); border-radius:18px; max-width:500px; width:100%; max-height:92vh; overflow-y:auto; padding:22px 24px; border:1px solid var(--line, #E2E8F0); box-shadow:0 20px 50px rgba(0,0,0,0.3); position:relative; box-sizing:border-box;">
+
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div
+            style="width:40px; height:40px; border-radius:12px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+          </div>
+          <div>
+            <h3 style="font-size:1.15rem; margin:0; color:#1E293B; font-weight:700;">Wallet Unfreeze Appeal</h3>
+            <div style="font-size:0.78rem; color:#64748B; margin-top:2px;">Taska Trust &amp; Security Desk</div>
+          </div>
+        </div>
+        <button type="button" id="wallet-appeal-close-btn"
+          style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94A3B8; padding:4px; line-height:1;">✕</button>
+      </div>
+
+      <!-- Frozen explanation box -->
+      <div
+        style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+        <div style="font-size:0.83rem; color:#991B1B; line-height:1.45;">
+          <strong>Your wallet is locked for security</strong> due to 3 consecutive incorrect Transaction PIN attempts.
+          To restore withdrawals and funding, please submit an unfreeze appeal below. Our security team reviews all
+          requests promptly.
+        </div>
+      </div>
+
+      <!-- Account Details Pill -->
+      <div
+        style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; margin-bottom:4px;">
+          <span style="color:#64748B;">Registered Account:</span>
+          <strong id="appeal-account-email"
+            style="color:#0F172A; font-family:var(--font-mono, monospace);">Loading...</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem;">
+          <span style="color:#64748B;">Account Status:</span>
+          <span
+            style="display:inline-flex; align-items:center; gap:5px; font-weight:700; color:#DC2626; font-size:0.74rem; background:#FEE2E2; padding:2px 7px; border-radius:6px;">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+              stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;">
+              <line x1="12" y1="2" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+              <line x1="19.07" y1="4.93" x2="4.93" y2="19.07" />
+            </svg>
+            FROZEN
+          </span>
+        </div>
+      </div>
+
+      <!-- Appeal Message Template Preview -->
+      <div style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+          <label style="font-size:0.8rem; font-weight:600; color:#475569;">Appeal Message</label>
+          <button type="button" id="btn-copy-appeal-msg"
+            style="background:none; border:none; color:#0284C7; font-size:0.76rem; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:4px; padding:2px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            <span id="copy-msg-text">Copy message</span>
+          </button>
+        </div>
+        <textarea id="appeal-message-text" rows="3"
+          style="width:100%; box-sizing:border-box; padding:10px; font-size:0.81rem; line-height:1.4; border:1px solid #CBD5E1; border-radius:8px; background:#FFFFFF; color:#334155; font-family:inherit; resize:none;"
+          readonly></textarea>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <!-- Primary: Send Email Appeal -->
+        <a id="btn-appeal-send-mailto" href="#" class="btn btn-primary btn-send-mailto"
+          style="justify-content:center; padding:11px; font-size:0.9rem; font-weight:600; background:#DC2626; border-color:#DC2626; color:#FFF; display:flex; align-items:center; gap:8px; text-decoration:none; border-radius:10px; box-shadow:0 4px 12px rgba(220,38,38,0.3); cursor:pointer;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+          Send Email Appeal
+        </a>
+
+        <!-- Secondary: Copy Email Button -->
+        <button type="button" id="btn-copy-support-email" class="btn btn-secondary"
+          style="justify-content:center; padding:9px; font-size:0.82rem; font-weight:500; display:flex; align-items:center; gap:8px; border-radius:10px; border:1px dashed #CBD5E1; background:#FFFFFF; color:#475569;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span id="copy-email-btn-text">Copy Support Email (support@taska.com.ng)</span>
         </button>
       </div>
-      <textarea id="appeal-message-text" rows="4" style="width:100%; box-sizing:border-box; padding:12px; font-size:0.84rem; line-height:1.45; border:1px solid #CBD5E1; border-radius:10px; background:#FFFFFF; color:#334155; font-family:inherit; resize:none;" readonly></textarea>
+
     </div>
-
-    <!-- Action Buttons -->
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      <!-- Primary: Send Email Appeal -->
-      <a id="btn-appeal-send-mailto" href="#" class="btn btn-primary btn-send-mailto" style="justify-content:center; padding:12px; font-size:0.92rem; font-weight:600; background:#DC2626; border-color:#DC2626; color:#FFF; display:flex; align-items:center; gap:8px; text-decoration:none; border-radius:10px; box-shadow:0 4px 12px rgba(220,38,38,0.3); cursor:pointer;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        Send Email Appeal
-      </a>
-
-      <!-- Secondary: Copy Email Button -->
-      <button type="button" id="btn-copy-support-email" class="btn btn-secondary" style="justify-content:center; padding:10px; font-size:0.84rem; font-weight:500; display:flex; align-items:center; gap:8px; border-radius:10px; border:1px dashed #CBD5E1; background:#FFFFFF; color:#475569;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        <span id="copy-email-btn-text">Copy Support Email (support@taska.com.ng)</span>
-      </button>
-    </div>
-
   </div>
-</div>
 
-<!-- Paystack Inline Popup SDK -->
-<script src="https://js.paystack.co/v1/inline.js"></script>
+  <!-- Paystack Inline Popup SDK -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
 
-<!-- Supabase JS SDK -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/supabase-client.js?v=16"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-client.js?v=16"></script>
 
-<!-- Clerk JS -->
-<script
-  crossorigin="anonymous"
-  data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
-  src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
-  type="text/javascript">
-</script>
-<script src="/js/sidebar-component.js?v=29"></script>
-<script src="/js/auth-guard.js?v=30"></script>
-<script src="/js/wallet.js?v=22"></script>
+  <!-- Clerk JS -->
+  <script crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+    src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+    type="text/javascript">
+    </script>
+  <script src="/js/sidebar-component.js?v=29"></script>
+  <script src="/js/auth-guard.js?v=30"></script>
+  <script src="/js/wallet.js?v=22"></script>
 
 </body>
+
 </html>

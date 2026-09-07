@@ -615,7 +615,7 @@ window.checkProfileCompletionPrompt = function (profile) {
   if (sessionStorage.getItem('taska_profile_prompt_dismissed')) return;
 
   const hasDob = Boolean(profile.dateOfBirth);
-  const hasGender = Boolean(profile.gender && profile.gender !== 'OTHER' && profile.gender !== '');
+  const hasGender = Boolean(profile.gender && profile.gender !== '');
   const isKyc = Boolean(profile.isVerified || profile.kycStatus === 'VERIFIED');
 
   // If everything is already complete, do not show
@@ -2498,6 +2498,8 @@ document.addEventListener('click', (e) => {
     e.preventDefault();
     if (typeof window.openWalletAppealModal === 'function') {
       window.openWalletAppealModal();
+    } else if (typeof window.showWalletFrozenAppealModal === 'function') {
+      window.showWalletFrozenAppealModal();
     }
   }
 });

@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeTaskType = 'physical';
   let activeBudgetType = 'fixed';
   let activeDraftId = null;
+  let isEditingExistingTask = false;
+  let editingTaskId = null;
+  let existingProofUrls = [];
   let currentStep = 1;
   const totalSteps = 5;
 
@@ -413,19 +416,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     removeBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       selectedMediaFile = null;
+      existingProofUrls = [];
       if (mediaInput) mediaInput.value = '';
       if (previewWrap) previewWrap.style.display = 'none';
     });
   }
 
-  // ── DRAFT RECOVERY & INITIALIZATION ──────────────────────────────────────────
+  // ── DRAFT & TASK RECOVERY / INITIALIZATION ────────────────────────────────────
   const urlParams = new URLSearchParams(window.location.search);
   const paramDraftId = urlParams.get('draftId');
+  const paramTaskId = urlParams.get('taskId') || urlParams.get('editId') || urlParams.get('id');
 
   async function loadDraftData() {
     let draftData = null;
 
-    if (paramDraftId && window.supabaseClient) {
+    if (paramTaskId && window.supabaseClient) {
+      try {
+        const { data, error } = await window.supabaseClient
+          .from('Task')
+          .select('*')
+          .eq('id', paramTaskId)
+          .maybeSingle();
+
+        if (data) {
+          if (data.status === 'DRAFT') {
+            draftData = data;
+            activeDraftId = data.id;
+          } else {
+            isEditingExistingTask = true;
+            editingTaskId = data.id;
+            draftData = data;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load DB task for editing:', err);
+      }
+    } else if (paramDraftId && window.supabaseClient) {
       try {
         const { data, error } = await window.supabaseClient
           .from('Task')
@@ -442,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    if (!draftData) {
+    if (!draftData && !paramTaskId) {
       try {
         const rawLocal = localStorage.getItem('taska_post_task_draft');
         if (rawLocal) draftData = JSON.parse(rawLocal);
@@ -451,7 +477,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (draftData) {
       populateFormFromDraft(draftData);
-      if (draftBanner) draftBanner.style.display = 'flex';
+      
+      if (isEditingExistingTask) {
+        if (draftBanner) {
+          draftBanner.style.background = '#ECFDF5';
+          draftBanner.style.borderColor = '#A7F3D0';
+          const safeTitle = window.escapeHtml ? window.escapeHtml(draftData.title || 'Task') : (draftData.title || 'Task');
+          draftBanner.innerHTML = `
+            <div style="font-size: 0.88rem; color: var(--green-900);">
+              <strong>Editing Task:</strong> You are modifying "<strong>${safeTitle}</strong>".
+            </div>
+            <a href="/my-posted-tasks" style="font-size: 0.82rem; color: var(--green-700); text-decoration: none; font-weight: 600;">Cancel & Return</a>
+          `;
+          draftBanner.style.display = 'flex';
+        }
+        const headerTitle = document.querySelector('.app-header h1');
+        const headerSub = document.querySelector('.app-header .sub');
+        if (headerTitle) headerTitle.textContent = 'Edit task';
+        if (headerSub) headerSub.textContent = 'Update your task details, requirements, budget, or criteria.';
+        const submitBtn = document.getElementById('post-submit-btn');
+        if (submitBtn) submitBtn.textContent = 'Save & Update Task 🚀';
+      } else if (draftBanner) {
+        draftBanner.style.display = 'flex';
+      }
     }
   }
 
@@ -512,6 +560,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (locWrap) locWrap.style.display = 'none';
         if (remWrap) remWrap.style.display = 'block';
         if (sumType) sumType.textContent = 'Remote';
+      }
+    }
+    if (data.proofUrls && Array.isArray(data.proofUrls) && data.proofUrls.length > 0) {
+      existingProofUrls = data.proofUrls;
+      if (previewWrap && filenameEl) {
+        filenameEl.textContent = 'Existing Attachment Attached';
+        previewWrap.style.display = 'flex';
       }
     }
     if (Array.isArray(data.tags)) {
@@ -713,6 +768,42 @@ document.addEventListener('DOMContentLoaded', async () => {
       };
 
       try {
+        if (isEditingExistingTask && editingTaskId && window.supabaseClient) {
+          const updatePayload = {
+            title,
+            category,
+            description: description,
+            taskType: activeTaskType.toUpperCase() === 'REMOTE' ? 'REMOTE' : 'PHYSICAL',
+            location: locationString,
+            deadline: taskDate ? new Date(taskDate).toISOString() : null,
+            preferredTime: taskTime || 'Flexible',
+            budgetType: activeBudgetType.toUpperCase() === 'OPEN' ? 'OPEN_BID' : 'FIXED',
+            budget: budget ? parseFloat(budget) : null,
+            allowPriceProposals: allowPriceProposals,
+            allowDirectMessages: allowDirectMessages,
+            criteriaKycOnly: criteriaKycOnly,
+            criteriaGender: criteriaGender,
+            criteriaMinAge: criteriaMinAge,
+            criteriaMaxAge: criteriaMaxAge,
+            criteriaLocation: criteriaLocation,
+            tags: currentTaskTags,
+            proofUrls: imageUrl ? [imageUrl] : (existingProofUrls.length > 0 ? existingProofUrls : []),
+            updatedAt: new Date().toISOString()
+          };
+
+          const { error } = await window.supabaseClient
+            .from('Task')
+            .update(updatePayload)
+            .eq('id', editingTaskId);
+
+          if (error) throw error;
+
+          localStorage.removeItem('taska_post_task_draft');
+          if (window.showToast) window.showToast('Task updated successfully!');
+          window.location.href = '/my-posted-tasks';
+          return;
+        }
+
         if (activeDraftId && window.supabaseClient) {
           const { error } = await window.supabaseClient
             .from('Task')
