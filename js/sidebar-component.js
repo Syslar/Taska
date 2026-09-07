@@ -70,6 +70,12 @@
 
     const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
     if (sidebarEl) {
+      if (sidebarEl.dataset.initialized === 'true' && sidebarEl.dataset.role === currentRole) {
+        window.updateSidebarActiveState();
+        return;
+      }
+      sidebarEl.dataset.initialized = 'true';
+      sidebarEl.dataset.role = currentRole;
 
       sidebarEl.innerHTML = `
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; padding:2px 4px 0;">
@@ -291,6 +297,54 @@
     }
   };
 
+  // Dedicated method to update active tabs across desktop sidebar and mobile nav without re-rendering DOM
+  window.updateSidebarActiveState = function(customPath) {
+    const path = (customPath || window.location.pathname).toLowerCase();
+    const hash = window.location.hash.replace('#', '') || '';
+
+    const inSettings = path.includes('/settings');
+    const inChats    = path.includes('/chats');
+    const inWallet   = path.includes('/wallet');
+
+    let activeTab = 'dashboard';
+    if (inSettings) activeTab = 'settings';
+    else if (inChats) activeTab = 'messages';
+    else if (inWallet) activeTab = 'wallet';
+    else if (path.includes('/profile')) activeTab = 'profile';
+    else if (path.includes('/browse-tasks') || path.includes('browsetasks')) activeTab = 'browse';
+    else if (path.includes('/post-task') || path.includes('posttask')) activeTab = 'post';
+    else if (path.includes('/my-posted-tasks') || path.includes('/my-applications') || path.includes('mypostedtasks') || path.includes('myapplications')) activeTab = 'my-tasks';
+    else if (hash) activeTab = hash;
+
+    // Update Desktop sidebar links
+    document.querySelectorAll('.sidebar-nav .sidebar-link[data-tab]').forEach(link => {
+      if (link.dataset.tab === activeTab) {
+        link.classList.add('is-active');
+      } else {
+        link.classList.remove('is-active');
+      }
+    });
+
+    // Update Mobile bottom tab-bar
+    document.querySelectorAll('.tab-bar .tab-item[data-tab]').forEach(item => {
+      if (item.dataset.tab === activeTab) {
+        item.classList.add('is-active');
+      } else {
+        item.classList.remove('is-active');
+      }
+    });
+
+    // Close mobile drawer if open
+    const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
+    if (sidebarEl && sidebarEl.classList.contains('is-open')) {
+      sidebarEl.classList.remove('is-open');
+    }
+
+    // Close switcher dropdown
+    const switcherMenu = document.getElementById('sidebar-switcher-menu');
+    if (switcherMenu) switcherMenu.style.display = 'none';
+  };
+
   function bindSidebarEvents(profileLink) {
     const sidebarEl = document.getElementById('sidebar') || document.querySelector('aside.sidebar');
     const hamburgerBtn = document.getElementById('mobile-hamburger-btn');
@@ -388,6 +442,7 @@
           if (window.promptAddPhoneNumberModal) {
             window.promptAddPhoneNumberModal(() => {
               if (window.switchTaskaRole) window.switchTaskaRole('TASKER');
+              else if (window.taskaNavigate) window.taskaNavigate('/tasker/dashboard');
               else window.location.href = '/tasker/dashboard';
             });
           } else if (window.showToast) {
@@ -461,13 +516,17 @@
     // Navigation links in dropdown
     const goToProfile = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (switcherMenu) switcherMenu.style.display = 'none';
       const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
+      let target;
       if (p && p.id) {
         const uParam = p.username ? `u=${encodeURIComponent(p.username)}` : `id=${p.id}`;
-        window.location.href = profileLink.includes('?') ? `${profileLink}&${uParam}` : `${profileLink}?${uParam}`;
+        target = profileLink.includes('?') ? `${profileLink}&${uParam}` : `${profileLink}?${uParam}`;
       } else {
-        window.location.href = profileLink;
+        target = profileLink;
       }
+      if (window.taskaNavigate) window.taskaNavigate(target);
+      else window.location.href = target;
     };
 
     const dropdownProfileBtn = document.getElementById('dropdown-profile-btn');
@@ -480,7 +539,9 @@
     if (dropdownSettingsBtn) {
       dropdownSettingsBtn.onclick = (e) => {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        window.location.href = '/settings';
+        if (switcherMenu) switcherMenu.style.display = 'none';
+        if (window.taskaNavigate) window.taskaNavigate('/settings');
+        else window.location.href = '/settings';
       };
     }
 
@@ -968,17 +1029,34 @@
     listEl.innerHTML = html;
 
     listEl.querySelectorAll('.taska-notif-item').forEach(item => {
-      item.onclick = async () => {
+      item.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
         const id = item.getAttribute('data-id');
         const link = item.getAttribute('data-link');
-        if (id && window.supabaseClient) {
-          try {
-            await window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id);
-            window.fetchTaskaNotifications();
-          } catch (_) {}
+
+        // Immediately close the drawer with instant feedback
+        const drawer = document.getElementById('taska-notification-drawer');
+        if (drawer) {
+          drawer.style.opacity = '0';
+          setTimeout(() => { if (drawer.parentNode) drawer.remove(); }, 150);
         }
+
+        // Mark as read asynchronously in background
+        if (id && window.supabaseClient) {
+          window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id)
+            .then(() => { if (window.fetchTaskaNotifications) window.fetchTaskaNotifications(); })
+            .catch(() => {});
+        }
+
         if (link) {
-          window.location.href = normalizeNotificationUrl(link);
+          const targetUrl = normalizeNotificationUrl(link);
+          if (typeof window.taskaNavigate === 'function') {
+            window.taskaNavigate(targetUrl);
+          } else {
+            window.location.href = targetUrl;
+          }
         }
       };
     });
@@ -1302,18 +1380,37 @@
 
       // Wire click on notification body to mark read & navigate
       bodyEl.querySelectorAll('.notif-body-click').forEach(bodyDiv => {
-        bodyDiv.onclick = async () => {
+        bodyDiv.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
           const row = bodyDiv.closest('.taska-modal-notif-row');
-          const id = row.getAttribute('data-id');
-          const link = row.getAttribute('data-link');
-          if (id && window.supabaseClient) {
-            try {
-              await window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id);
-              window.fetchTaskaNotifications();
-            } catch (_) {}
+          const id = row ? row.getAttribute('data-id') : null;
+          const link = row ? row.getAttribute('data-link') : null;
+
+          // Immediately close modal and drawer
+          const modal = document.getElementById('taska-all-notifications-modal');
+          if (modal) modal.style.display = 'none';
+          const drawer = document.getElementById('taska-notification-drawer');
+          if (drawer) {
+            drawer.style.opacity = '0';
+            setTimeout(() => { if (drawer.parentNode) drawer.remove(); }, 150);
           }
+
+          // Mark as read asynchronously in background
+          if (id && window.supabaseClient) {
+            window.supabaseClient.from('Notification').update({ isRead: true }).eq('id', id)
+              .then(() => { if (window.fetchTaskaNotifications) window.fetchTaskaNotifications(); })
+              .catch(() => {});
+          }
+
           if (link) {
-            window.location.href = normalizeNotificationUrl(link);
+            const targetUrl = normalizeNotificationUrl(link);
+            if (typeof window.taskaNavigate === 'function') {
+              window.taskaNavigate(targetUrl);
+            } else {
+              window.location.href = targetUrl;
+            }
           }
         };
       });

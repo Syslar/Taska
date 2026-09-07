@@ -316,6 +316,21 @@ window.renderSettingsPage = async function () {
     }
   }
 
+  const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || 'User Profile';
+  const username = profile.username ? `@${profile.username}` : (profile.firstName ? `@${profile.firstName.toLowerCase()}` : '@user');
+  const checkIcon = window.TaskaIcons?.verified || `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
+
+  if (nameEl) nameEl.textContent = fullName;
+  if (usernameEl) usernameEl.textContent = username;
+  if (emailEl) emailEl.textContent = profile.email || window.Clerk?.user?.primaryEmailAddress?.emailAddress || '—';
+  if (phoneValEl) phoneValEl.textContent = profile.phone || '—';
+  if (verifiedEl) {
+    verifiedEl.innerHTML = isVer
+      ? `${checkIcon} Verified`
+      : `<span style="color:var(--muted); font-weight:normal;">Unverified</span>`;
+  }
+
   if (roleEl) {
     roleEl.textContent = isTasker ? 'Tasker' : 'Task Poster';
     roleEl.className = `badge ${isTasker ? 'profile-role-badge--tasker' : 'profile-role-badge--poster'}`;

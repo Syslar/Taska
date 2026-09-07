@@ -240,7 +240,11 @@ window.switchTaskaRole = async function (newRole, options = {}) {
 
   // Redirect to respective system dashboard
   const targetUrl = targetRole === 'TASKER' ? '/tasker/dashboard' : '/poster/dashboard';
-  window.location.href = targetUrl;
+  if (window.taskaNavigate) {
+    window.taskaNavigate(targetUrl);
+  } else {
+    window.location.href = targetUrl;
+  }
 };
 
 window.ensureTaskaProfile = async function () {
@@ -346,6 +350,7 @@ function populateSidebar(profile) {
     profVerified.innerHTML = isVer ? `<span style="color:var(--green-700);">${checkIcon} Verified</span>` : 'Standard Member';
   }
 }
+window.populateSidebar = populateSidebar;
 
 // Fetch or JIT auto-provision user profile directly from Supabase
 async function syncSupabaseProfile(clerkUser) {
