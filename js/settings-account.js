@@ -262,7 +262,7 @@
             const changeContainer = document.getElementById('settingsPinChangeContainer');
             if (frozenNotice) frozenNotice.style.display = 'block';
             if (changeContainer) changeContainer.style.display = 'none';
-            showAlert('Wallet frozen due to 3 incorrect attempts. Please contact support@taska.com.ng to appeal.');
+            showAlert('Wallet frozen due to 5 incorrect attempts. Please contact support@taska.com.ng to appeal.');
             return;
           }
 
@@ -314,6 +314,7 @@
       });
     }
   }
+
 
   // Listen for custom event if user sets PIN through the global setup modal while on this page
   window.addEventListener('taska:pin_created', () => {

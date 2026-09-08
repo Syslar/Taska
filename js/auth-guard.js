@@ -823,7 +823,7 @@ window.promptTransactionPinSetupModal = function (profile) {
 
       <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #F1F5F9; display: flex; align-items: center; justify-content: center; gap: 6px; color: #94A3B8; font-size: 0.76rem; font-weight: 500;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>Protected with bcrypt hashing &bull; Freezes after 3 failed attempts</span>
+        <span>Protected with bcrypt hashing &bull; Freezes after 5 failed attempts</span>
       </div>
 
     </div>
@@ -1062,7 +1062,7 @@ window.promptTransactionPin = function ({
 
         <div id="pinFrozenSection" style="display: none; padding: 14px 16px; background: #FEF2F2; border: 1.5px solid #F87171; color: #991B1B; font-size: 0.84rem; border-radius: 12px; margin-bottom: 16px; text-align: center;">
           <div style="font-weight: 700; margin-bottom: 4px;">Wallet Frozen</div>
-          <div style="line-height: 1.45; margin-bottom: 12px;">Your wallet has been frozen due to 3 incorrect attempts. To restore access, you must contact support to submit an appeal.</div>
+          <div style="line-height: 1.45; margin-bottom: 12px;">Your wallet has been frozen due to 5 incorrect attempts. To restore access, you must contact support to submit an appeal.</div>
           <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20due%20to%20failed%20PIN%20attempts.%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" style="display: inline-block; background: #DC2626; color: #FFF; text-decoration: none; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 0.82rem;">Contact Support to Appeal &rarr;</a>
         </div>
 
@@ -2043,7 +2043,7 @@ window.openForgotPinModal = function(options = {}) {
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
               <h3 style="font-size:1.15rem; color:#991B1B; font-weight:700; margin:0 0 6px 0;">Wallet is Frozen</h3>
-              <p style="font-size:0.82rem; color:#64748B; margin:0 0 18px 0; line-height:1.45;">${data.error || 'Your wallet has been frozen due to 3 incorrect attempts. You cannot reset your PIN. Please contact support to submit an appeal.'}</p>
+              <p style="font-size:0.82rem; color:#64748B; margin:0 0 18px 0; line-height:1.45;">${data.error || 'Your wallet has been frozen due to 5 incorrect attempts. You cannot reset your PIN. Please contact support to submit an appeal.'}</p>
               <div style="display:flex; gap:10px; justify-content:center;">
                 <button type="button" id="btnErrClose" style="padding:8px 16px; background:#F1F5F9; color:#475569; font-size:0.84rem; font-weight:600; border-radius:8px; border:none; cursor:pointer;">Close</button>
                 <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20due%20to%20failed%20PIN%20attempts.%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" style="padding:8px 16px; background:#DC2626; color:#FFF; font-size:0.84rem; font-weight:600; border-radius:8px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">Contact Support to Appeal &rarr;</a>
@@ -2645,7 +2645,7 @@ window.openWalletAppealModal = function(opts = {}) {
   const subject = encodeURIComponent('Wallet Unfreeze Appeal');
   const bodyText = `Hello Taska Support Team,
 
-My wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts.
+My wallet has been automatically frozen due to 5 consecutive incorrect Transaction PIN attempts.
 I would like to request an unfreeze review and identity verification to restore access to my account.
 
 Account Details:
@@ -2671,7 +2671,7 @@ Thank you.`;
       </div>
 
       <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:12px; padding:12px 14px; margin-bottom:16px; font-size:0.84rem; color:#991B1B; line-height:1.45;">
-        <strong>Your wallet is locked for security</strong> due to 3 consecutive incorrect Transaction PIN attempts. Please submit your appeal to our security desk below.
+        <strong>Your wallet is locked for security</strong> due to 5 consecutive incorrect Transaction PIN attempts. Please submit your appeal to our security desk below.
       </div>
 
       <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:12px 14px; margin-bottom:16px;">

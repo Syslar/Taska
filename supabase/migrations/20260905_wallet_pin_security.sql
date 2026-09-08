@@ -108,12 +108,12 @@ BEGIN
 
   IF p_raw_pin !~ '^[0-9]{4}$' THEN
     v_attempts := v_sec.failed_pin_attempts + 1;
-    IF v_attempts >= 3 THEN
+    IF v_attempts >= 5 THEN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       UPDATE "Wallet" SET is_frozen = TRUE, wallet_status = 'frozen', "updatedAt" = now() WHERE id = v_wallet.id;
       RETURN jsonb_build_object(
         'status', 'WALLET_FROZEN',
-        'message', 'Wallet has been frozen due to 3 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+        'message', 'Wallet has been frozen due to 5 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
         'attempts_remaining', 0,
         'is_frozen', true
       );
@@ -121,8 +121,8 @@ BEGIN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       RETURN jsonb_build_object(
         'status', 'WRONG_PIN',
-        'message', 'Incorrect PIN. ' || (3 - v_attempts) || ' attempt(s) remaining.',
-        'attempts_remaining', (3 - v_attempts),
+        'message', 'Incorrect PIN. ' || (5 - v_attempts) || ' attempt(s) remaining.',
+        'attempts_remaining', (5 - v_attempts),
         'is_frozen', false
       );
     END IF;
@@ -135,12 +135,12 @@ BEGIN
   ELSE
     -- Incorrect PIN
     v_attempts := v_sec.failed_pin_attempts + 1;
-    IF v_attempts >= 3 THEN
+    IF v_attempts >= 5 THEN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       UPDATE "Wallet" SET is_frozen = TRUE, wallet_status = 'frozen', "updatedAt" = now() WHERE id = v_wallet.id;
       RETURN jsonb_build_object(
         'status', 'WALLET_FROZEN',
-        'message', 'Wallet has been frozen due to 3 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+        'message', 'Wallet has been frozen due to 5 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
         'attempts_remaining', 0,
         'is_frozen', true
       );
@@ -148,8 +148,8 @@ BEGIN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       RETURN jsonb_build_object(
         'status', 'WRONG_PIN',
-        'message', 'Incorrect PIN. ' || (3 - v_attempts) || ' attempt(s) remaining.',
-        'attempts_remaining', (3 - v_attempts),
+        'message', 'Incorrect PIN. ' || (5 - v_attempts) || ' attempt(s) remaining.',
+        'attempts_remaining', (5 - v_attempts),
         'is_frozen', false
       );
     END IF;
@@ -196,12 +196,12 @@ BEGIN
   -- Verify current PIN
   IF v_sec.pin_hash != crypt(p_current_raw_pin, v_sec.pin_hash) THEN
     v_attempts := v_sec.failed_pin_attempts + 1;
-    IF v_attempts >= 3 THEN
+    IF v_attempts >= 5 THEN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       UPDATE "Wallet" SET is_frozen = TRUE, wallet_status = 'frozen', "updatedAt" = now() WHERE id = v_wallet.id;
       RETURN jsonb_build_object(
         'status', 'WALLET_FROZEN',
-        'message', 'Wallet has been frozen due to 3 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+        'message', 'Wallet has been frozen due to 5 consecutive incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
         'attempts_remaining', 0,
         'is_frozen', true
       );
@@ -209,8 +209,8 @@ BEGIN
       UPDATE "wallet_security" SET failed_pin_attempts = v_attempts, updated_at = now() WHERE id = v_sec.id;
       RETURN jsonb_build_object(
         'status', 'WRONG_PIN',
-        'message', 'Current PIN is incorrect. ' || (3 - v_attempts) || ' attempt(s) remaining.',
-        'attempts_remaining', (3 - v_attempts),
+        'message', 'Current PIN is incorrect. ' || (5 - v_attempts) || ' attempt(s) remaining.',
+        'attempts_remaining', (5 - v_attempts),
         'is_frozen', false
       );
     END IF;

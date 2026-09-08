@@ -43,7 +43,7 @@
     <div class="app-header">
       <div>
         <h1>Account & Security</h1>
-        <p class="sub">Manage password, sign out of active sessions, or delete account.</p>
+        <p class="sub">Manage your transaction PIN, sign out of active sessions, or delete account.</p>
       </div>
     </div>
 
@@ -57,11 +57,7 @@
     <div class="account-settings-container">
       <!-- Sidebar Tabs -->
       <div class="account-sidebar-tabs">
-        <button type="button" class="account-tab-btn is-active" data-target="tab-password">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          Password
-        </button>
-        <button type="button" class="account-tab-btn" data-target="tab-pin">
+        <button type="button" class="account-tab-btn is-active" data-target="tab-pin">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           Transaction PIN
         </button>
@@ -78,21 +74,8 @@
       <!-- Tab Contents -->
       <div class="account-settings-content">
         
-        <!-- PASSWORD TAB -->
-        <div class="tab-pane is-active" id="tab-password">
-          <div class="panel">
-            <h2 style="font-size:1.15rem; margin-bottom:6px; color:var(--green-900);">Password Management</h2>
-            <p style="font-size:0.86rem; color:var(--muted); margin-bottom:18px;">Update your account password to keep your account secure.</p>
-            <div style="background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; padding:30px; text-align:center; color:var(--muted);">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:12px; color:#94A3B8;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              <br/>
-              Password management UI coming soon.
-            </div>
-          </div>
-        </div>
-
         <!-- TRANSACTION PIN TAB -->
-        <div class="tab-pane" id="tab-pin">
+        <div class="tab-pane is-active" id="tab-pin">
           <!-- Transaction PIN & Wallet Security Panel -->
           <div class="panel" style="padding: 18px 22px;">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:12px;">
@@ -125,7 +108,7 @@
                 <div>
                   <div style="font-weight:700; color:#991B1B; font-size:0.9rem; margin-bottom:2px;">Wallet Is Frozen</div>
                   <div style="font-size:0.82rem; color:#7F1D1D; line-height:1.45; margin-bottom:10px;">
-                    Your wallet has been locked due to 3 consecutive failed PIN attempts. Withdrawals and escrow funding are temporarily disabled.
+                    Your wallet has been locked due to 5 consecutive failed PIN attempts. Withdrawals and escrow funding are temporarily disabled.
                   </div>
                   <a href="mailto:support@taska.com.ng?subject=Wallet%20Unfreeze%20Appeal&body=Hello%20Taska%20Security%20Team,%0A%0AMy%20wallet%20has%20been%20frozen%20and%20I%20would%20like%20to%20request%20an%20unfreeze%20review.%0A%0AAccount%20Email:%20" class="btn btn-sm" style="background:#DC2626; color:#FFF; text-decoration:none; display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; padding:6px 12px;">
                     Submit Appeal to Support &rarr;

@@ -875,7 +875,7 @@ function openWalletAppealModal() {
   const subject = encodeURIComponent('Wallet Unfreeze Appeal');
   const bodyText = `Hello Taska Support Team,
 
-My wallet has been automatically frozen due to 3 consecutive incorrect Transaction PIN attempts.
+My wallet has been automatically frozen due to 5 consecutive incorrect Transaction PIN attempts.
 I would like to request an unfreeze review and identity verification to restore access to my account.
 
 Account Details:

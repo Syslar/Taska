@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
         });
 
         return respond({
-          error: data.message || 'Wallet has been frozen due to 3 incorrect attempts. Please contact support@taska.com.ng to submit an appeal.',
+          error: data.message || 'Wallet has been frozen due to 5 incorrect attempts. Please contact support@taska.com.ng to submit an appeal.',
           code: 'WALLET_FROZEN',
           is_frozen: true,
           attempts_remaining: 0,
@@ -309,7 +309,7 @@ Deno.serve(async (req) => {
         });
 
         return respond({
-          error: data.message || 'Wallet has been frozen due to 3 incorrect attempts. Please contact support@taska.com.ng to submit an appeal.',
+          error: data.message || 'Wallet has been frozen due to 5 incorrect attempts. Please contact support@taska.com.ng to submit an appeal.',
           code: 'WALLET_FROZEN',
           is_frozen: true,
           attempts_remaining: 0,
@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
 
       if (wallet?.is_frozen) {
         return respond({
-          error: 'Your wallet has been frozen due to 3 incorrect attempts. You cannot reset your PIN. Please contact support@taska.com.ng to submit an appeal.',
+          error: 'Your wallet has been frozen due to 5 incorrect attempts. You cannot reset your PIN. Please contact support@taska.com.ng to submit an appeal.',
           code: 'WALLET_FROZEN',
           is_frozen: true,
         }, 403);
@@ -397,7 +397,7 @@ Deno.serve(async (req) => {
 
       if (wallet?.is_frozen) {
         return respond({
-          error: 'Your wallet has been frozen due to 3 incorrect attempts. You cannot reset your PIN. Please contact support@taska.com.ng to submit an appeal.',
+          error: 'Your wallet has been frozen due to 5 incorrect attempts. You cannot reset your PIN. Please contact support@taska.com.ng to submit an appeal.',
           code: 'WALLET_FROZEN',
           is_frozen: true,
         }, 403);

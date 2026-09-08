@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
             data: {},
           });
           return respond({
-            error: pinCheck.message || 'Wallet has been frozen due to 3 incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
+            error: pinCheck.message || 'Wallet has been frozen due to 5 incorrect PIN attempts. Contact support@taska.com.ng to appeal.',
             code: 'WALLET_FROZEN',
             is_frozen: true,
             attempts_remaining: 0,
