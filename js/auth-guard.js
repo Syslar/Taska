@@ -737,8 +737,8 @@ window.checkProfileCompletionPrompt = function (profile) {
 window.checkTransactionPinSetup = async function (profile) {
   if (!profile || !profile.id) return;
   const path = window.location.pathname.toLowerCase();
-  // Do not show on auth/login/signup pages
-  if (path.includes('/login') || path.includes('/signup') || path.includes('/auth/')) return;
+  // Only show on the wallet page
+  if (!path.includes('/wallet')) return;
 
   try {
     const token = window.getTaskaToken ? await window.getTaskaToken() : null;
@@ -2862,3 +2862,10 @@ if (document.readyState === 'loading') {
 } else {
   runAuthGuard();
 }
+
+// Re-check PIN setup on SPA navigation
+window.addEventListener('taska:page-change', () => {
+  if (window.__taskaProfile && typeof window.checkTransactionPinSetup === 'function') {
+    window.checkTransactionPinSetup(window.__taskaProfile);
+  }
+});
