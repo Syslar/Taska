@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pill.className = 'tag-pill';
       const safe = window.escapeHtml ? window.escapeHtml(tag) : tag;
       pill.innerHTML = `#${safe} <button type="button" class="tag-pill-remove" data-idx="${idx}" aria-label="Remove tag">&times;</button>`;
-      
+
       const removeBtn = pill.querySelector('.tag-pill-remove');
       if (removeBtn) {
         removeBtn.addEventListener('click', (e) => {
@@ -393,8 +393,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (file.size > 5 * 1024 * 1024) {
       if (window.showToast) {
         window.showToast('Maximum size for file attachment is 5MB.');
-      } else if (window.showAlertDialog) {
-        window.showAlertDialog({ title: 'File Too Large', message: 'Maximum size for file attachment is 5MB.' });
+      } else if (window.shoAnointedrtDialog) {
+        window.shoAnointedrtDialog({ title: 'File Too Large', message: 'Maximum size for file attachment is 5MB.' });
       }
       if (mediaInput) mediaInput.value = '';
       return;
@@ -466,12 +466,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const rawLocal = localStorage.getItem('taska_post_task_draft');
         if (rawLocal) draftData = JSON.parse(rawLocal);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (draftData) {
       populateFormFromDraft(draftData);
-      
+
       if (isEditingExistingTask) {
         if (draftBanner) {
           draftBanner.style.background = '#ECFDF5';
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           currentTaskTags = parsed.filter(Boolean).map(t => String(t).trim()).slice(0, 3);
           renderTaskTags();
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 

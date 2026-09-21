@@ -317,7 +317,12 @@ window.openTaskModal = async function (taskId) {
   document.getElementById('modal-task-title').textContent = task.title || '';
   document.getElementById('modal-task-category').textContent = task.category || 'General';
   document.getElementById('modal-task-budget').textContent = `₦${(task.budget || 0).toLocaleString()}`;
-  document.getElementById('modal-task-location').textContent = task.location || 'Remote / Anywhere';
+  const locStr = task.location || 'Remote / Anywhere';
+  const isPhysical = !locStr.toLowerCase().includes('remote');
+  document.getElementById('modal-task-location').innerHTML = `
+    ${window.escapeHtml(locStr)}
+    ${isPhysical ? '<div style="margin-top:6px; font-size:0.75rem; color:#B45309; background:#FFFBEB; border:1px solid #FDE68A; padding:6px 8px; border-radius:4px; display:inline-block;"><strong>Note:</strong> Precise house address will be disclosed by the poster in-chat.</div>' : ''}
+  `;
   document.getElementById('modal-task-desc').textContent = cleanText || 'No detailed description provided.';
 
   // Render modal tags
@@ -402,7 +407,7 @@ window.openTaskModal = async function (taskId) {
   if (posterLink) {
     const posterParam = poster?.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster?.id || ''}`;
     posterLink.href = `/poster/profile?${posterParam}`;
-    posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:2px;">${checkIcon} Verified</span>` : ''}`;
+    posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${checkIcon}</span>` : ''}`;
   }
 
   const msgBtn = document.getElementById('modal-message-poster-btn');
@@ -564,8 +569,8 @@ async function submitApplication(taskId, defaultBudget) {
 
     if (!rpcResult || !rpcResult.success) {
       const msg = rpcResult?.message || 'Could not submit application.';
-      if (rpcResult?.error === 'KYC_REQUIRED') {
-        window.showKycRequiredModal(task);
+      if (rpcResult?.error === 'KYC_REQUIRED' || rpcResult?.error === 'KYC_LIMIT_REACHED') {
+        window.showKycRequiredModal(task, rpcResult.error);
       } else {
         if (window.showToast) window.showToast(msg);
       }
@@ -603,7 +608,7 @@ async function submitApplication(taskId, defaultBudget) {
   }
 }
 
-window.showKycRequiredModal = function (task) {
+window.showKycRequiredModal = function (task, errorType = 'KYC_REQUIRED') {
   document.querySelectorAll('.taska-kyc-prompt-backdrop').forEach(d => d.remove());
 
   const backdrop = document.createElement('div');
@@ -616,13 +621,18 @@ window.showKycRequiredModal = function (task) {
 
   const taskTitle = window.escapeHtml ? window.escapeHtml(task?.title || 'this task') : (task?.title || 'this task');
 
+  const modalTitle = errorType === 'KYC_LIMIT_REACHED' ? 'Application Limit Reached' : 'Identity Verification Required';
+  const modalDesc = errorType === 'KYC_LIMIT_REACHED'
+    ? `You have reached the 1-task limit for unverified users. Complete your one-time identity verification using NIN, Voter's Card, or Government ID to unlock unlimited applications.`
+    : `The poster requires a KYC-verified Tasker for <strong>"${taskTitle}"</strong>. Complete your one-time identity verification using NIN, Voter's Card, or Government ID to apply.`;
+
   backdrop.innerHTML = `
     <div style="background: var(--paper, #fff); border: 1px solid var(--line, #e2e8f0); border-radius: 16px; max-width: 440px; width: 100%; padding: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.28); text-align: center; transform: scale(0.94); transition: transform 0.2s ease;">
       <div style="width: 56px; height: 56px; border-radius: 50%; background: #E6F4EA; color: var(--green-700); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
-      <h3 style="font-size: 1.22rem; color: var(--green-900); margin: 0 0 8px 0; font-weight: 700;">Identity Verification Required</h3>
-      <p style="font-size: 0.9rem; color: var(--ink-soft); line-height: 1.55; margin: 0 0 24px 0;">The poster requires a KYC-verified Tasker for <strong>"${taskTitle}"</strong>. Complete your one-time identity verification using NIN, Voter's Card, or Government ID to apply.</p>
+      <h3 style="font-size: 1.22rem; color: var(--green-900); margin: 0 0 8px 0; font-weight: 700;">${modalTitle}</h3>
+      <p style="font-size: 0.9rem; color: var(--ink-soft); line-height: 1.55; margin: 0 0 24px 0;">${modalDesc}</p>
       <div style="display: flex; gap: 12px; justify-content: center;">
         <button type="button" class="btn btn-primary btn-kyc-now" style="flex: 1;">Verify Identity Now</button>
         <button type="button" class="btn btn-secondary btn-kyc-cancel" style="flex: 1;">Cancel</button>

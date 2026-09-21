@@ -177,7 +177,7 @@ function renderApplicationsList() {
               <div class="sidebar-user-avatar" style="width:32px; height:32px; font-size:0.8rem;">${posterAvatar}</div>
               <div>
                 <div style="font-weight:600; font-size:0.88rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
-                  Posted by ${safePosterName} ${poster.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center;">${checkIcon}</span>` : ''}
+                  Posted by ${safePosterName} ${poster.isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${checkIcon}</span>` : ''}
                 </div>
                 <div style="font-size:0.75rem; color:var(--muted);">${task.location || 'Remote / Anywhere'}</div>
               </div>

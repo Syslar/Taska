@@ -71,7 +71,7 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   }
 
   if (verifiedBadge) {
-    verifiedBadge.style.display = (profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED') ? 'flex' : 'none';
+    verifiedBadge.style.display = (profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED') ? 'inline-flex' : 'none';
   }
 
   if (nameEl) nameEl.textContent = rawFullName;

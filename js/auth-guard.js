@@ -27,7 +27,7 @@
             localStorage.setItem('taska_active_role', 'POSTER');
             parsed.activeRole = 'POSTER';
             localStorage.setItem('taska_cached_profile', JSON.stringify(parsed));
-          } catch (_) {}
+          } catch (_) { }
           window.location.replace('/poster/dashboard');
           return;
         }
@@ -40,7 +40,7 @@
               localStorage.setItem('taska_active_role', 'TASKER');
               parsed.activeRole = 'TASKER';
               localStorage.setItem('taska_cached_profile', JSON.stringify(parsed));
-            } catch (_) {}
+            } catch (_) { }
             window.location.replace('/tasker/dashboard');
             return;
           }
@@ -55,7 +55,7 @@
         }
       }
     }
-  } catch (_) {}
+  } catch (_) { }
 })();
 
 window.getTaskaToken = async function () {
@@ -80,7 +80,7 @@ window.getClerkToken = async function () {
   if (window.Clerk?.session) {
     try {
       return await window.Clerk.session.getToken();
-    } catch (_) {}
+    } catch (_) { }
   }
   return null;
 };
@@ -99,7 +99,7 @@ window.getTaskaRole = function () {
     try {
       const c = localStorage.getItem('taska_cached_profile');
       if (c) profile = JSON.parse(c);
-    } catch (_) {}
+    } catch (_) { }
   }
 
   const ph = profile ? profile.phone : null;
@@ -108,19 +108,19 @@ window.getTaskaRole = function () {
   const isPosterRestricted = Boolean(profile && profile.isPosterRestricted);
 
   let stored = null;
-  try { stored = localStorage.getItem('taska_active_role'); } catch (_) {}
+  try { stored = localStorage.getItem('taska_active_role'); } catch (_) { }
   let role = stored || (profile && profile.activeRole) || (profile && profile.role) || 'POSTER';
   role = role.toUpperCase();
 
   if (role === 'TASKER') {
     if (!hasPhone || isTaskerRestricted) {
       role = 'POSTER';
-      try { localStorage.setItem('taska_active_role', 'POSTER'); } catch (_) {}
+      try { localStorage.setItem('taska_active_role', 'POSTER'); } catch (_) { }
     }
   } else if (role === 'POSTER') {
     if (isPosterRestricted && hasPhone && !isTaskerRestricted) {
       role = 'TASKER';
-      try { localStorage.setItem('taska_active_role', 'TASKER'); } catch (_) {}
+      try { localStorage.setItem('taska_active_role', 'TASKER'); } catch (_) { }
     }
   }
 
@@ -133,7 +133,7 @@ window.switchTaskaRole = async function (newRole, options = {}) {
     try {
       const c = localStorage.getItem('taska_cached_profile');
       if (c) profile = JSON.parse(c);
-    } catch (_) {}
+    } catch (_) { }
   }
   if (!profile) {
     profile = await window.ensureTaskaProfile();
@@ -154,7 +154,7 @@ window.switchTaskaRole = async function (newRole, options = {}) {
       if (dbProf && !dbErr) {
         Object.assign(profile, dbProf);
         window.__taskaProfile = profile;
-        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) { }
       }
     } catch (fErr) {
       console.warn('Authoritative profile check notice:', fErr);
@@ -234,7 +234,7 @@ window.switchTaskaRole = async function (newRole, options = {}) {
   try {
     localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
     localStorage.setItem('taska_active_role', targetRole);
-  } catch (_) {}
+  } catch (_) { }
 
   if (window.showToast) {
     window.showToast(`Switched mode to ${targetRole === 'TASKER' ? 'Tasker Mode' : 'Poster Mode'}`);
@@ -278,7 +278,7 @@ function populateSidebar(profile) {
   const inPoster = path.includes('/Poster/');
 
   let storedRole = null;
-  try { storedRole = localStorage.getItem('taska_active_role'); } catch (_) {}
+  try { storedRole = localStorage.getItem('taska_active_role'); } catch (_) { }
 
   const currentRole = inTasker ? 'TASKER' : inPoster ? 'POSTER' : (storedRole || profile.activeRole || profile.role || 'POSTER');
   const isTaskerMode = currentRole.toUpperCase() === 'TASKER';
@@ -288,10 +288,10 @@ function populateSidebar(profile) {
   const username = `@${profile.username || 'user'}`;
   const roleLabel = isTaskerMode ? 'Tasker' : 'Task Poster';
 
-  const avatarEl     = document.getElementById('sidebar-avatar');
-  const nameEl       = document.getElementById('sidebar-name');
-  const usernameEl   = document.getElementById('sidebar-username');
-  const mobileAv     = document.getElementById('mobile-avatar');
+  const avatarEl = document.getElementById('sidebar-avatar');
+  const nameEl = document.getElementById('sidebar-name');
+  const usernameEl = document.getElementById('sidebar-username');
+  const mobileAv = document.getElementById('mobile-avatar');
 
   if (avatarEl) {
     if (profile.avatarUrl) {
@@ -307,7 +307,7 @@ function populateSidebar(profile) {
     const roleIcon = isTaskerMode ? taskerIcon : posterIcon;
     usernameEl.innerHTML = `${roleIcon} ${isTaskerMode ? 'Tasker Mode' : 'Poster Mode'}`;
   }
-  
+
   const getProfileTarget = () => {
     const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
     return isTaskerMode ? `/tasker/profile?${uParam}` : `/poster/profile?${uParam}`;
@@ -330,15 +330,15 @@ function populateSidebar(profile) {
   }
 
   // Also populate Settings Live Profile Card elements
-  const profBigAvatar  = document.getElementById('profile-big-avatar');
-  const profFullName   = document.getElementById('profile-full-name');
-  const profUsername   = document.getElementById('profile-username-val');
-  const profRoleBadge  = document.getElementById('profile-role-badge');
-  const profEmail      = document.getElementById('profile-email-val');
-  const profPhone      = document.getElementById('profile-phone-val');
-  const profLocation   = document.getElementById('profile-location-val');
-  const profRating     = document.getElementById('profile-rating-val');
-  const profVerified   = document.getElementById('profile-verified-val');
+  const profBigAvatar = document.getElementById('profile-big-avatar');
+  const profFullName = document.getElementById('profile-full-name');
+  const profUsername = document.getElementById('profile-username-val');
+  const profRoleBadge = document.getElementById('profile-role-badge');
+  const profEmail = document.getElementById('profile-email-val');
+  const profPhone = document.getElementById('profile-phone-val');
+  const profLocation = document.getElementById('profile-location-val');
+  const profRating = document.getElementById('profile-rating-val');
+  const profVerified = document.getElementById('profile-verified-val');
 
   if (profBigAvatar) {
     if (profile.avatarUrl) {
@@ -347,12 +347,12 @@ function populateSidebar(profile) {
       profBigAvatar.textContent = initials;
     }
   }
-  if (profFullName)  profFullName.textContent  = fullName;
-  if (profUsername)  profUsername.textContent  = username;
+  if (profFullName) profFullName.textContent = fullName;
+  if (profUsername) profUsername.textContent = username;
   if (profRoleBadge) profRoleBadge.textContent = roleLabel;
-  if (profEmail)     profEmail.textContent     = profile.email || '—';
-  if (profPhone)     profPhone.textContent     = profile.phone || '—';
-  if (profLocation)  profLocation.textContent  = profile.location || 'Lagos, Nigeria';
+  if (profEmail) profEmail.textContent = profile.email || '—';
+  if (profPhone) profPhone.textContent = profile.phone || '—';
+  if (profLocation) profLocation.textContent = profile.location || 'Lagos, Nigeria';
   if (profRating) {
     const starIcon = window.TaskaIcons?.star || '';
     profRating.innerHTML = `${starIcon} ${profile.averageRating != null ? profile.averageRating.toFixed(1) : '5.0'} (${profile.reviewCount || 0} reviews)`;
@@ -360,7 +360,7 @@ function populateSidebar(profile) {
   if (profVerified) {
     const isVer = profile.isVerified || profile.kycStatus === 'VERIFIED';
     const checkIcon = window.TaskaIcons?.verified || '';
-    profVerified.innerHTML = isVer ? `<span style="color:var(--green-700);">${checkIcon} Verified</span>` : 'Standard Member';
+    profVerified.innerHTML = isVer ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; gap:4px; color:var(--green-700);">${checkIcon} Verified</span>` : 'Standard Member';
   }
 }
 window.populateSidebar = populateSidebar;
@@ -384,7 +384,7 @@ async function syncSupabaseProfile(clerkUser) {
 
       try {
         localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-      } catch (_) {}
+      } catch (_) { }
 
       return profile;
     }
@@ -410,7 +410,7 @@ async function syncSupabaseProfile(clerkUser) {
         const wallet = existingByPhone.Wallet && existingByPhone.Wallet.length > 0 ? existingByPhone.Wallet[0] : null;
         const profile = { ...existingByPhone, userId: clerkUser.id, wallet };
         delete profile.Wallet;
-        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) { }
         return profile;
       }
     }
@@ -429,7 +429,7 @@ async function syncSupabaseProfile(clerkUser) {
         const wallet = existingByEmail.Wallet && existingByEmail.Wallet.length > 0 ? existingByEmail.Wallet[0] : null;
         const profile = { ...existingByEmail, userId: clerkUser.id, wallet };
         delete profile.Wallet;
-        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) {}
+        try { localStorage.setItem('taska_cached_profile', JSON.stringify(profile)); } catch (_) { }
         return profile;
       }
     }
@@ -470,7 +470,7 @@ async function syncSupabaseProfile(clerkUser) {
 
     try {
       localStorage.setItem('taska_cached_profile', JSON.stringify(fullProfile));
-    } catch (_) {}
+    } catch (_) { }
 
     return fullProfile;
 
@@ -516,7 +516,7 @@ async function runAuthGuard() {
 
   // 3. Check active session
   if (!window.Clerk.session || !window.Clerk.user) {
-    try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
+    try { localStorage.removeItem('taska_cached_profile'); } catch (_) { }
     window.__taskaProfile = null;
     window.location.replace('/login');
     return;
@@ -545,7 +545,7 @@ async function runAuthGuard() {
           localStorage.setItem('taska_active_role', 'POSTER');
           profile.activeRole = 'POSTER';
           localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-        } catch (_) {}
+        } catch (_) { }
         window.location.replace('/poster/dashboard');
         return;
       }
@@ -555,7 +555,7 @@ async function runAuthGuard() {
           localStorage.setItem('taska_active_role', 'POSTER');
           profile.activeRole = 'POSTER';
           localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-        } catch (_) {}
+        } catch (_) { }
         window.location.replace('/poster/dashboard');
         return;
       }
@@ -567,7 +567,7 @@ async function runAuthGuard() {
             localStorage.setItem('taska_active_role', 'TASKER');
             profile.activeRole = 'TASKER';
             localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-          } catch (_) {}
+          } catch (_) { }
           window.location.replace('/tasker/dashboard');
           return;
         }
@@ -608,7 +608,7 @@ async function runAuthGuard() {
     logoutBtn.onclick = async (e) => {
       e.preventDefault();
       try {
-        try { localStorage.removeItem('taska_cached_profile'); } catch (_) {}
+        try { localStorage.removeItem('taska_cached_profile'); } catch (_) { }
         window.__taskaProfile = null;
         await window.Clerk.signOut();
         window.location.replace('/login');
@@ -673,10 +673,10 @@ window.checkProfileCompletionPrompt = function (profile) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-800)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span style="color:var(--green-900); font-weight:600;">Age (Date of Birth)</span>
           </div>
-          ${hasDob 
-            ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Set</span>`
-            : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Add DOB</a>`
-          }
+          ${hasDob
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Set</span>`
+      : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Add DOB</a>`
+    }
         </div>
 
         <!-- Gender -->
@@ -685,10 +685,10 @@ window.checkProfileCompletionPrompt = function (profile) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-800)" stroke-width="2"><path d="M12 2a5 5 0 0 1 5 5c0 2.3-1.5 4.3-3.6 4.8l.6 3.2h3v2h-3v3h-2v-3h-3v-2h3l.6-3.2C8.5 11.3 7 9.3 7 7a5 5 0 0 1 5-5z"/></svg>
             <span style="color:var(--green-900); font-weight:600;">Gender Declaration</span>
           </div>
-          ${hasGender 
-            ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ ${profile.gender}</span>`
-            : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Select Gender</a>`
-          }
+          ${hasGender
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ ${profile.gender}</span>`
+      : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Select Gender</a>`
+    }
         </div>
 
         <!-- Identity Verification -->
@@ -697,10 +697,10 @@ window.checkProfileCompletionPrompt = function (profile) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-800)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span style="color:var(--green-900); font-weight:600;">Identity Verification (KYC)</span>
           </div>
-          ${isKyc 
-            ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Verified</span>`
-            : `<a href="${kycUrl}" style="color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Verify ID</a>`
-          }
+          ${isKyc
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Verified</span>`
+      : `<a href="${kycUrl}" style="color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Verify ID</a>`
+    }
         </div>
 
       </div>
@@ -1227,7 +1227,7 @@ window.promptTransactionPin = function ({
 };
 
 // ─── TRANSACTION PIN RESET VIA OTP MODAL ─────────────────────────────────────
-window.openForgotPinModal = function(options = {}) {
+window.openForgotPinModal = function (options = {}) {
   // Remove existing dialogs
   document.querySelectorAll('.taska-pin-reset-backdrop').forEach(b => b.remove());
 
@@ -1281,7 +1281,7 @@ window.openForgotPinModal = function(options = {}) {
     if (window.Clerk?.session) {
       try {
         return await window.Clerk.session.getToken();
-      } catch (_) {}
+      } catch (_) { }
     }
     return null;
   };
@@ -2097,7 +2097,7 @@ window.showConfirmDialog = function ({
     const iconBg = isDanger ? '#FEE2E2' : '#E6F4EA';
     const iconColor = isDanger ? '#DC2626' : '#059669';
     let iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
-    
+
     if (isDanger) {
       iconSvg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
     } else if (icon === 'check') {
@@ -2152,7 +2152,7 @@ window.showConfirmDialog = function ({
   });
 };
 
-window.showAlertDialog = function ({
+window.shoAnointedrtDialog = function ({
   title = 'Notification',
   message = '',
   btnText = 'Understood',
@@ -2281,16 +2281,16 @@ document.addEventListener('click', (e) => {
       return;
     }
 
-    const isClickable = target.closest('#mobile-avatar') || 
-                        target.closest('.applicant-avatar') || 
-                        target.closest('.profile-avatar-large') || 
-                        target.closest('.profile-avatar') || 
-                        target.closest('#settings-avatar-preview') || 
-                        target.closest('#chat-messages-body') ||
-                        target.closest('.taska-chat-media-wrap') ||
-                        target.closest('.task-media-thumb') ||
-                        target.classList.contains('chat-attached-image') ||
-                        target.classList.contains('lightbox-img');
+    const isClickable = target.closest('#mobile-avatar') ||
+      target.closest('.applicant-avatar') ||
+      target.closest('.profile-avatar-large') ||
+      target.closest('.profile-avatar') ||
+      target.closest('#settings-avatar-preview') ||
+      target.closest('#chat-messages-body') ||
+      target.closest('.taska-chat-media-wrap') ||
+      target.closest('.task-media-thumb') ||
+      target.classList.contains('chat-attached-image') ||
+      target.classList.contains('lightbox-img');
 
     if (isClickable) {
       const src = target.getAttribute('src');
@@ -2332,21 +2332,21 @@ window.renderTaskMediaHTML = function (mediaUrls) {
   return `
     <div class="task-media-grid" style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-wrap: wrap;">
       ${mediaUrls.map(url => {
-        const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url) || url.includes('cloudinary.com') || url.includes('/image/upload/');
-        if (isImg) {
-          return `
+    const isImg = /\.(jpg|jpeg|png|webp|gif|svg)($|\?)/i.test(url) || url.includes('cloudinary.com') || url.includes('/image/upload/');
+    if (isImg) {
+      return `
             <div class="task-media-thumb" onclick="window.openImageLightbox('${url}'); event.stopPropagation();" style="width: 100px; height: 100px; border-radius: var(--radius-sm, 10px); overflow: hidden; border: 1px solid var(--line, #e2e8f0); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1)); cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; position: relative;" onmouseover="this.style.transform='scale(1.04)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='var(--shadow-sm)'" title="Click to view full image in app">
               <img src="${url}" alt="Attachment" style="width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none;">
             </div>
           `;
-        }
-        return `
+    }
+    return `
           <a href="${url}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-sm, 8px);">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 8 20 8"/></svg>
             View Document
           </a>
         `;
-      }).join('')}
+  }).join('')}
     </div>
   `;
 };
@@ -2354,7 +2354,7 @@ window.renderTaskMediaHTML = function (mediaUrls) {
 // ── Tasker Phone Verification Modal & Enforcer ────────────────────────────────
 function ensureTermiiScriptLoaded() {
   const isLoaded = () => Boolean(
-    window.parseNigerianPhone && 
+    window.parseNigerianPhone &&
     (window.openPhoneVerificationModal || window.openPhoneOtpModal)
   );
   if (isLoaded()) return Promise.resolve();
@@ -2393,7 +2393,7 @@ window.promptAddPhoneNumberModal = async function (onSuccessCallback) {
     try {
       const c = localStorage.getItem('taska_cached_profile');
       if (c) profile = JSON.parse(c);
-    } catch (_) {}
+    } catch (_) { }
   }
   if (!profile && window.ensureTaskaProfile) {
     profile = await window.ensureTaskaProfile();
@@ -2566,7 +2566,7 @@ window.promptAddPhoneNumberModal = async function (onSuccessCallback) {
 
             try {
               localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-            } catch (_) {}
+            } catch (_) { }
 
             // Update Clerk unsafe metadata
             if (window.Clerk?.user?.update) {
@@ -2576,7 +2576,7 @@ window.promptAddPhoneNumberModal = async function (onSuccessCallback) {
                   phone: parsed.canonical,
                   isPhoneVerified: true
                 }
-              }).catch(() => {});
+              }).catch(() => { });
             }
 
             // Re-populate sidebar and live profile cards with the updated phone
@@ -2617,7 +2617,7 @@ window.promptAddPhoneNumberModal = async function (onSuccessCallback) {
 
 // ── Global Wallet Unfreeze Appeal Modal ──────────────────────────────────────
 
-window.openWalletAppealModal = function(opts = {}) {
+window.openWalletAppealModal = function (opts = {}) {
   // 1. If in-page #wallet-appeal-modal exists (e.g. on /wallet page)
   const inPageModal = document.getElementById('wallet-appeal-modal');
   if (inPageModal) {

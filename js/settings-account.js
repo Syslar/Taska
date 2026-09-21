@@ -16,12 +16,12 @@
     if (window.Clerk && window.Clerk.session) {
       try {
         return await window.Clerk.session.getToken();
-      } catch (_) {}
+      } catch (_) { }
     }
     return null;
   }
 
-  function showAlert(message, type = 'error') {
+  function shoAnointedrt(message, type = 'error') {
     const alertEl = document.getElementById('changePinAlert');
     if (!alertEl) return;
 
@@ -190,27 +190,27 @@
       const confirmPin = confirmInput?.value?.trim() || '';
 
       if (currentPin.length !== 4) {
-        showAlert('Please enter your 4-digit Current PIN.');
+        shoAnointedrt('Please enter your 4-digit Current PIN.');
         currentInput?.focus();
         return;
       }
       if (newPin.length !== 4) {
-        showAlert('Please enter a 4-digit New PIN.');
+        shoAnointedrt('Please enter a 4-digit New PIN.');
         newInput?.focus();
         return;
       }
       if (confirmPin.length !== 4) {
-        showAlert('Please confirm your new 4-digit PIN.');
+        shoAnointedrt('Please confirm your new 4-digit PIN.');
         confirmInput?.focus();
         return;
       }
       if (newPin !== confirmPin) {
-        showAlert('New PIN and confirmation PIN do not match.');
+        shoAnointedrt('New PIN and confirmation PIN do not match.');
         confirmInput?.focus();
         return;
       }
       if (currentPin === newPin) {
-        showAlert('Your new PIN must be different from your current PIN.');
+        shoAnointedrt('Your new PIN must be different from your current PIN.');
         newInput?.focus();
         return;
       }
@@ -220,7 +220,7 @@
       }
       const token = await getAuthToken();
       if (!token) {
-        showAlert('Authentication error. Please refresh and log in again.');
+        shoAnointedrt('Authentication error. Please refresh and log in again.');
         return;
       }
 
@@ -252,7 +252,7 @@
 
         if (!res.ok || data.error) {
           if (res.status === 429 || data.code === 'RATE_LIMITED') {
-            showAlert('Rate limit exceeded: You can only change your transaction PIN 3 times in 24 hours. Please try again tomorrow.', 'rate_limit');
+            shoAnointedrt('Rate limit exceeded: You can only change your transaction PIN 3 times in 24 hours. Please try again tomorrow.', 'rate_limit');
             return;
           }
 
@@ -262,24 +262,24 @@
             const changeContainer = document.getElementById('settingsPinChangeContainer');
             if (frozenNotice) frozenNotice.style.display = 'block';
             if (changeContainer) changeContainer.style.display = 'none';
-            showAlert('Wallet frozen due to 5 incorrect attempts. Please contact support@taska.com.ng to appeal.');
+            shoAnointedrt('Wallet frozen due to 5 incorrect attempts. Please contact support@taska.com.ng to appeal.');
             return;
           }
 
           if (data.code === 'WRONG_PIN') {
             const attempts = typeof data.attempts_remaining === 'number' ? ` (${data.attempts_remaining} attempt${data.attempts_remaining === 1 ? '' : 's'} remaining)` : '';
-            showAlert(`Current PIN is incorrect${attempts}.`);
+            shoAnointedrt(`Current PIN is incorrect${attempts}.`);
             currentInput.value = '';
             currentInput.focus();
             return;
           }
 
-          showAlert(data.error || 'Failed to update transaction PIN. Please try again.');
+          shoAnointedrt(data.error || 'Failed to update transaction PIN. Please try again.');
           return;
         }
 
         // Success
-        showAlert('Transaction PIN updated successfully! A security confirmation has been dispatched to your email.', 'success');
+        shoAnointedrt('Transaction PIN updated successfully! A security confirmation has been dispatched to your email.', 'success');
         if (currentInput) currentInput.value = '';
         if (newInput) newInput.value = '';
         if (confirmInput) confirmInput.value = '';
@@ -293,7 +293,7 @@
 
       } catch (err) {
         console.error('[settings-account] Change PIN error:', err);
-        showAlert(err.message || 'Network error updating PIN. Please try again.');
+        shoAnointedrt(err.message || 'Network error updating PIN. Please try again.');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;

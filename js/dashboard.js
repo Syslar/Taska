@@ -27,10 +27,10 @@ function formatNairaDecimals(amount) {
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (mins < 60)  return `${mins}m ago`;
+  const days = Math.floor(diff / 86400000);
+  if (mins < 60) return `${mins}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days === 1) return 'yesterday';
   return `${days}d ago`;
@@ -39,7 +39,7 @@ function timeAgo(dateStr) {
 function formatDate(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
-  return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}, ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+  return `${d.getDate()} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 function getGreeting() {
@@ -51,26 +51,26 @@ function getGreeting() {
 
 function getStatusLabel(status) {
   const map = {
-    OPEN:            'Open',
-    ASSIGNED:        'Assigned',
-    IN_PROGRESS:     'In progress',
+    OPEN: 'Open',
+    ASSIGNED: 'Assigned',
+    IN_PROGRESS: 'In progress',
     PROOF_SUBMITTED: 'Awaiting approval',
-    COMPLETED:       'Completed',
-    DISPUTED:        'Disputed',
-    CANCELLED:       'Cancelled',
+    COMPLETED: 'Completed',
+    DISPUTED: 'Disputed',
+    CANCELLED: 'Cancelled',
   };
   return map[status] || status;
 }
 
 function getStatusClass(status) {
   const map = {
-    OPEN:            'status-open',
-    ASSIGNED:        'status-open',
-    IN_PROGRESS:     'status-open',
+    OPEN: 'status-open',
+    ASSIGNED: 'status-open',
+    IN_PROGRESS: 'status-open',
     PROOF_SUBMITTED: 'status-pending',
-    COMPLETED:       'status-done',
-    DISPUTED:        'status-error',
-    CANCELLED:       'status-error',
+    COMPLETED: 'status-done',
+    DISPUTED: 'status-error',
+    CANCELLED: 'status-error',
   };
   return map[status] || 'status-open';
 }
@@ -285,8 +285,8 @@ function renderRecentActivityList(transactions) {
   }
   el.innerHTML = transactions.map(tx => {
     const isCredit = ['top_up', 'task_payout', 'escrow_release', 'credit'].includes(tx.type);
-    const sign     = isCredit ? '+' : '−';
-    const color    = isCredit ? 'var(--green-700)' : 'var(--ink)';
+    const sign = isCredit ? '+' : '−';
+    const color = isCredit ? 'var(--green-700)' : 'var(--ink)';
     return `
       <div class="receipt-row">
         <div>
@@ -380,13 +380,13 @@ function renderTaskCard(task) {
     <div class="gig-card" data-task-id="${task.id}" style="cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);">
         <div class="gig-poster-area" data-poster-id="${task.posterId}" style="display:flex; align-items:center; gap:10px; cursor:pointer;" title="View poster profile">
-          ${avatarUrl 
-            ? `<img src="${avatarUrl}" alt="${posterName}" class="gig-author-avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1.5px solid var(--green-700);">`
-            : `<div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>`
-          }
+          ${avatarUrl
+      ? `<img src="${avatarUrl}" alt="${posterName}" class="gig-author-avatar" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:1.5px solid var(--green-700);">`
+      : `<div class="gig-author-avatar" style="width:38px; height:38px; font-size:0.9rem; border:1.5px solid var(--green-700);">${posterInitials}</div>`
+    }
           <div>
             <div style="font-weight:700; font-size:0.9rem; color:var(--body); display:flex; align-items:center; gap:4px;">
-              ${posterName} ${isVerified ? '<span style="color:var(--green-700); font-size:0.75rem; display:inline-flex;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : ''}
+              ${posterName} ${isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${window.TaskaIcons?.verified || ''}</span>` : ''}
             </div>
             <div class="mono" style="font-size:0.76rem; color:var(--muted);">${posterUsername}</div>
           </div>
@@ -417,7 +417,7 @@ const handleSearchInput = window.TaskaRateLimiter ? window.TaskaRateLimiter.debo
     browseFilters.search = searchInput.value.trim();
     loadBrowseGigsData();
   }
-}, 350) : () => {};
+}, 350) : () => { };
 
 document.getElementById('gigSearch')?.addEventListener('input', handleSearchInput);
 
@@ -617,7 +617,7 @@ async function loadWalletData() {
 
       if (wBal) wBal.textContent = formatNairaDecimals(balance);
       if (mBal) mBal.textContent = formatNairaDecimals(balance);
-      if (wEsc) wEsc.textContent  = formatNaira(escrow);
+      if (wEsc) wEsc.textContent = formatNaira(escrow);
       if (wLife) wLife.textContent = formatNaira(lifetime);
 
       allWalletTxs = wallet.WalletTransaction || [];
@@ -693,7 +693,7 @@ async function openTaskModal(taskId, tasks) {
 
   document.getElementById('modal-category').textContent = task.category || 'General';
   document.getElementById('modal-title').textContent = task.title;
-  
+
   const posterName = task.Profile ? `${task.Profile.firstName || ''} ${task.Profile.lastName || ''}`.trim() : 'Poster';
   const posterEl = document.getElementById('modal-poster');
   if (posterEl) {
@@ -886,7 +886,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
     if (window.showToast) window.showToast('Uploading avatar...');
     newAvatarUrl = await window.uploadTaskaMedia(avatarFile);
     if (newAvatarUrl && window.Clerk && window.Clerk.user) {
-      try { await window.Clerk.user.setProfileImage({ file: avatarFile }); } catch(_) {}
+      try { await window.Clerk.user.setProfileImage({ file: avatarFile }); } catch (_) { }
     }
   }
 
@@ -910,7 +910,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
     if (window.populateSidebar) {
       populateSidebar(window.__taskaProfile);
     }
-    
+
     if (newAvatarUrl) {
       const pPreview = document.getElementById('settings-avatar-preview');
       if (pPreview) pPreview.innerHTML = `<img src="${newAvatarUrl}" style="width:100%; height:100%; object-fit:cover;">`;
@@ -929,7 +929,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
 });
 
 // Avatar local preview listener
-document.getElementById('settingsAvatarUpload')?.addEventListener('change', function() {
+document.getElementById('settingsAvatarUpload')?.addEventListener('change', function () {
   const file = this.files[0];
   if (file) {
     const reader = new FileReader();
@@ -1090,7 +1090,7 @@ async function loadMessagesData() {
           localStorage.removeItem('taska_open_chat_peer');
           selectChatThread(pendingPeer);
           return;
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (!activeChatPeer && threads.length > 0) {
@@ -1206,8 +1206,8 @@ if (chatFileInput) {
       const msg = 'Maximum size for media is 5MB.';
       if (window.showToast) {
         window.showToast(msg);
-      } else if (window.showAlertDialog) {
-        window.showAlertDialog({ title: 'File Too Large', message: msg });
+      } else if (window.shoAnointedrtDialog) {
+        window.shoAnointedrtDialog({ title: 'File Too Large', message: msg });
       }
       chatFileInput.value = '';
       pendingChatFile = null;

@@ -58,8 +58,8 @@ window.launchDojahKyc = async function () {
     onError: function (error) {
       console.error('Dojah KYC Error:', error);
       const errMsg = error?.message || (typeof error === 'string' ? error : 'Unable to connect to verification servers');
-      if (window.showAlertDialog) {
-        window.showAlertDialog({
+      if (window.shoAnointedrtDialog) {
+        window.shoAnointedrtDialog({
           title: 'Verification Service Unavailable',
           message: `Dojah identity verification could not be initialized (${errMsg}). Please check your internet connection or try again shortly.`,
           isDanger: true
@@ -86,8 +86,8 @@ window.launchDojahKyc = async function () {
       const dDob = new Date(docDob).toISOString().split('T')[0];
       if (pDob !== dDob) {
         const errorMsg = `KYC Verification Failed: The Date of Birth on your government document (${dDob}) does not match your declared profile Date of Birth (${pDob}). Please update your profile information or provide matching documentation.`;
-        if (window.showAlertDialog) {
-          window.showAlertDialog({ title: 'KYC Verification Mismatch', message: errorMsg, isDanger: true });
+        if (window.shoAnointedrtDialog) {
+          window.shoAnointedrtDialog({ title: 'KYC Verification Mismatch', message: errorMsg, isDanger: true });
         } else if (window.showToast) {
           window.showToast(errorMsg);
         }
@@ -100,8 +100,8 @@ window.launchDojahKyc = async function () {
       const dG = docGender.trim().toUpperCase()[0];
       if (pG !== dG) {
         const errorMsg = `KYC Verification Failed: The gender recorded on your official ID (${docGender}) does not correlate with your declared profile gender (${profile.gender}).`;
-        if (window.showAlertDialog) {
-          window.showAlertDialog({ title: 'KYC Verification Mismatch', message: errorMsg, isDanger: true });
+        if (window.shoAnointedrtDialog) {
+          window.shoAnointedrtDialog({ title: 'KYC Verification Mismatch', message: errorMsg, isDanger: true });
         } else if (window.showToast) {
           window.showToast(errorMsg);
         }
@@ -133,10 +133,10 @@ window.launchDojahKyc = async function () {
 
           try {
             localStorage.setItem('taska_cached_profile', JSON.stringify(profile));
-          } catch (_) {}
+          } catch (_) { }
 
-          if (window.showAlertDialog) {
-            window.showAlertDialog({
+          if (window.shoAnointedrtDialog) {
+            window.shoAnointedrtDialog({
               title: 'Identity Verified!',
               message: 'Your government identity documents correlate with your Taska profile. You have been awarded the verified badge and can now apply for all verified tasks.'
             });
@@ -176,8 +176,8 @@ window.launchDojahKyc = async function () {
     }
   } catch (err) {
     console.error('Error starting Dojah Widget:', err);
-    if (window.showAlertDialog) {
-      window.showAlertDialog({
+    if (window.shoAnointedrtDialog) {
+      window.shoAnointedrtDialog({
         title: 'Verification Widget Error',
         message: 'Could not initialize Dojah widget. Please try again.',
         isDanger: true

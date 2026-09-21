@@ -264,10 +264,57 @@
             </div>
 
             <div id="locationWrap">
-              <div class="field-group">
-                <label class="field-label" for="taskLocation">Task location</label>
-                <input class="text-input" type="text" id="taskLocation" placeholder="e.g. 14 Allen Avenue, Ikeja, Lagos">
-                <span class="field-hint">Exact address is only shared with the Tasker you select — not visible publicly.</span>
+              <div class="input-row">
+                <div class="field-group">
+                  <label class="field-label" for="taskState">State</label>
+                  <select class="select-input" id="taskState">
+                    <option value="" disabled selected>Select State</option>
+                    <option value="Abia">Abia</option>
+                    <option value="Adamawa">Adamawa</option>
+                    <option value="Akwa Ibom">Akwa Ibom</option>
+                    <option value="Anambra">Anambra</option>
+                    <option value="Bauchi">Bauchi</option>
+                    <option value="Bayelsa">Bayelsa</option>
+                    <option value="Benue">Benue</option>
+                    <option value="Borno">Borno</option>
+                    <option value="Cross River">Cross River</option>
+                    <option value="Delta">Delta</option>
+                    <option value="Ebonyi">Ebonyi</option>
+                    <option value="Edo">Edo</option>
+                    <option value="Ekiti">Ekiti</option>
+                    <option value="Enugu">Enugu</option>
+                    <option value="FCT">FCT - Abuja</option>
+                    <option value="Gombe">Gombe</option>
+                    <option value="Imo">Imo</option>
+                    <option value="Jigawa">Jigawa</option>
+                    <option value="Kaduna">Kaduna</option>
+                    <option value="Kano">Kano</option>
+                    <option value="Katsina">Katsina</option>
+                    <option value="Kebbi">Kebbi</option>
+                    <option value="Kogi">Kogi</option>
+                    <option value="Kwara">Kwara</option>
+                    <option value="Lagos">Lagos</option>
+                    <option value="Nasarawa">Nasarawa</option>
+                    <option value="Niger">Niger</option>
+                    <option value="Ogun">Ogun</option>
+                    <option value="Ondo">Ondo</option>
+                    <option value="Osun">Osun</option>
+                    <option value="Oyo">Oyo</option>
+                    <option value="Plateau">Plateau</option>
+                    <option value="Rivers">Rivers</option>
+                    <option value="Sokoto">Sokoto</option>
+                    <option value="Taraba">Taraba</option>
+                    <option value="Yobe">Yobe</option>
+                    <option value="Zamfara">Zamfara</option>
+                  </select>
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="taskArea">Street / Area</label>
+                  <input class="text-input" type="text" id="taskArea" placeholder="e.g. Allen Avenue, Ikeja">
+                </div>
+              </div>
+              <div class="callout" style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:var(--radius-sm); padding:12px 14px; font-size:0.82rem; color:#92400E; margin-bottom:18px;">
+                <strong>Privacy Notice:</strong> For your safety, do not include your precise house number here. The exact location should be disclosed directly to the Tasker via in-app chat only after you hire them.
               </div>
             </div>
 

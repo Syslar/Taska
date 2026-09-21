@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pill.className = 'tag-pill';
       const safe = window.escapeHtml ? window.escapeHtml(tag) : tag;
       pill.innerHTML = `#${safe} <button type="button" class="tag-pill-remove" data-idx="${idx}" aria-label="Remove tag">&times;</button>`;
-      
+
       const removeBtn = pill.querySelector('.tag-pill-remove');
       if (removeBtn) {
         removeBtn.addEventListener('click', (e) => {
@@ -399,8 +399,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (file.size > 5 * 1024 * 1024) {
       if (window.showToast) {
         window.showToast('Maximum size for file attachment is 5MB.');
-      } else if (window.showAlertDialog) {
-        window.showAlertDialog({ title: 'File Too Large', message: 'Maximum size for file attachment is 5MB.' });
+      } else if (window.shoAnointedrtDialog) {
+        window.shoAnointedrtDialog({ title: 'File Too Large', message: 'Maximum size for file attachment is 5MB.' });
       }
       if (mediaInput) mediaInput.value = '';
       return;
@@ -472,12 +472,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const rawLocal = localStorage.getItem('taska_post_task_draft');
         if (rawLocal) draftData = JSON.parse(rawLocal);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (draftData) {
       populateFormFromDraft(draftData);
-      
+
       if (isEditingExistingTask) {
         if (draftBanner) {
           draftBanner.style.background = '#ECFDF5';
@@ -510,7 +510,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (sumCategory) sumCategory.textContent = categoryInput.options[categoryInput.selectedIndex]?.text || data.category;
     }
     if (data.description) document.getElementById('taskDesc').value = data.description;
-    if (data.location && document.getElementById('taskLocation')) document.getElementById('taskLocation').value = data.location;
+    if (data.location) {
+      if (data.location.includes(', ')) {
+        const parts = data.location.split(', ');
+        if (document.getElementById('taskState')) document.getElementById('taskState').value = parts[1] || '';
+        if (document.getElementById('taskArea')) document.getElementById('taskArea').value = parts[0] || '';
+      } else {
+        if (document.getElementById('taskArea')) document.getElementById('taskArea').value = data.location;
+      }
+    }
     if (data.deadline && dateInput) {
       const dStr = data.deadline.split('T')[0];
       if (dStr >= todayStr) {
@@ -579,7 +587,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           currentTaskTags = parsed.filter(Boolean).map(t => String(t).trim()).slice(0, 3);
           renderTaskTags();
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
@@ -612,7 +620,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const title = document.getElementById('taskTitle')?.value.trim() || 'Untitled Draft Task';
     const category = document.getElementById('taskCategory')?.value || 'GENERAL';
     const description = document.getElementById('taskDesc')?.value.trim() || '';
-    const locationInput = document.getElementById('taskLocation')?.value.trim() || '';
+    const taskState = document.getElementById('taskState')?.value || '';
+    const taskArea = document.getElementById('taskArea')?.value.trim() || '';
+    const locationInput = taskState && taskArea ? `${taskArea}, ${taskState}` : (taskArea || taskState);
     const taskDate = document.getElementById('taskDate')?.value || null;
     const taskTime = document.getElementById('taskTime')?.value || 'Flexible';
     const allowPriceProposals = document.getElementById('allowPriceProposals')?.checked ?? false;
@@ -690,7 +700,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const title = document.getElementById('taskTitle')?.value.trim();
       const category = document.getElementById('taskCategory')?.value;
       const description = document.getElementById('taskDesc')?.value.trim();
-      const locationInput = document.getElementById('taskLocation')?.value.trim();
+      const taskState = document.getElementById('taskState')?.value || '';
+      const taskArea = document.getElementById('taskArea')?.value.trim() || '';
+      const locationInput = taskState && taskArea ? `${taskArea}, ${taskState}` : (taskArea || taskState);
       const taskDate = document.getElementById('taskDate')?.value;
       const taskTime = document.getElementById('taskTime')?.value;
       const allowPriceProposals = document.getElementById('allowPriceProposals')?.checked ?? false;

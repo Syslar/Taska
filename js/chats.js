@@ -506,13 +506,13 @@ async function loadPeerHeader(peerId) {
       const isTasker = peer.role === 'TASKER';
       const userParam = peer.username ? `u=${encodeURIComponent(peer.username)}` : `id=${peer.id}`;
       const profilePath = isTasker ? `/tasker/profile?${userParam}` : `/poster/profile?${userParam}`;
-      const checkIcon = window.TaskaIcons?.verified || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle; display:inline-block;"><polyline points="20 6 9 17 4 12"/></svg>';
+      const checkIcon = window.TaskaIcons?.verified || '';
 
       if (peerNameEl) {
         peerNameEl.innerHTML = `
           <a href="${profilePath}" style="color:var(--green-900); text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
             ${pName}
-            ${peer.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem;" title="Verified Member">${checkIcon}</span>` : ''}
+            ${peer.isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${checkIcon}</span>` : ''}
           </a>
         `;
       }

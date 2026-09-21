@@ -110,7 +110,7 @@ function renderMyTasksList() {
             <div class="applicant-avatar">${avHTML}</div>
             <div>
               <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
-                ${tName} ${tasker.isVerified ? `<span style="color:var(--green-700); font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">${checkIcon} Verified</span>` : ''}
+                ${tName} ${tasker.isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${checkIcon}</span>` : ''}
               </div>
               <div class="mono" style="font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:4px;">${tUsername} · ${starIcon} ${tRating}</div>
               ${safeAppMsg ? `<div style="font-size:0.84rem; color:var(--ink-soft); margin-top:4px;">"${safeAppMsg}"</div>` : ''}

@@ -3,7 +3,7 @@
    Provides high-performance media upload for avatars, task proofs, and attachments.
    ========================================================================== */
 
-const CLOUDINARY_CLOUD_NAME = 'syslar-taska'; 
+const CLOUDINARY_CLOUD_NAME = 'syslar-taska';
 const CLOUDINARY_UPLOAD_PRESET = 'taska_unsigned';
 
 /**
@@ -19,8 +19,8 @@ window.uploadTaskaMedia = async function (file) {
     const errorMsg = 'Maximum size for media is 5MB.';
     if (window.showToast) {
       window.showToast(errorMsg);
-    } else if (window.showAlertDialog) {
-      window.showAlertDialog({ title: 'File Too Large', message: errorMsg });
+    } else if (window.shoAnointedrtDialog) {
+      window.shoAnointedrtDialog({ title: 'File Too Large', message: errorMsg });
     }
     return null;
   }
