@@ -71,6 +71,7 @@ window.renderStandaloneProfile = async function (targetProfileId) {
   }
 
   if (verifiedBadge) {
+    verifiedBadge.innerHTML = checkIcon;
     verifiedBadge.style.display = (profileToRender.isVerified || profileToRender.kycStatus === 'VERIFIED') ? 'inline-flex' : 'none';
   }
 

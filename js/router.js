@@ -538,7 +538,7 @@
 
   // ── 9. Browser History PopState (Back / Forward) ─────────────────────────────
   window.addEventListener('popstate', () => {
-    taskaNavigate(window.location.href, { fromPopState: true });
+    taskaNavigate(window.location.href, { fromPopState: true, force: true });
   });
 
   // ── 10. Expose Public Router API ─────────────────────────────────────────────

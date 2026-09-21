@@ -165,7 +165,7 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span style="color:#A9CBB3;">${posterIcon}</span>
                   <div>
-                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Task Poster Mode</div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Poster Mode</div>
                     <div style="font-size:0.74rem; color:#A9CBB3;">Post tasks & hire professionals</div>
                   </div>
                 </div>
@@ -177,7 +177,7 @@
                 <div style="display:flex; align-items:center; gap:8px;">
                   <span style="color:#CDEEDA;">${posterIcon}</span>
                   <div>
-                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Task Poster Mode</div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#fff;">Poster Mode</div>
                     <div style="font-size:0.74rem; color:#A9CBB3;">Post tasks & hire professionals</div>
                   </div>
                 </div>
