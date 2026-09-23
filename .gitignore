@@ -1,6 +1,9 @@
-# ── Markdown Documentation & Notes ──────────────────────────────────────────
+# ── Markdown/pdf Documentation & Notes ──────────────────────────────────────────
 *.md
 *.markdown
+*.pdf
+
+
 
 # ── Environment & Secrets ──────────────────────────────────────────────────
 .env
@@ -36,3 +39,4 @@ Desktop.ini
 .vscode/
 .idea/
 paystack_implementation.md
+references
