@@ -6,6 +6,9 @@
 let myApplicationsData = [];
 let currentFilter = 'ALL';
 let pendingSubmitTask = null;
+let taskerSelectedRating = 0;
+let myReviewedTaskIds = new Set();
+let currentPendingReviewAction = null;
 
 async function initMyApplicationsPage() {
   const profile = await window.ensureTaskaProfile();
@@ -48,6 +51,16 @@ async function fetchMyApplications() {
 
     if (error) throw error;
 
+    const { data: myReviews, err: revErr } = await window.supabaseClient
+      .from('Review')
+      .select('taskId')
+      .eq('reviewerId', profile.id)
+      .eq('revieweeRole', 'POSTER');
+    
+    if (myReviews) {
+      myReviewedTaskIds = new Set(myReviews.map(r => r.taskId).filter(id => id));
+    }
+
     myApplicationsData = applications || [];
     renderApplicationsList();
   } catch (err) {
@@ -81,7 +94,7 @@ function renderApplicationsList() {
         <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No applications found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't submitted any bids matching this filter.</p>
-        <a href="/browse-tasks" class="btn btn-primary">Browse Open Tasks</a>
+        <a href="/tasker/browse-tasks" class="btn btn-primary">Browse Open Tasks</a>
       </div>`;
     return;
   }
@@ -211,9 +224,19 @@ function renderApplicationsList() {
                 </span>
               ` : ''}
 
+              ${isCompleted ? `
+                ${myReviewedTaskIds.has(task.id) 
+                  ? `<div class="btn btn-ghost btn-sm" style="color:var(--green-700); cursor:default;">${checkIcon} Review Submitted</div>` 
+                  : `<button class="btn btn-primary btn-sm btn-rate-poster"
+                      data-task-id="${task.id}"
+                      data-poster-id="${poster.id}"
+                      data-poster-name="${safePosterName}">Rate Poster</button>`
+                }
+              ` : ''}
+
               ${poster.id ? `
                 <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${poster.id}&task=${task.id}'">Message Poster</button>
-                <a href="/poster/profile?${poster.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster.id}`}" class="btn btn-ghost btn-sm">View Poster</a>
+                <a href="/poster/profile${poster.username ? `/@${encodeURIComponent(poster.username)}` : `?id=${poster.id}`}" class="btn btn-ghost btn-sm">View Poster</a>
               ` : ''}
             </div>
           </div>
@@ -228,6 +251,16 @@ function renderApplicationsList() {
       const taskId = btn.dataset.taskId;
       const taskTitle = btn.dataset.taskTitle;
       openSubmitWorkModal(taskId, taskTitle);
+    });
+  });
+
+  const rateBtns = container.querySelectorAll('.btn-rate-poster');
+  rateBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const taskId = btn.getAttribute('data-task-id');
+      const posterId = btn.getAttribute('data-poster-id');
+      const posterName = btn.getAttribute('data-poster-name');
+      openTaskReviewModal(taskId, posterId, posterName);
     });
   });
 }
@@ -330,6 +363,120 @@ function setupSubmitWorkModal() {
     }
   });
   document.getElementById('confirmSubmitWorkBtn')?.addEventListener('click', handleConfirmSubmitWork);
+}
+
+// ─── STEP 4: POST-COMPLETION REVIEW MODAL ────────────────────────────────────
+function openTaskReviewModal(taskId, posterId, posterName) {
+  currentPendingReviewAction = { taskId, posterId, posterName };
+  taskerSelectedRating = 0;
+
+  const modal = document.getElementById('taskReviewModal');
+  const subText = document.getElementById('taskReviewSubText');
+  const commentInput = document.getElementById('posterReviewComment');
+  const starLabel = document.getElementById('posterStarLabel');
+
+  if (subText) subText.textContent = `How did ${posterName} perform on this task?`;
+  if (commentInput) commentInput.value = '';
+  if (starLabel) starLabel.textContent = 'Select a rating (1 to 5 stars)';
+
+  if (modal) {
+    const starBtns = modal.querySelectorAll('#posterStarSelector .star-btn');
+    starBtns.forEach(b => {
+      b.classList.remove('is-active');
+      b.style.color = 'var(--muted)';
+    });
+    // Bind star click events once
+    if (!modal.dataset.starsBound) {
+      const labelMap = { 1: '1 Star — Terrible', 2: '2 Stars — Poor', 3: '3 Stars — Average', 4: '4 Stars — Very Good', 5: '5 Stars — Excellent' };
+      starBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          taskerSelectedRating = parseInt(btn.dataset.value, 10);
+          starBtns.forEach((b) => {
+            const val = parseInt(b.dataset.value, 10);
+            if (val <= taskerSelectedRating) {
+              b.classList.add('is-active');
+              b.style.color = '#F4A819';
+            } else {
+              b.classList.remove('is-active');
+              b.style.color = 'var(--muted)';
+            }
+          });
+          if (starLabel) starLabel.textContent = labelMap[taskerSelectedRating];
+        });
+      });
+      modal.dataset.starsBound = 'true';
+    }
+
+    modal.classList.add('is-open');
+    modal.style.display = 'flex';
+  }
+}
+
+async function submitTaskReview() {
+  if (!currentPendingReviewAction) return;
+  const { taskId, posterId, posterName } = currentPendingReviewAction;
+  const profile = await window.ensureTaskaProfile();
+  if (!profile || !window.supabaseClient) return;
+
+  if (!taskerSelectedRating || taskerSelectedRating < 1) {
+    if (window.showToast) window.showToast('Please select a star rating (1 to 5 stars).');
+    return;
+  }
+
+  const comment = document.getElementById('posterReviewComment')?.value.trim() || '';
+  const submitBtn = document.getElementById('submitTaskReviewBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting…';
+  }
+
+  try {
+    // 1. Insert Review (Reviewing the Poster)
+    await window.supabaseClient
+      .from('Review')
+      .insert({
+        taskId: taskId,
+        reviewerId: profile.id,
+        revieweeId: posterId,
+        revieweeRole: 'POSTER',
+        rating: taskerSelectedRating,
+        comment: comment
+      });
+
+    // 2. Recalculate Poster's rating in Profile table
+    const { data: allReviews } = await window.supabaseClient
+      .from('Review')
+      .select('rating')
+      .eq('revieweeId', posterId)
+      .eq('revieweeRole', 'POSTER');
+
+    const count = allReviews ? allReviews.length : 0;
+    const avg = count > 0 ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count : null;
+    await window.supabaseClient
+      .from('Profile')
+      .update({ posterRating: avg, posterReviewsCount: count, averageRating: avg, totalReviews: count })
+      .eq('id', posterId);
+
+    const modal = document.getElementById('taskReviewModal');
+    if (modal) {
+      modal.classList.remove('is-open');
+      modal.style.display = 'none';
+    }
+
+    if (window.showToast) window.showToast('Review submitted successfully!');
+    
+    // Refresh to show the "Review Submitted" button state
+    await fetchMyApplications();
+
+  } catch (err) {
+    console.error('submitTaskReview error:', err);
+    if (window.showToast) window.showToast('Could not submit review. Please try again.');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit review';
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

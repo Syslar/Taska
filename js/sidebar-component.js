@@ -22,8 +22,8 @@
     const isTaskerMode = currentRole === 'TASKER';
 
     const dashUrl     = isTaskerMode ? '/tasker/dashboard' : '/poster/dashboard';
-    const myTasksUrl  = isTaskerMode ? '/my-applications'  : '/my-posted-tasks';
-    const actionUrl   = isTaskerMode ? '/browse-tasks'     : '/post-task';
+    const myTasksUrl  = isTaskerMode ? '/tasker/my-applications'  : '/poster/my-posted-tasks';
+    const actionUrl   = isTaskerMode ? '/tasker/browse-tasks'     : '/poster/post-task';
     const profileLink = isTaskerMode ? '/tasker/profile'   : '/poster/profile';
     const chatsUrl    = '/chats';
     const walletUrl   = '/wallet';
@@ -520,8 +520,8 @@
       const p = window.__taskaProfile || (window.getTaskaProfile ? window.getTaskaProfile() : null);
       let target;
       if (p && p.id) {
-        const uParam = p.username ? `u=${encodeURIComponent(p.username)}` : `id=${p.id}`;
-        target = profileLink.includes('?') ? `${profileLink}&${uParam}` : `${profileLink}?${uParam}`;
+        const uParam = p.username ? `/@${encodeURIComponent(p.username)}` : `?id=${p.id}`;
+        target = profileLink + uParam;
       } else {
         target = profileLink;
       }
@@ -1080,10 +1080,10 @@
     if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
 
     if (path === '/wallet' || path === '/wallet/wallet') return '/wallet' + queryAndHash;
-    if (path === '/poster/mytasks' || path === '/poster/my-tasks' || path === '/poster/mypostedtasks' || path === '/poster/my-posted-tasks' || path === '/mypostedtasks') return '/my-posted-tasks' + queryAndHash;
-    if (path === '/tasker/myapplications' || path === '/tasker/my-applications' || path === '/myapplications') return '/my-applications' + queryAndHash;
-    if (path === '/tasker/browsetasks' || path === '/tasker/browse-tasks' || path === '/browsetasks') return '/browse-tasks' + queryAndHash;
-    if (path === '/poster/posttask' || path === '/poster/post-task' || path === '/posttask') return '/post-task' + queryAndHash;
+    if (path === '/poster/mytasks' || path === '/poster/my-tasks' || path === '/poster/mypostedtasks' || path === '/poster/my-posted-tasks' || path === '/mypostedtasks') return '/poster/my-posted-tasks' + queryAndHash;
+    if (path === '/tasker/myapplications' || path === '/tasker/my-applications' || path === '/myapplications') return '/tasker/my-applications' + queryAndHash;
+    if (path === '/tasker/browsetasks' || path === '/tasker/browse-tasks' || path === '/browsetasks') return '/tasker/browse-tasks' + queryAndHash;
+    if (path === '/poster/posttask' || path === '/poster/post-task' || path === '/posttask') return '/poster/post-task' + queryAndHash;
     if (path === '/dashboard') return '/tasker/dashboard' + queryAndHash;
     if (path === '/settings/account') return '/settings/account' + queryAndHash;
     if (path === '/settings/kyc') return '/settings/kyc' + queryAndHash;

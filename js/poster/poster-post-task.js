@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const currentRole = window.getTaskaRole ? window.getTaskaRole() : 'POSTER';
   if (currentRole === 'TASKER') {
     if (window.showToast) window.showToast('Taskers cannot post tasks. Switch to Poster mode to post.');
-    window.location.href = '/browse-tasks';
+    window.location.href = '/tasker/browse-tasks';
     return;
   }
 
@@ -487,7 +487,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div style="font-size: 0.88rem; color: var(--green-900);">
               <strong>Editing Task:</strong> You are modifying "<strong>${safeTitle}</strong>".
             </div>
-            <a href="/my-posted-tasks" style="font-size: 0.82rem; color: var(--green-700); text-decoration: none; font-weight: 600;">Cancel & Return</a>
+            <a href="/poster/my-posted-tasks" style="font-size: 0.82rem; color: var(--green-700); text-decoration: none; font-weight: 600;">Cancel & Return</a>
           `;
           draftBanner.style.display = 'flex';
         }
@@ -812,7 +812,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           localStorage.removeItem('taska_post_task_draft');
           if (window.showToast) window.showToast('Task updated successfully!');
-          window.location.href = '/my-posted-tasks';
+          window.location.href = '/poster/my-posted-tasks';
           return;
         }
 
@@ -846,7 +846,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (window.showToast) window.showToast('Task posted successfully!');
-        window.location.href = '/my-posted-tasks';
+        window.location.href = '/poster/my-posted-tasks';
       } catch (err) {
         console.error('Post task error:', err);
         const msg = err?.message || 'Failed to post task. Please check all fields.';

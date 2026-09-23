@@ -55,11 +55,11 @@ window.renderStandaloneProfile = async function (targetProfileId) {
     return;
   }
 
-  // Update address bar cleanly to display ?u=username
+  // Update address bar cleanly to display /@username
   if (profileToRender.username && window.history && window.history.replaceState) {
-    const cleanSearch = `?u=${encodeURIComponent(profileToRender.username)}`;
-    if (window.location.search !== cleanSearch) {
-      window.history.replaceState(null, '', `/tasker/profile${cleanSearch}`);
+    const cleanPath = `/tasker/profile/@${encodeURIComponent(profileToRender.username)}`;
+    if (window.location.pathname !== cleanPath) {
+      window.history.replaceState(null, '', cleanPath);
     }
   }
 
@@ -386,43 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Modal controls
-  const reviewModal = document.getElementById('reviewModal');
-  const btnReview = document.getElementById('btnReview');
-  const closeReviewModalBtn = document.getElementById('closeReviewModalBtn');
-  const btnSubmitReview = document.getElementById('btnSubmitReview');
 
-  function openReviewModal() {
-    if (reviewModal) {
-      selectedRatingValue = 0;
-      const starBtns = reviewModal.querySelectorAll('#starSelector .star-btn');
-      starBtns.forEach((b) => {
-        b.classList.remove('is-active');
-        b.style.color = 'var(--muted)';
-      });
-      const starLabel = document.getElementById('starLabel');
-      if (starLabel) starLabel.textContent = 'Select a rating (1 to 5 stars)';
-      const commentInput = document.getElementById('reviewComment');
-      if (commentInput) commentInput.value = '';
-
-      reviewModal.classList.add('is-open');
-      reviewModal.style.display = 'flex';
-    }
-  }
-
-  function closeReviewModal() {
-    if (reviewModal) {
-      reviewModal.classList.remove('is-open');
-      reviewModal.style.display = 'none';
-    }
-  }
-
-  btnReview?.addEventListener('click', openReviewModal);
-  closeReviewModalBtn?.addEventListener('click', closeReviewModal);
-
-  reviewModal?.addEventListener('click', (e) => {
-    if (e.target === reviewModal) closeReviewModal();
-  });
 
   // Report Modal
   const reportModal = document.getElementById('reportModal');
@@ -469,94 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Star selector in review modal
-  const starBtns = document.querySelectorAll('#starSelector .star-btn');
-  const starLabel = document.getElementById('starLabel');
-  const labelMap = { 1: '1 Star — Terrible', 2: '2 Stars — Poor', 3: '3 Stars — Average', 4: '4 Stars — Very Good', 5: '5 Stars — Excellent' };
 
-  starBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      selectedRatingValue = parseInt(btn.dataset.value, 10);
-      starBtns.forEach((b) => {
-        const val = parseInt(b.dataset.value, 10);
-        if (val <= selectedRatingValue) {
-          b.classList.add('is-active');
-          b.style.color = '#F4A819';
-        } else {
-          b.classList.remove('is-active');
-          b.style.color = 'var(--muted)';
-        }
-      });
-      if (starLabel) starLabel.textContent = labelMap[selectedRatingValue];
-    });
-  });
-
-  // Submit Review Form
-  btnSubmitReview?.addEventListener('click', async () => {
-    if (!selectedRatingValue || selectedRatingValue < 1) {
-      if (window.showToast) window.showToast('Please select a star rating (1 to 5 stars).');
-      return;
-    }
-
-    const comment = document.getElementById('reviewComment')?.value.trim();
-    const myProfile = await window.ensureTaskaProfile();
-
-    if (!myProfile || !window.currentViewingProfile) {
-      if (window.showToast) window.showToast('Please log in to submit a review.');
-      return;
-    }
-
-    if (myProfile.id === window.currentViewingProfile.id) {
-      if (window.showToast) window.showToast('You cannot leave a review for yourself.');
-      closeReviewModal();
-      return;
-    }
-
-    btnSubmitReview.disabled = true;
-    btnSubmitReview.textContent = 'Submitting review...';
-
-    try {
-      const { error } = await window.supabaseClient
-        .from('Review')
-        .insert({
-          reviewerId: myProfile.id,
-          revieweeId: window.currentViewingProfile.id,
-          revieweeRole: 'TASKER',
-          rating: selectedRatingValue,
-          comment: comment || ''
-        });
-
-      if (error) throw error;
-
-      // Recalculate average rating & review count for Tasker role
-      const { data: allReviews } = await window.supabaseClient
-        .from('Review')
-        .select('rating')
-        .eq('revieweeId', window.currentViewingProfile.id)
-        .eq('revieweeRole', 'TASKER');
-
-      const count = allReviews ? allReviews.length : 0;
-      const avg = count > 0 ? allReviews.reduce((sum, r) => sum + (r.rating || 5), 0) / count : null;
-      await window.supabaseClient
-        .from('Profile')
-        .update({ taskerRating: avg, taskerReviewsCount: count, averageRating: avg, totalReviews: count })
-        .eq('id', window.currentViewingProfile.id);
-
-      closeReviewModal();
-      const commentInput = document.getElementById('reviewComment');
-      if (commentInput) commentInput.value = '';
-      if (window.showToast) window.showToast('Review submitted successfully!');
-
-      await loadProfileReviews(window.currentViewingProfile.id);
-
-    } catch (err) {
-      console.error('Submit review error:', err);
-      if (window.showToast) window.showToast('Could not submit review. Please try again.');
-    } finally {
-      btnSubmitReview.disabled = false;
-      btnSubmitReview.textContent = 'Submit review';
-    }
-  });
 
   // Automatically render standalone profile page on load
   window.renderStandaloneProfile();

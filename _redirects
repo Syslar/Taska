@@ -62,10 +62,10 @@
 /Chats/index.html              /chats                       301
 
 # --- 200! Clean URL Internal Rewrites (pointing to lowercase filesystem) ---
-/browse-tasks                  /tasker/browse-tasks/index.html  200!
-/post-task                     /poster/post-task/index.html     200!
-/my-applications               /tasker/my-applications/index.html 200!
-/my-posted-tasks               /poster/my-posted-tasks/index.html 200!
+/browse-tasks                  /tasker/browse-tasks             301
+/post-task                     /poster/post-task                301
+/my-applications               /tasker/my-applications          301
+/my-posted-tasks               /poster/my-posted-tasks          301
 
 /tasker/browse-tasks           /tasker/browse-tasks/index.html  200!
 /poster/post-task              /poster/post-task/index.html     200!

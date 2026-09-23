@@ -504,8 +504,8 @@ async function loadPeerHeader(peerId) {
       }
 
       const isTasker = peer.role === 'TASKER';
-      const userParam = peer.username ? `u=${encodeURIComponent(peer.username)}` : `id=${peer.id}`;
-      const profilePath = isTasker ? `/tasker/profile?${userParam}` : `/poster/profile?${userParam}`;
+      const userParam = peer.username ? `/@${encodeURIComponent(peer.username)}` : `?id=${peer.id}`;
+      const profilePath = isTasker ? `/tasker/profile${userParam}` : `/poster/profile${userParam}`;
       const checkIcon = window.TaskaIcons?.verified || '';
 
       if (peerNameEl) {

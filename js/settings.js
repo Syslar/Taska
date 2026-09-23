@@ -274,8 +274,8 @@ window.renderSettingsPage = async function () {
       btnSwitchMode.innerHTML = 'Switch to Poster Profile &rarr;';
       btnSwitchMode.onclick = () => switchRoleInSettings('POSTER');
     }
-    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
-    if (btnViewActiveProfile) btnViewActiveProfile.href = `/tasker/profile?${uParam}`;
+    const uParam = profile.username ? `/@${encodeURIComponent(profile.username)}` : `?id=${profile.id}`;
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/tasker/profile${uParam}`;
     if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Tasker Profile';
     if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Tasker Photo';
   } else {
@@ -288,8 +288,8 @@ window.renderSettingsPage = async function () {
       btnSwitchMode.innerHTML = 'Switch to Tasker Profile &rarr;';
       btnSwitchMode.onclick = () => switchRoleInSettings('TASKER');
     }
-    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
-    if (btnViewActiveProfile) btnViewActiveProfile.href = `/poster/profile?${uParam}`;
+    const uParam = profile.username ? `/@${encodeURIComponent(profile.username)}` : `?id=${profile.id}`;
+    if (btnViewActiveProfile) btnViewActiveProfile.href = `/poster/profile${uParam}`;
     if (btnViewProfileLabel) btnViewProfileLabel.textContent = 'View Poster Profile';
     if (btnAvatarLabel) btnAvatarLabel.textContent = 'Change Poster Photo / Logo';
   }

@@ -93,7 +93,7 @@ window.switchTab = function switchTab(tabName) {
   if (tabName === 'profile') {
     const role = window.getTaskaRole();
     const profile = window.getTaskaProfile ? window.getTaskaProfile() : null;
-    const uParam = profile?.username ? `?u=${encodeURIComponent(profile.username)}` : (profile?.id ? `?id=${profile.id}` : '');
+    const uParam = profile?.username ? `/@${encodeURIComponent(profile.username)}` : (profile?.id ? `?id=${profile.id}` : '');
     window.location.href = role === 'TASKER' ? `/tasker/profile${uParam}` : `/poster/profile${uParam}`;
     return;
   }

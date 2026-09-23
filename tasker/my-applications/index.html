@@ -93,7 +93,7 @@
         <h1>My Applications</h1>
         <p class="sub">Track submitted offers, review shortlisted status, and manage active jobs.</p>
       </div>
-      <a href="/browse-tasks" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
+      <a href="/tasker/browse-tasks" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         Browse Open Tasks
       </a>
@@ -142,6 +142,44 @@
       <button type="button" class="btn btn-secondary" id="cancelSubmitWorkBtn">Cancel</button>
       <button type="button" class="btn btn-primary" id="confirmSubmitWorkBtn">Submit for Poster Approval</button>
     </div>
+  </div>
+</div>
+
+<!-- LEAVE A REVIEW MODAL (TASKER RATING POSTER) -->
+<div class="modal-overlay" id="taskReviewModal" style="display:none;">
+  <div class="modal" style="max-width:480px;">
+    <button class="modal-close" onclick="document.getElementById('taskReviewModal').style.display='none'; document.getElementById('taskReviewModal').classList.remove('is-open');">✕</button>
+    <h2 style="font-size:1.3rem; margin-bottom:6px;">Rate Poster</h2>
+    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:24px;" id="taskReviewSubText">How was your experience working with this poster?</p>
+
+    <div style="margin-bottom:22px;">
+      <label class="field-label">Your rating</label>
+      <div class="star-selector" id="posterStarSelector" style="display:flex; gap:6px;">
+        <button class="star-btn" data-value="1" type="button" aria-label="1 star" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="2" type="button" aria-label="2 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="3" type="button" aria-label="3 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="4" type="button" aria-label="4 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+        <button class="star-btn" data-value="5" type="button" aria-label="5 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        </button>
+      </div>
+      <div class="star-label" id="posterStarLabel" style="color:var(--muted); font-size:0.86rem; margin-top:6px;">Select a rating (1 to 5 stars)</div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="posterReviewComment">Comment (optional)</label>
+      <textarea class="textarea-input" id="posterReviewComment" rows="4" placeholder="Share your experience working with this poster..."></textarea>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="submitTaskReviewBtn" onclick="submitTaskReview()">Submit review</button>
   </div>
 </div>
 

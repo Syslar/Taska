@@ -47,7 +47,8 @@ async function checkAndAutoReleaseEscrow() {
     // Non-blocking background check
     console.warn('[auto-release] Background check error:', e);
   }
-}
+let posterSelectedRating = 0;
+let myReviewedTaskIds = new Set();
 
 async function fetchMyTasks() {
   const profile = await window.ensureTaskaProfile();
@@ -66,6 +67,16 @@ async function fetchMyTasks() {
       .order('createdAt', { ascending: false });
 
     if (error) throw error;
+
+    const { data: myReviews, err: revErr } = await window.supabaseClient
+      .from('Review')
+      .select('taskId')
+      .eq('reviewerId', profile.id)
+      .eq('revieweeRole', 'TASKER');
+    
+    if (myReviews) {
+      myReviewedTaskIds = new Set(myReviews.map(r => r.taskId).filter(id => id));
+    }
 
     myTasksData = tasks || [];
     renderMyTasksList();
@@ -102,7 +113,7 @@ function renderMyTasksList() {
         <div style="color:var(--muted);">${clipboardIcon}</div>
         <h3 style="font-size:1.2rem; color:var(--green-900); margin-bottom:6px;">No tasks found</h3>
         <p style="color:var(--muted); font-size:0.9rem; margin-bottom:20px;">You haven't posted any tasks matching this filter.</p>
-        <a href="/post-task" class="btn btn-primary">+ Post a Task Now</a>
+        <a href="/poster/post-task" class="btn btn-primary">+ Post a Task Now</a>
       </div>`;
     return;
   }
@@ -230,7 +241,7 @@ function renderMyTasksList() {
 
           return `
             <div class="applicant-card">
-              <div class="applicant-info" onclick="window.location.href='/tasker/profile?id=${tasker.id}'">
+              <div class="applicant-info" onclick="window.location.href='/tasker/profile${tasker.username ? `/@${encodeURIComponent(tasker.username)}` : `?id=${tasker.id}`}'">
                 <div class="applicant-avatar">${avHTML}</div>
                 <div>
                   <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
@@ -252,7 +263,7 @@ function renderMyTasksList() {
                   data-tasker-name="${tName}"
                   data-budget="${appBid}">Accept & Lock Escrow</button>
                 <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${tasker.id}&task=${t.id}'">Message</button>
-                <a href="/tasker/profile?id=${tasker.id}" class="btn btn-ghost btn-sm">View Profile</a>
+                <a href="/tasker/profile${tasker.username ? `/@${encodeURIComponent(tasker.username)}` : `?id=${tasker.id}`}" class="btn btn-ghost btn-sm">View Profile</a>
               </div>
             </div>
           `;
@@ -268,7 +279,7 @@ function renderMyTasksList() {
 
         applicantsHTML = `
           <div class="applicant-card" style="border-left: 3px solid var(--green-700); background:var(--mint-050);">
-            <div class="applicant-info" onclick="window.location.href='/tasker/profile?id=${hiredTasker.id}'">
+            <div class="applicant-info" onclick="window.location.href='/tasker/profile${hiredTasker.username ? `/@${encodeURIComponent(hiredTasker.username)}` : `?id=${hiredTasker.id}`}'">
               <div class="applicant-avatar">${avHTML}</div>
               <div>
                 <div style="font-weight:700; font-size:0.95rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
@@ -305,8 +316,17 @@ function renderMyTasksList() {
                   Approve & Release Payment
                 </button>
               ` : ''}
+              ${(t.status === 'COMPLETED' || t.status === 'CLOSED') ? `
+                ${myReviewedTaskIds.has(t.id) 
+                  ? `<div class="btn btn-ghost btn-sm" style="color:var(--green-700); cursor:default;">${checkIcon} Review Submitted</div>` 
+                  : `<button class="btn btn-primary btn-sm btn-rate-tasker"
+                      data-task-id="${t.id}"
+                      data-tasker-id="${hiredTasker.id}"
+                      data-tasker-name="${safeHiredName}">Rate Tasker</button>`
+                }
+              ` : ''}
               <button class="btn btn-secondary btn-sm" onclick="window.location.href='/chats?user=${hiredTasker.id}&task=${t.id}'">Message Tasker</button>
-              <a href="/tasker/profile?id=${hiredTasker.id}" class="btn btn-ghost btn-sm">Profile</a>
+              <a href="/tasker/profile${hiredTasker.username ? `/@${encodeURIComponent(hiredTasker.username)}` : `?id=${hiredTasker.id}`}" class="btn btn-ghost btn-sm">Profile</a>
             </div>
           </div>
         `;
@@ -377,14 +397,25 @@ function bindTaskActionButtons() {
   });
 
   // 2. Approve & Release Payment Buttons
-  container.querySelectorAll('.btn-release-payment').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const taskId = btn.dataset.taskId;
-      const taskerId = btn.dataset.taskerId;
-      const taskerName = btn.dataset.taskerName;
-      const taskTitle = btn.dataset.taskTitle;
-      const budget = parseFloat(btn.dataset.budget) || 0;
-      promptReleasePayment(taskId, taskerId, taskerName, taskTitle, budget);
+  const releaseBtns = container.querySelectorAll('.btn-release-payment');
+  releaseBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const taskId = btn.getAttribute('data-task-id');
+      const taskerId = btn.getAttribute('data-tasker-id');
+      const taskerName = btn.getAttribute('data-tasker-name');
+      const title = btn.getAttribute('data-task-title');
+      const budget = parseInt(btn.getAttribute('data-budget'), 10) || 0;
+      promptReleasePayment(taskId, taskerId, taskerName, title, budget);
+    });
+  });
+
+  const rateBtns = container.querySelectorAll('.btn-rate-tasker');
+  rateBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const taskId = btn.getAttribute('data-task-id');
+      const taskerId = btn.getAttribute('data-tasker-id');
+      const taskerName = btn.getAttribute('data-tasker-name');
+      openTaskReviewModal(taskId, taskerId, taskerName);
     });
   });
 
@@ -570,13 +601,15 @@ async function executeReleasePayment() {
     }
 
     if (window.showToast) {
-      window.showToast(`Task completed! Payment released to ${taskerName}.`);
+      window.showToast('Payment released successfully! Task is now completed.');
     }
 
-    // Launch Review Modal for Poster to rate Tasker
-    openTaskReviewModal(taskId, taskerId, taskerName);
-
-    await fetchMyTasks();
+    // Auto-open review modal if they haven't reviewed this task
+    if (!myReviewedTaskIds.has(taskId)) {
+      openTaskReviewModal(taskId, taskerId, taskerName);
+    } else {
+      await fetchMyTasks();
+    }
 
   } catch (err) {
     console.error('executeReleasePayment error:', err);
@@ -748,7 +781,10 @@ async function submitTaskReview() {
       modal.style.display = 'none';
     }
 
-    if (window.showToast) window.showToast(`Thank you! Review submitted for ${taskerName}.`);
+    if (window.showToast) window.showToast('Review submitted successfully!');
+    
+    // Refresh to show the "Review Submitted" button state
+    await fetchMyTasks();
 
   } catch (err) {
     console.error('submitTaskReview error:', err);

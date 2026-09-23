@@ -309,8 +309,8 @@ function populateSidebar(profile) {
   }
 
   const getProfileTarget = () => {
-    const uParam = profile.username ? `u=${encodeURIComponent(profile.username)}` : `id=${profile.id}`;
-    return isTaskerMode ? `/tasker/profile?${uParam}` : `/poster/profile?${uParam}`;
+    const uParam = profile.username ? `/@${encodeURIComponent(profile.username)}` : `?id=${profile.id}`;
+    return isTaskerMode ? `/tasker/profile${uParam}` : `/poster/profile${uParam}`;
   };
 
   if (mobileAv) {

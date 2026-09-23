@@ -94,10 +94,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Message
           </button>
-          <button class="btn btn-secondary btn-block" id="btnReview">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Leave a review
-          </button>
+
         </div>
 
         <!-- Own profile actions — shown only on own profile -->
@@ -237,43 +234,7 @@
   </main>
 </div>
 
-<!-- LEAVE A REVIEW MODAL -->
-<div class="modal-overlay" id="reviewModal" style="display:none;">
-  <div class="modal" style="max-width:480px;">
-    <button class="modal-close" id="closeReviewModalBtn">✕</button>
-    <h2 style="font-size:1.3rem; margin-bottom:6px;">Leave a review</h2>
-    <p style="color:var(--muted); font-size:0.88rem; margin-bottom:24px;">Your review helps other users make better decisions.</p>
 
-    <div style="margin-bottom:22px;">
-      <label class="field-label">Your rating</label>
-      <div class="star-selector" id="starSelector" style="display:flex; gap:6px;">
-        <button class="star-btn" data-value="1" type="button" aria-label="1 star" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-        </button>
-        <button class="star-btn" data-value="2" type="button" aria-label="2 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-        </button>
-        <button class="star-btn" data-value="3" type="button" aria-label="3 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-        </button>
-        <button class="star-btn" data-value="4" type="button" aria-label="4 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-        </button>
-        <button class="star-btn" data-value="5" type="button" aria-label="5 stars" style="background:none; border:none; cursor:pointer; color:var(--muted); padding:4px;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-        </button>
-      </div>
-      <div class="star-label" id="starLabel" style="color:var(--muted); font-size:0.86rem; margin-top:6px;">Select a rating (1 to 5 stars)</div>
-    </div>
-
-    <div class="field-group">
-      <label class="field-label" for="reviewComment">Comment</label>
-      <textarea class="textarea-input" id="reviewComment" rows="4" placeholder="Share your experience working with this poster..."></textarea>
-    </div>
-
-    <button class="btn btn-primary btn-block" id="btnSubmitReview">Submit review</button>
-  </div>
-</div>
 
 <!-- REPORT USER MODAL -->
 <div class="modal-overlay" id="reportModal" style="display:none;">

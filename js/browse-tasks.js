@@ -405,8 +405,8 @@ window.openTaskModal = async function (taskId) {
   const posterLink = document.getElementById('modal-poster-link');
   const checkIcon = window.TaskaIcons?.verified || '';
   if (posterLink) {
-    const posterParam = poster?.username ? `u=${encodeURIComponent(poster.username)}` : `id=${poster?.id || ''}`;
-    posterLink.href = `/poster/profile?${posterParam}`;
+    const posterParam = poster?.username ? `/@${encodeURIComponent(poster.username)}` : `?id=${poster?.id || ''}`;
+    posterLink.href = `/poster/profile${posterParam}`;
     posterLink.innerHTML = `${posterName} ${poster?.isVerified ? `<span title="Identity Verified" style="display:inline-flex; align-items:center; vertical-align:middle;">${checkIcon}</span>` : ''}`;
   }
 
