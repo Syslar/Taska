@@ -9,132 +9,187 @@ async function loadTaskerDashboardData() {
   if (!profile || !window.supabaseClient) return;
 
   // Apply skeleton shimmers to stat elements
-  const _tskDashStatIds = ['stat-balance', 'stat-active-tasks', 'stat-completed-tasks', 'stat-rating'];
-  _tskDashStatIds.forEach(id => {
+  const _tskDashStatIds = [
+    "stat-balance",
+    "stat-active-tasks",
+    "stat-completed-tasks",
+    "stat-rating",
+  ];
+  _tskDashStatIds.forEach((id) => {
     const el = document.getElementById(id);
-    if (el) { el.textContent = ''; el.classList.add('taska-skeleton'); el.style.cssText += 'min-width:60px;min-height:1em;display:inline-block;border-radius:6px;'; }
+    if (el) {
+      el.textContent = "";
+      el.classList.add("taska-skeleton");
+      el.style.cssText +=
+        "min-width:60px;min-height:1em;display:inline-block;border-radius:6px;";
+    }
   });
   function _clearTskDashStats() {
-    _tskDashStatIds.forEach(id => {
+    _tskDashStatIds.forEach((id) => {
       const el = document.getElementById(id);
-      if (el) { el.classList.remove('taska-skeleton'); el.style.minWidth = ''; el.style.minHeight = ''; }
+      if (el) {
+        el.classList.remove("taska-skeleton");
+        el.style.minWidth = "";
+        el.style.minHeight = "";
+      }
     });
   }
 
   try {
     // 1. Greeting
-    const firstName = profile.firstName || 'there';
-    const greetingEl = document.getElementById('greeting');
+    const firstName = profile.firstName || "there";
+    const greetingEl = document.getElementById("greeting");
     if (greetingEl) {
       greetingEl.textContent = `Good ${getGreetingTimeOfDay()}, ${firstName}`;
     }
 
     // 2. Fetch Wallet directly
     const { data: wallet } = await window.supabaseClient
-      .from('Wallet')
-      .select('*, WalletTransaction(*)')
-      .eq('profileId', profile.id)
+      .from("Wallet")
+      .select("*, WalletTransaction(*)")
+      .eq("profileId", profile.id)
       .maybeSingle();
 
-    const balanceEl = document.getElementById('stat-balance');
-    const escrowEl = document.getElementById('stat-escrow');
+    const balanceEl = document.getElementById("stat-balance");
+    const escrowEl = document.getElementById("stat-escrow");
 
     _clearTskDashStats();
 
     if (wallet) {
-      if (balanceEl) balanceEl.textContent = window.formatNaira(wallet.balance || 0);
-      if (escrowEl) escrowEl.textContent = (wallet.escrowBalance > 0) ? `${window.formatNaira(wallet.escrowBalance)} in escrow` : 'Verified Escrow';
+      if (balanceEl)
+        balanceEl.textContent = window.formatNaira(wallet.balance || 0);
+      if (escrowEl)
+        escrowEl.textContent =
+          wallet.escrowBalance > 0
+            ? `${window.formatNaira(wallet.escrowBalance)} in escrow`
+            : "Verified Escrow";
     } else {
-      if (balanceEl) balanceEl.textContent = '₦0';
-      if (escrowEl) escrowEl.textContent = 'Verified Escrow';
+      if (balanceEl) balanceEl.textContent = "₦0";
+      if (escrowEl) escrowEl.textContent = "Verified Escrow";
     }
 
     // 3. Fetch Active Assigned Jobs for this Tasker
     const { data: activeJobs } = await window.supabaseClient
-      .from('Task')
-      .select('id, title, status, budget, budgetType, createdAt, category, location')
-      .eq('assignedTo', profile.id)
-      .in('status', ['ASSIGNED', 'IN_PROGRESS', 'PROOF_SUBMITTED'])
-      .order('createdAt', { ascending: false });
+      .from("Task")
+      .select(
+        "id, title, status, budget, budgetType, createdAt, category, location",
+      )
+      .eq("assignedTo", profile.id)
+      .in("status", ["ASSIGNED", "IN_PROGRESS", "PROOF_SUBMITTED"])
+      .order("createdAt", { ascending: false });
 
     // 4. Count Completed Jobs for this Tasker
     const { count: completedCount } = await window.supabaseClient
-      .from('Task')
-      .select('*', { count: 'exact', head: true })
-      .eq('assignedTo', profile.id)
-      .in('status', ['COMPLETED', 'CLOSED']);
+      .from("Task")
+      .select("*", { count: "exact", head: true })
+      .eq("assignedTo", profile.id)
+      .in("status", ["COMPLETED", "CLOSED"]);
 
     const activeCount = activeJobs?.length || 0;
-    const activeTasksEl = document.getElementById('stat-active-tasks');
-    const activeTasksSubEl = document.getElementById('stat-active-tasks-sub');
-    const completedTasksEl = document.getElementById('stat-completed-tasks');
+    const activeTasksEl = document.getElementById("stat-active-tasks");
+    const activeTasksSubEl = document.getElementById("stat-active-tasks-sub");
+    const completedTasksEl = document.getElementById("stat-completed-tasks");
 
     if (activeTasksEl) activeTasksEl.textContent = activeCount;
-    if (activeTasksSubEl) activeTasksSubEl.textContent = activeCount === 1 ? '1 active job' : `${activeCount} active jobs`;
+    if (activeTasksSubEl)
+      activeTasksSubEl.textContent =
+        activeCount === 1 ? "1 active job" : `${activeCount} active jobs`;
     if (completedTasksEl) completedTasksEl.textContent = completedCount || 0;
 
     const rating = profile.averageRating;
-    const ratingEl = document.getElementById('stat-rating');
-    const reviewsEl = document.getElementById('stat-reviews');
+    const ratingEl = document.getElementById("stat-rating");
+    const reviewsEl = document.getElementById("stat-reviews");
 
     if (ratingEl) {
-      ratingEl.innerHTML = (rating && rating > 0)
-        ? `${rating.toFixed(1)}<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`
-        : `5.0<span style="font-size:0.9rem; color:var(--muted);"> / 5</span>`;
+      const displayRating = rating && rating > 0 ? rating.toFixed(1) : "0.0";
+      const percentage = ((rating || 0) / 5) * 100;
+      ratingEl.innerHTML = `
+        <div style="display:flex; align-items:center; gap:6px;">
+          <div style="display:inline-flex; position:relative; vertical-align:middle;">
+            <div style="display:flex; color:var(--line);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+            <div style="display:flex; color:#F59E0B; position:absolute; top:0; left:0; overflow:hidden; width:${percentage}%;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            </div>
+          </div>
+          <div style="font-size:1rem; display:flex; align-items:center;">
+            ${displayRating}<span style="font-size:0.85rem; color:var(--muted); font-weight:normal; margin-left:2px;"> / 5</span>
+          </div>
+        </div>
+      `;
     }
 
     if (reviewsEl) {
-      reviewsEl.textContent = (profile.totalReviews > 0)
-        ? `From ${profile.totalReviews} review${profile.totalReviews > 1 ? 's' : ''}`
-        : 'Verified Identity';
+      reviewsEl.textContent =
+        profile.totalReviews > 0
+          ? `From ${profile.totalReviews} review${profile.totalReviews > 1 ? "s" : ""}`
+          : "No reviews yet";
     }
 
     // 5. Fetch Open Tasks Nearby to display on dashboard (excluding current user's own posts)
     let openTasksQuery = window.supabaseClient
-      .from('Task')
-      .select('id, title, status, budget, createdAt, category, location, posterId')
-      .eq('status', 'OPEN')
-      .order('createdAt', { ascending: false });
+      .from("Task")
+      .select(
+        "id, title, status, budget, createdAt, category, location, posterId",
+      )
+      .eq("status", "OPEN")
+      .order("createdAt", { ascending: false });
 
     if (profile && profile.id) {
-      openTasksQuery = openTasksQuery.neq('posterId', profile.id);
+      openTasksQuery = openTasksQuery.neq("posterId", profile.id);
     }
 
     const { data: openTasks } = await openTasksQuery.limit(6);
 
     renderOpenTasksList(openTasks || [], activeJobs || []);
-
   } catch (err) {
-    console.error('loadTaskerDashboardData error:', err);
+    console.error("loadTaskerDashboardData error:", err);
   }
 }
 
 function getGreetingTimeOfDay() {
   const h = new Date().getHours();
-  if (h < 12) return 'morning';
-  if (h < 17) return 'afternoon';
-  return 'evening';
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
 }
 
 function renderOpenTasksList(openTasks, activeJobs) {
-  const el = document.getElementById('active-tasks-list');
+  const el = document.getElementById("active-tasks-list");
   if (!el) return;
 
-  const locIcon = window.TaskaIcons?.location || '';
+  const locIcon = window.TaskaIcons?.location || "";
 
-  if ((!openTasks || openTasks.length === 0) && (!activeJobs || activeJobs.length === 0)) {
-    el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No tasks available right now. <a href="/tasker/browse-tasks" style="color:var(--green-700); font-weight:600;">Check Browse Tasks.</a></div>';
+  if (
+    (!openTasks || openTasks.length === 0) &&
+    (!activeJobs || activeJobs.length === 0)
+  ) {
+    el.innerHTML =
+      '<div style="padding:24px; text-align:center; color:var(--muted); font-size:0.88rem;">No tasks available right now. <a href="/tasker/browse-tasks" style="color:var(--green-700); font-weight:600;">Check Browse Tasks.</a></div>';
     return;
   }
 
   // Display open tasks with direct application link
-  el.innerHTML = openTasks.map(task => {
-    const budget = task.budget != null ? window.formatNaira(task.budget) : 'Open bid';
-    const safeTitle = window.escapeHtml(task.title || 'Untitled Task');
-    const safeCategory = window.escapeHtml(task.category || 'General');
-    const safeLocation = window.escapeHtml(task.location || 'Remote / Anywhere');
+  el.innerHTML = openTasks
+    .map((task) => {
+      const budget =
+        task.budget != null ? window.formatNaira(task.budget) : "Open bid";
+      const safeTitle = window.escapeHtml(task.title || "Untitled Task");
+      const safeCategory = window.escapeHtml(task.category || "General");
+      const safeLocation = window.escapeHtml(
+        task.location || "Remote / Anywhere",
+      );
 
-    return `
+      return `
       <div class="task-row" style="display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line-soft); cursor:pointer;" onclick="window.location.href='/tasker/browse-tasks'">
         <div style="flex:1; min-width:0;">
           <div class="task-row-title" style="font-weight:600; font-size:0.92rem; color:var(--green-900); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${safeTitle}</div>
@@ -146,11 +201,12 @@ function renderOpenTasksList(openTasks, activeJobs) {
         </div>
         <div class="task-row-amt mono" style="font-weight:700; font-size:0.95rem; color:var(--green-700); margin-left:12px;">${budget}</div>
       </div>`;
-  }).join('');
+    })
+    .join("");
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  window.addEventListener('taska:ready', loadTaskerDashboardData);
+document.addEventListener("DOMContentLoaded", () => {
+  window.addEventListener("taska:ready", loadTaskerDashboardData);
   if (window.__taskaReady) loadTaskerDashboardData();
   loadTaskerDashboardData();
 });

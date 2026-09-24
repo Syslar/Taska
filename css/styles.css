@@ -2388,7 +2388,7 @@ button {
   }
 }
 
-/* â”€â”€ Responsive Chats & Messaging Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Responsive Chats & Messaging Component */
 .chat-container {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -2555,7 +2555,7 @@ button {
   }
 }
 
-/* â”€â”€ Horizontal Scrollable Tabs on Mobile and Desktop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Horizontal Scrollable Tabs on Mobile and Desktop  */
 .settings-subnav,
 .settings-inner-tabs,
 .profile-tabs,
@@ -3724,10 +3724,12 @@ no stock. --><style>.proof-wall {
     transform: none;
   }
 }
+
 /* ============================== FAQ STYLES ============================== */
 .faq-category {
   margin-bottom: 48px;
 }
+
 .faq-cat-title {
   font-size: 1.5rem;
   margin-bottom: 24px;
@@ -3736,11 +3738,13 @@ no stock. --><style>.proof-wall {
   border-bottom: 1px solid var(--line);
   padding-bottom: 12px;
 }
+
 .faq-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .faq-item {
   background: var(--paper);
   border: 1px solid var(--line);
@@ -3748,37 +3752,45 @@ no stock. --><style>.proof-wall {
   overflow: hidden;
   transition: all 0.3s ease;
 }
+
 .faq-item:hover {
   border-color: var(--line-soft);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
+
 .faq-item summary {
   padding: 20px 24px;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  list-style: none; /* Hide default marker */
+  list-style: none;
+  /* Hide default marker */
   user-select: none;
 }
+
 .faq-item summary::-webkit-details-marker {
   display: none;
 }
+
 .faq-q {
   font-weight: 600;
   font-size: 1.05rem;
   color: var(--ink);
   padding-right: 24px;
 }
+
 .faq-icon {
   color: var(--muted);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
+
 .faq-item[open] .faq-icon {
   transform: rotate(180deg);
   color: var(--green-700);
 }
+
 .faq-a {
   padding: 0 24px 24px;
   color: var(--muted);
@@ -3786,13 +3798,21 @@ no stock. --><style>.proof-wall {
   font-size: 0.95rem;
   animation: faqFadeIn 0.3s ease-out forwards;
 }
+
 .faq-a strong {
   color: var(--ink);
 }
 
 @keyframes faqFadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================== ANIMATED SEARCH BAR ============================== */
@@ -3801,6 +3821,7 @@ no stock. --><style>.proof-wall {
   justify-content: center;
   margin-bottom: 64px;
 }
+
 .faq-search-container {
   position: relative;
   width: 280px;
@@ -3813,6 +3834,7 @@ no stock. --><style>.proof-wall {
   padding: 0 20px;
   height: 56px;
 }
+
 .faq-search-container:focus-within,
 .faq-search-container:hover {
   width: 100%;
@@ -3820,14 +3842,17 @@ no stock. --><style>.proof-wall {
   border-color: var(--green-500);
   box-shadow: 0 0 0 4px rgba(18, 128, 92, 0.1);
 }
+
 .faq-search-container .search-icon {
   color: var(--muted);
   margin-right: 12px;
   transition: color 0.3s ease;
 }
+
 .faq-search-container:focus-within .search-icon {
   color: var(--green-700);
 }
+
 .faq-search-container input {
   border: none;
   background: transparent;
@@ -3837,6 +3862,7 @@ no stock. --><style>.proof-wall {
   color: var(--ink);
   outline: none;
 }
+
 .faq-search-container input::placeholder {
   color: #9CA3AF;
 }
