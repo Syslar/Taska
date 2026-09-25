@@ -122,6 +122,7 @@ window.renderSettingsPage = async function () {
 
   // 1. Populate General Profile fields
   const fname = document.getElementById('settingsFname');
+  const mname = document.getElementById('settingsMname');
   const lname = document.getElementById('settingsLname');
   const loc = document.getElementById('settingsLocation');
   const bio = document.getElementById('settingsBio');
@@ -130,6 +131,7 @@ window.renderSettingsPage = async function () {
   const ageHint = document.getElementById('settingsAgeHint');
 
   if (fname) fname.value = profile.firstName || '';
+  if (mname) mname.value = profile.middleName || '';
   if (lname) lname.value = profile.lastName || '';
   if (loc) loc.value = profile.location || '';
   if (genderEl) genderEl.value = profile.gender || '';
@@ -608,6 +610,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
   }
 
   const firstName = document.getElementById('settingsFname')?.value.trim() || '';
+  const middleName = document.getElementById('settingsMname')?.value.trim() || '';
   const lastName = document.getElementById('settingsLname')?.value.trim() || '';
   const avatarFile = document.getElementById('settingsAvatarUpload')?.files[0];
   let newAvatarUrl = undefined;
@@ -656,6 +659,7 @@ document.getElementById('settingsProfileForm')?.addEventListener('submit', async
     // They are updated exclusively by the verified Termii OTP Edge Function upon successful code check.
     const updatePayload = {
       firstName,
+      middleName,
       lastName,
       location,
       bio,

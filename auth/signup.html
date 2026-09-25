@@ -237,11 +237,16 @@
         </div>
 
         <form id="signup-form">
-          <div class="input-row">
+          <div class="input-row" style="grid-template-columns: 1fr 1fr 1fr;">
             <div class="field-group">
               <label class="field-label" for="fname">First name</label>
               <input class="text-input" type="text" id="fname" placeholder="Ada" required>
               <span class="field-error">First name is required.</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="mname">Middle name</label>
+              <input class="text-input" type="text" id="mname" placeholder="Chidi" required>
+              <span class="field-error">Middle name is required.</span>
             </div>
             <div class="field-group">
               <label class="field-label" for="lname">Last name</label>
@@ -1233,6 +1238,7 @@
         }
 
         const firstName       = document.getElementById('fname').value.trim();
+        const middleName      = document.getElementById('mname').value.trim();
         const lastName        = document.getElementById('lname').value.trim();
         const emailAddress    = document.getElementById('suEmail').value.trim();
         const password        = document.getElementById('suPassword').value;

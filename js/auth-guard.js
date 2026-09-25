@@ -625,6 +625,7 @@ async function runAuthGuard() {
 
 // Check & Display Profile Completion Prompt on Dashboard load
 window.checkProfileCompletionPrompt = function (profile) {
+  return; // Temporarily disabled by user request
   if (!profile) return;
   const path = window.location.pathname.toLowerCase();
   const isDashboard = path.includes('/dashboard') || path.endsWith('dashboard.html') || (path.endsWith('index.html') && (path.includes('/poster/') || path.includes('/tasker/')));
@@ -635,9 +636,10 @@ window.checkProfileCompletionPrompt = function (profile) {
   const hasDob = Boolean(profile.dateOfBirth);
   const hasGender = Boolean(profile.gender && profile.gender !== '');
   const isKyc = Boolean(profile.isVerified || profile.kycStatus === 'VERIFIED');
+  const hasMiddleName = Boolean(profile.middleName && profile.middleName !== '');
 
   // If everything is already complete, do not show
-  if (hasDob && hasGender && isKyc) return;
+  if (hasDob && hasGender && isKyc && hasMiddleName) return;
 
   // Render Profile Setup Completion Modal
   document.querySelectorAll('.taska-profile-setup-backdrop').forEach(d => d.remove());
@@ -674,8 +676,20 @@ window.checkProfileCompletionPrompt = function (profile) {
             <span style="color:var(--green-900); font-weight:600;">Age (Date of Birth)</span>
           </div>
           ${hasDob
-      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Set</span>`
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;"> Set</span>`
       : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Add DOB</a>`
+    }
+        </div>
+
+        <!-- Middle Name -->
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.88rem; margin-top:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green-800)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span style="color:var(--green-900); font-weight:600;">Middle Name</span>
+          </div>
+          ${hasMiddleName
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;"> Set</span>`
+      : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Add Middle Name</a>`
     }
         </div>
 
@@ -686,7 +700,7 @@ window.checkProfileCompletionPrompt = function (profile) {
             <span style="color:var(--green-900); font-weight:600;">Gender Declaration</span>
           </div>
           ${hasGender
-      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ ${profile.gender}</span>`
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;"> ${profile.gender}</span>`
       : `<a href="${settingsUrl}" style="color:#D97706; background:#FEF3C7; border:1px solid #FCD34D; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Select Gender</a>`
     }
         </div>
@@ -698,7 +712,7 @@ window.checkProfileCompletionPrompt = function (profile) {
             <span style="color:var(--green-900); font-weight:600;">Identity Verification (KYC)</span>
           </div>
           ${isKyc
-      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;">✓ Verified</span>`
+      ? `<span style="color:var(--green-700); font-weight:600; font-size:0.8rem; display:inline-flex; align-items:center; gap:3px;"> Verified</span>`
       : `<a href="${kycUrl}" style="color:#1D4ED8; background:#EFF6FF; border:1px solid #BFDBFE; font-size:0.75rem; font-weight:700; padding:3px 8px; border-radius:8px; text-decoration:none;">Verify ID</a>`
     }
         </div>
@@ -2715,7 +2729,7 @@ Thank you.`;
     try {
       await navigator.clipboard.writeText('support@taska.com.ng');
       const textSpan = modal.querySelector('#btnGlobalCopySupportText');
-      if (textSpan) textSpan.textContent = '✓ Copied support@taska.com.ng!';
+      if (textSpan) textSpan.textContent = ' Copied support@taska.com.ng!';
       if (window.showToast) window.showToast('Support email copied to clipboard!', 'success');
       setTimeout(() => {
         if (textSpan) textSpan.textContent = 'Copy Support Email (support@taska.com.ng)';

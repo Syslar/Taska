@@ -49,7 +49,7 @@ async function authenticateCaller(req: Request, supabase: any, targetProfileId: 
 
     const { data: profile, error } = await supabase
       .from('Profile')
-      .select('id, userId')
+      .select('id, userId, firstName, middleName, lastName')
       .eq('id', targetProfileId)
       .maybeSingle();
 
@@ -92,6 +92,48 @@ Deno.serve(async (req) => {
   const authResult = await authenticateCaller(req, supabase, profileId);
   if (authResult.error) {
     return respond({ error: authResult.error }, authResult.status || 401);
+  }
+
+  const { profile } = authResult;
+
+  if (!profile.firstName || !profile.middleName || !profile.lastName) {
+    return respond({ error: 'Please update your profile to include your first, middle, and last names before withdrawing.' }, 403);
+  }
+
+  const profileNames = [profile.firstName, profile.middleName, profile.lastName]
+    .map(n => n.trim().toLowerCase())
+    .filter(Boolean)
+    .sort();
+
+  // Securely resolve bank account name from Paystack to prevent spoofing
+  let resolvedBankName = '';
+  try {
+    const resolveRes = await fetch(`https://api.paystack.co/bank/resolve?account_number=${accountNumber.replace(/\D/g, '')}&bank_code=${bankCode}`, {
+      method: 'GET',
+      headers: paystackHeaders,
+    });
+    const resolveData = await resolveRes.json();
+    if (resolveData.status && resolveData.data?.account_name) {
+      resolvedBankName = resolveData.data.account_name;
+    } else {
+      return respond({ error: 'Could not verify bank account details with Paystack. Please check the account number and bank.' }, 400);
+    }
+  } catch (err) {
+    console.error('[wallet-withdraw] Bank resolution error:', err);
+    return respond({ error: 'An error occurred while verifying the bank account details.' }, 500);
+  }
+
+  const bankNames = resolvedBankName
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort();
+
+  if (profileNames.join(' ') !== bankNames.join(' ')) {
+    return respond({ 
+      error: `Bank account name (${resolvedBankName}) does not match your Taska profile name (${profile.firstName} ${profile.middleName} ${profile.lastName}) exactly.` 
+    }, 403);
   }
 
   // Enforce Transaction PIN Authentication
@@ -182,7 +224,7 @@ Deno.serve(async (req) => {
         headers: paystackHeaders,
         body: JSON.stringify({
           type: 'nuban',
-          name: accountName || 'Taska User',
+          name: resolvedBankName || accountName || 'Taska User',
           account_number: accountNumber.replace(/\D/g, ''),
           bank_code: bankCode,
           currency: 'NGN',
@@ -202,7 +244,7 @@ Deno.serve(async (req) => {
         recipient_code: recipientCode,
         bank_code: bankCode,
         account_number: accountNumber.replace(/\D/g, ''),
-        account_name: accountName,
+        account_name: resolvedBankName || accountName,
         bank_name: bankName || '',
         is_active: true,
       });
@@ -214,7 +256,7 @@ Deno.serve(async (req) => {
       p_requested_amount_kobo: requestedAmountKobo,
       p_bank_code: bankCode,
       p_account_number: accountNumber.replace(/\D/g, ''),
-      p_account_name: accountName || '',
+      p_account_name: resolvedBankName || accountName || '',
       p_bank_name: bankName || '',
       p_recipient_code: recipientCode,
       p_paystack_reference: reference,
