@@ -35,6 +35,64 @@ let _walletState = {
 };
 let _resolvedAccountName = '';
 
+let _savedBanks = [];
+let _pendingBankAdd = null;
+
+async function loadSavedBanks() {
+  if (!_currentProfile) _currentProfile = await window.ensureTaskaProfile?.();
+  const profile = _currentProfile;
+  if (!profile) return;
+
+  const listContainer = document.getElementById('saved-banks-container');
+  const withdrawSavedBankSelect = document.getElementById('withdraw-saved-bank-select');
+
+  try {
+    const result = await edgeFetch('wallet-bank-accounts', {
+      method: 'POST',
+      body: JSON.stringify({ profileId: profile.id, action: 'list' })
+    });
+    if (result.success) {
+      _savedBanks = result.accounts || result.data || [];
+      renderSavedBanks();
+      
+      if (withdrawSavedBankSelect) {
+        withdrawSavedBankSelect.innerHTML = '<option value="" disabled selected>-- Select Account --</option>' +
+          _savedBanks.map(b => `<option value="${b.id}">${b.bank_name} - ${b.account_number} (${b.account_name})</option>`).join('');
+      }
+    } else {
+      if (listContainer) listContainer.innerHTML = `<div style="padding:20px; text-align:center; color:var(--red-500);">Failed to load bank accounts.</div>`;
+    }
+  } catch (err) {
+    console.error('[wallet] Failed to fetch saved banks:', err);
+    if (listContainer) listContainer.innerHTML = `<div style="padding:20px; text-align:center; color:var(--red-500);">Failed to load bank accounts.</div>`;
+  }
+}
+
+function renderSavedBanks() {
+  const container = document.getElementById('saved-banks-container');
+  if (!container) return;
+
+  if (_savedBanks.length === 0) {
+    container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted); font-size: 0.9rem;">No bank accounts saved yet.</div>`;
+    return;
+  }
+
+  container.innerHTML = _savedBanks.map(bank => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--mint-050); color: var(--green-700); display: flex; align-items: center; justify-content: center;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 18v-7"/><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M3 22h18"/><path d="M6 18v-7"/></svg>
+        </div>
+        <div>
+          <div style="font-weight: 600; color: var(--ink); font-size: 0.95rem;">${bank.bank_name}</div>
+          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;">${bank.account_number} • ${bank.account_name}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatNaira(amount) {
@@ -42,7 +100,13 @@ function formatNaira(amount) {
 }
 
 async function edgeFetch(path, options = {}) {
-  const token = window.getTaskaToken ? await window.getTaskaToken() : null;
+  let token = window.getTaskaToken ? await window.getTaskaToken() : null;
+  let attempts = 0;
+  while (!token && attempts < 10) {
+    await new Promise(r => setTimeout(r, 200));
+    token = window.getTaskaToken ? await window.getTaskaToken() : null;
+    attempts++;
+  }
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
@@ -283,6 +347,7 @@ async function loadWalletData() {
 
     renderOverviewTransactions(_activeOverviewFilter);
     renderModalAllTransactions();
+    await loadSavedBanks();
 
   } catch (err) {
     console.error('[wallet] loadWalletData error:', err);
@@ -718,39 +783,139 @@ function setupWalletListeners() {
 
   withdrawAmountInput?.addEventListener('input', updateWithdrawBreakdown);
 
-  // Bank Account Resolution (calls resolve-account Edge Function)
-  let _resolveTimeout = null;
-  const resolveAccount = async () => {
-    const accNum = (withdrawAccInput?.value || '').replace(/\D/g, '');
-    const bankCode = withdrawBankSelect?.value || '';
-    if (accNum.length !== 10 || !bankCode) {
-      if (withdrawNameBox) withdrawNameBox.style.display = 'none';
-      _resolvedAccountName = '';
-      return;
+
+  // Add Bank Account Modal
+  const addBankModal = document.getElementById('add-bank-modal');
+  const addBankResolveForm = document.getElementById('add-bank-resolve-form');
+  const addBankOtpForm = document.getElementById('add-bank-otp-form');
+  const addBankSelect = document.getElementById('add-bank-select');
+  const addBankAccNum = document.getElementById('add-bank-account-number');
+  const addBankResolveBtn = document.getElementById('add-bank-resolve-btn');
+  const addBankInlineResolve = document.getElementById('add-bank-inline-resolve');
+  const addBankResolvedName = document.getElementById('add-bank-resolved-name');
+
+  document.getElementById('btn-add-bank-account')?.addEventListener('click', () => {
+    if (addBankResolveForm) addBankResolveForm.style.display = 'block';
+    if (addBankOtpForm) addBankOtpForm.style.display = 'none';
+    if (addBankAccNum) addBankAccNum.value = '';
+    if (addBankSelect) addBankSelect.selectedIndex = 0;
+    if (addBankInlineResolve) addBankInlineResolve.textContent = '';
+    if (addBankResolveBtn) {
+      addBankResolveBtn.disabled = true;
+      addBankResolveBtn.style.opacity = '0.5';
+      addBankResolveBtn.style.cursor = 'not-allowed';
     }
-    if (withdrawNameEl) withdrawNameEl.textContent = 'Resolving...';
-    if (withdrawNameBox) withdrawNameBox.style.display = 'flex';
+    showModal(addBankModal);
+  });
 
-    const result = await edgeFetch('resolve-account', {
-      method: 'POST',
-      body: JSON.stringify({ accountNumber: accNum, bankCode }),
-    });
+  document.getElementById('add-bank-close-btn')?.addEventListener('click', () => hideModal(addBankModal));
+  addBankModal?.addEventListener('click', (e) => {
+    if (e.target === addBankModal) hideModal(addBankModal);
+  });
 
-    if (result.success) {
-      _resolvedAccountName = result.account_name;
-      if (withdrawNameEl) withdrawNameEl.textContent = result.account_name;
+  const checkAddBankValidity = () => {
+    const acc = addBankAccNum?.value.replace(/\D/g, '') || '';
+    const bank = addBankSelect?.value || '';
+    if (acc.length === 10 && bank) {
+      addBankResolveBtn.disabled = false;
+      addBankResolveBtn.style.opacity = '1';
+      addBankResolveBtn.style.cursor = 'pointer';
     } else {
-      _resolvedAccountName = '';
-      if (withdrawNameEl) withdrawNameEl.textContent = 'Could not verify account';
-      if (window.showToast) window.showToast(result.error || 'Account resolution failed.');
+      addBankResolveBtn.disabled = true;
+      addBankResolveBtn.style.opacity = '0.5';
+      addBankResolveBtn.style.cursor = 'not-allowed';
+      if (addBankInlineResolve) addBankInlineResolve.textContent = '';
     }
   };
 
-  withdrawAccInput?.addEventListener('input', () => {
-    clearTimeout(_resolveTimeout);
-    _resolveTimeout = setTimeout(resolveAccount, 500);
+  addBankAccNum?.addEventListener('input', checkAddBankValidity);
+  addBankSelect?.addEventListener('change', checkAddBankValidity);
+
+  addBankResolveForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!_currentProfile) _currentProfile = await window.ensureTaskaProfile?.();
+    if (!_currentProfile) return;
+
+    const accNum = addBankAccNum.value.replace(/\D/g, '');
+    const bankCode = addBankSelect.value;
+    const bankName = addBankSelect.options[addBankSelect.selectedIndex].text;
+
+    addBankResolveBtn.disabled = true;
+    addBankResolveBtn.textContent = 'Verifying...';
+
+    try {
+      const result = await edgeFetch('wallet-bank-accounts', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          profileId: _currentProfile.id,
+          action: 'send_otp',
+          accountNumber: accNum, 
+          bankCode 
+        })
+      });
+
+      if (result.success) {
+        _pendingBankAdd = {
+          accountNumber: accNum,
+          bankCode: bankCode,
+          bankName: bankName,
+          accountName: result.accountName
+        };
+        addBankResolvedName.textContent = result.accountName;
+        addBankResolveForm.style.display = 'none';
+        addBankOtpForm.style.display = 'block';
+        if (window.showToast) window.showToast('Account verified. Please enter the OTP sent to your email.', 'success');
+      } else {
+        console.error('Paystack resolution failed:', result.full_data || result);
+        addBankInlineResolve.style.color = 'var(--red-500)';
+        addBankInlineResolve.textContent = 'Account verification failed: ' + (result.error || result.message || 'Invalid account details');
+        addBankResolveBtn.disabled = false;
+      }
+    } catch (err) {
+      addBankInlineResolve.style.color = 'var(--red-500)';
+      addBankInlineResolve.textContent = 'Error verifying account.';
+      addBankResolveBtn.disabled = false;
+    } finally {
+      addBankResolveBtn.textContent = 'Verify & Send OTP';
+    }
   });
-  withdrawBankSelect?.addEventListener('change', resolveAccount);
+
+  addBankOtpForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!_pendingBankAdd || !_currentProfile) return;
+
+    const otpInput = document.getElementById('add-bank-otp')?.value;
+    const saveBtn = document.getElementById('add-bank-save-btn');
+    
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    try {
+      const result = await edgeFetch('wallet-bank-accounts', {
+        method: 'POST',
+        body: JSON.stringify({
+          profileId: _currentProfile.id,
+          action: 'verify_and_save',
+          otp: otpInput
+        })
+      });
+
+      if (result.success) {
+        if (window.showToast) window.showToast('Bank account saved successfully!', 'success');
+        hideModal(addBankModal);
+        await loadSavedBanks();
+      } else {
+        if (window.showToast) window.showToast(result.error || 'Failed to save bank account.', 'error');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast('An error occurred. Please try again.', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Bank Account';
+    }
+  });
+
+  const withdrawSavedBankSelect = document.getElementById('withdraw-saved-bank-select');
 
   // Submit Withdrawal Form — Authorizes via 4-Digit Transaction PIN
   document.getElementById('wallet-withdraw-form')?.addEventListener('submit', async (e) => {
@@ -767,21 +932,15 @@ function setupWalletListeners() {
       return;
     }
 
-    const accNum = (withdrawAccInput?.value || '').replace(/\D/g, '');
-    if (accNum.length !== 10) {
-      if (window.showToast) window.showToast('Please enter a valid 10-digit account number.');
+    const savedBankId = withdrawSavedBankSelect?.value;
+    if (!savedBankId) {
+      if (window.showToast) window.showToast('Please select a saved bank account.');
       return;
     }
 
-    const bankCode = withdrawBankSelect?.value || '';
-    const bankName = withdrawBankSelect?.options[withdrawBankSelect.selectedIndex]?.text || '';
-    if (!bankCode) {
-      if (window.showToast) window.showToast('Please select a destination bank.');
-      return;
-    }
-
-    if (!_resolvedAccountName) {
-      if (window.showToast) window.showToast('Please enter a valid account number and wait for bank account verification.');
+    const selectedBank = _savedBanks.find(b => b.id === savedBankId || b.id === parseInt(savedBankId, 10));
+    if (!selectedBank) {
+      if (window.showToast) window.showToast('Invalid bank account selected.');
       return;
     }
 
@@ -802,7 +961,7 @@ function setupWalletListeners() {
 
     window.promptTransactionPin({
       title: 'Authorize Withdrawal',
-      description: `Enter your 4-digit PIN to authorize payout of ${formatNaira(grossAmt)} to ${_resolvedAccountName} (${bankName}).`,
+      description: `Enter your 4-digit PIN to authorize payout of ${formatNaira(grossAmt)} to ${selectedBank.account_name} (${selectedBank.bank_name}).`,
       submitText: 'Authorize Transfer',
       onConfirm: async (pin, modalControls) => {
         modalControls.setLoading(true, 'Processing Transfer...');
@@ -812,10 +971,7 @@ function setupWalletListeners() {
             body: JSON.stringify({
               profileId: profile.id,
               requestedAmountNaira: grossAmt,
-              bankCode,
-              accountNumber: accNum,
-              accountName: _resolvedAccountName,
-              bankName,
+              accountId: selectedBank.id,
               transactionPin: pin,
             }),
           });
@@ -837,9 +993,7 @@ function setupWalletListeners() {
           modalControls.close();
           hideModal(withdrawModal);
           if (withdrawAmountInput) withdrawAmountInput.value = '';
-          if (withdrawAccInput) withdrawAccInput.value = '';
-          if (withdrawNameBox) withdrawNameBox.style.display = 'none';
-          _resolvedAccountName = '';
+          if (withdrawSavedBankSelect) withdrawSavedBankSelect.selectedIndex = 0;
           updateWithdrawBreakdown();
 
           if (window.showToast) {

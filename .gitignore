@@ -2,6 +2,7 @@
 *.md
 *.markdown
 *.pdf
+.agents
 
 
 

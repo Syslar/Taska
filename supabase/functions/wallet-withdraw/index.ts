@@ -82,10 +82,10 @@ Deno.serve(async (req) => {
     return respond({ error: 'Invalid JSON' }, 400);
   }
 
-  const { profileId, requestedAmountNaira, bankCode, accountNumber, accountName, bankName, transactionPin } = body;
+  const { profileId, requestedAmountNaira, accountId, transactionPin } = body;
 
-  if (!profileId || !requestedAmountNaira || !bankCode || !accountNumber) {
-    return respond({ error: 'profileId, requestedAmountNaira, bankCode, accountNumber required' }, 400);
+  if (!profileId || !requestedAmountNaira || !accountId) {
+    return respond({ error: 'profileId, requestedAmountNaira, and accountId are required' }, 400);
   }
 
   // Enforce JWT Authentication & Profile Ownership
@@ -96,45 +96,24 @@ Deno.serve(async (req) => {
 
   const { profile } = authResult;
 
-  if (!profile.firstName || !profile.middleName || !profile.lastName) {
-    return respond({ error: 'Please update your profile to include your first, middle, and last names before withdrawing.' }, 403);
+  // Verify and fetch the saved bank account
+  const { data: savedAccount, error: accError } = await supabase
+    .from('paystack_recipients')
+    .select('*')
+    .eq('id', accountId)
+    .eq('profileId', profileId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (accError || !savedAccount) {
+    return respond({ error: 'Selected bank account is invalid or no longer active.' }, 400);
   }
 
-  const profileNames = [profile.firstName, profile.middleName, profile.lastName]
-    .map(n => n.trim().toLowerCase())
-    .filter(Boolean)
-    .sort();
-
-  // Securely resolve bank account name from Paystack to prevent spoofing
-  let resolvedBankName = '';
-  try {
-    const resolveRes = await fetch(`https://api.paystack.co/bank/resolve?account_number=${accountNumber.replace(/\D/g, '')}&bank_code=${bankCode}`, {
-      method: 'GET',
-      headers: paystackHeaders,
-    });
-    const resolveData = await resolveRes.json();
-    if (resolveData.status && resolveData.data?.account_name) {
-      resolvedBankName = resolveData.data.account_name;
-    } else {
-      return respond({ error: 'Could not verify bank account details with Paystack. Please check the account number and bank.' }, 400);
-    }
-  } catch (err) {
-    console.error('[wallet-withdraw] Bank resolution error:', err);
-    return respond({ error: 'An error occurred while verifying the bank account details.' }, 500);
-  }
-
-  const bankNames = resolvedBankName
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .sort();
-
-  if (profileNames.join(' ') !== bankNames.join(' ')) {
-    return respond({ 
-      error: `Bank account name (${resolvedBankName}) does not match your Taska profile name (${profile.firstName} ${profile.middleName} ${profile.lastName}) exactly.` 
-    }, 403);
-  }
+  const bankCode = savedAccount.bank_code;
+  const accountNumber = savedAccount.account_number;
+  const resolvedBankName = savedAccount.account_name;
+  const bankName = savedAccount.bank_name;
+  let recipientCode = savedAccount.recipient_code;
 
   // Enforce Transaction PIN Authentication
   if (!transactionPin) {
@@ -206,48 +185,9 @@ Deno.serve(async (req) => {
   const reference = `TK-WTH-${Date.now()}-${Math.floor(Math.random() * 9999)}`;
 
   try {
-    // 1. Check for existing active recipient
-    const { data: existingRecipient } = await supabase
-      .from('paystack_recipients')
-      .select('*')
-      .eq('profileId', profileId)
-      .eq('account_number', accountNumber.replace(/\D/g, ''))
-      .eq('is_active', true)
-      .maybeSingle();
-
-    let recipientCode = existingRecipient?.recipient_code;
-
-    // 2. Create Transfer Recipient if none exists
+    // 1. Recipient already verified from saved account
     if (!recipientCode) {
-      const recipientRes = await fetch('https://api.paystack.co/transferrecipient', {
-        method: 'POST',
-        headers: paystackHeaders,
-        body: JSON.stringify({
-          type: 'nuban',
-          name: resolvedBankName || accountName || 'Taska User',
-          account_number: accountNumber.replace(/\D/g, ''),
-          bank_code: bankCode,
-          currency: 'NGN',
-        }),
-      });
-      const recipientData = await recipientRes.json();
-
-      if (recipientData.status && recipientData.data?.recipient_code) {
-        recipientCode = recipientData.data.recipient_code;
-      } else {
-        console.error('[wallet-withdraw] Recipient creation failed:', recipientData);
-        return respond({ error: recipientData.message || 'Failed to create transfer recipient. Please verify bank and account number.' }, 400);
-      }
-
-      await supabase.from('paystack_recipients').insert({
-        profileId,
-        recipient_code: recipientCode,
-        bank_code: bankCode,
-        account_number: accountNumber.replace(/\D/g, ''),
-        account_name: resolvedBankName || accountName,
-        bank_name: bankName || '',
-        is_active: true,
-      });
+       return respond({ error: 'Invalid recipient code on saved account.' }, 400);
     }
 
     // 3. Lock funds atomically via Postgres RPC

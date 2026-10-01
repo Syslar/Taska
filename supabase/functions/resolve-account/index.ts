@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
     return respond({
       success: false,
       error: data.message || 'Could not resolve bank account. Please verify details.',
+      full_data: data
     }, 400);
 
   } catch (err) {
