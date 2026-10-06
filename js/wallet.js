@@ -72,6 +72,21 @@ function renderSavedBanks() {
   const container = document.getElementById('saved-banks-container');
   if (!container) return;
 
+  const addBankBtn = document.getElementById('btn-add-bank-account');
+  if (addBankBtn) {
+    if (_savedBanks.length >= 2) {
+      addBankBtn.disabled = true;
+      addBankBtn.title = "Maximum of 2 bank accounts allowed.";
+      addBankBtn.style.opacity = '0.5';
+      addBankBtn.style.cursor = 'not-allowed';
+    } else {
+      addBankBtn.disabled = false;
+      addBankBtn.title = "";
+      addBankBtn.style.opacity = '1';
+      addBankBtn.style.cursor = 'pointer';
+    }
+  }
+
   if (_savedBanks.length === 0) {
     container.innerHTML = `<div style="padding:20px; text-align:center; color:var(--muted); font-size: 0.9rem;">No bank accounts saved yet.</div>`;
     return;

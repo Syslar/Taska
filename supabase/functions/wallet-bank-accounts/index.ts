@@ -130,6 +130,21 @@ Deno.serve(async (req) => {
     const { accountNumber, bankCode } = body;
     if (!accountNumber || !bankCode) return respond({ error: 'Account number and bank code required' }, 400);
 
+    // Hard limit: Max 2 bank accounts
+    const { count: accountCount, error: countError } = await supabase
+      .from('paystack_recipients')
+      .select('id', { count: 'exact', head: true })
+      .eq('profileId', profileId)
+      .eq('is_active', true);
+
+    if (countError) {
+      console.error('[wallet-bank-accounts] Failed to count accounts:', countError);
+      return respond({ error: 'Failed to verify account limits' }, 500);
+    }
+    if (accountCount !== null && accountCount >= 2) {
+      return respond({ error: 'Maximum limit reached. You can only save up to 2 bank accounts.' }, 403);
+    }
+
     let resolvedBankName = '';
     try {
       const resolveRes = await fetch(`https://api.paystack.co/bank/resolve?account_number=${accountNumber.replace(/\D/g, '')}&bank_code=${bankCode}`, {
