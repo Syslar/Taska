@@ -600,6 +600,66 @@ function buildMessageBubbleHTML(m, profile) {
   const isMine = m.senderId === profile.id;
   const timeStr = formatMessageTime(m.createdAt);
   const rawText = m.body || m.content || '';
+
+  // ── Rich Task Share Card ───────────────────────────────────────
+  if (rawText.startsWith('__TASK_SHARE__:')) {
+    let taskData = null;
+    try { taskData = JSON.parse(rawText.slice('__TASK_SHARE__:'.length)); } catch (_) {}
+    if (taskData) {
+      const safeTitle = window.escapeHtml ? window.escapeHtml(taskData.title || 'Task') : taskData.title;
+      const safeCat   = window.escapeHtml ? window.escapeHtml(taskData.category || 'General') : taskData.category;
+      const safeLoc   = window.escapeHtml ? window.escapeHtml(taskData.location || '') : taskData.location;
+      const safeDesc  = window.escapeHtml ? window.escapeHtml((taskData.description || '').slice(0, 160)) : taskData.description;
+      const budget    = Number(taskData.budget || 0).toLocaleString();
+      const taskUrl   = `/tasker/browse-tasks?taskId=${taskData.taskId}`;
+
+      const deleteBtnHTML = isMine
+        ? `<button class="chat-msg-delete-btn" onclick="requestDeleteChatMessage('${m.id}', '')" title="Delete message" aria-label="Delete message">
+             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+           </button>`
+        : '';
+
+      return `
+        <div class="chat-msg-wrapper ${isMine ? 'is-mine' : 'is-peer'}" id="chat-msg-${m.id}" data-msg-id="${m.id}" style="display:flex; flex-direction:column; align-items:${isMine ? 'flex-end' : 'flex-start'}; margin-bottom:8px; position:relative;">
+          <div style="display:flex; align-items:center; gap:6px; flex-direction:${isMine ? 'row' : 'row-reverse'}; max-width:92%;">
+            ${isMine ? deleteBtnHTML : ''}
+            <div style="background:var(--paper,#fff); border:1px solid var(--mint-200,#A7F3D0); border-radius:14px; overflow:hidden; box-shadow:0 2px 12px rgba(16,185,129,0.1); min-width:240px; max-width:320px;">
+              <!-- Header -->
+              <div style="background:linear-gradient(135deg,#059669,#10B981); padding:10px 14px; display:flex; align-items:center; gap:8px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                <span style="font-size:0.72rem; font-weight:700; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:0.06em;">Task Shared</span>
+              </div>
+              <!-- Body -->
+              <div style="padding:12px 14px;">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--green-700); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;">${safeCat}</div>
+                <div style="font-size:0.95rem; font-weight:700; color:var(--green-900); line-height:1.3; margin-bottom:6px;">${safeTitle}</div>
+                ${safeDesc ? `<div style="font-size:0.8rem; color:var(--ink-soft,#6B7280); line-height:1.4; margin-bottom:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${safeDesc}</div>` : ''}
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;">
+                  <div>
+                    <div style="font-size:1.05rem; font-weight:800; color:var(--green-700);">₦${budget}</div>
+                    ${safeLoc ? `<div style="font-size:0.72rem; color:var(--muted); margin-top:1px;">${safeLoc}</div>` : ''}
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <button type="button" onclick="event.stopPropagation(); if(typeof window.copyTaskLink==='function'){window.copyTaskLink('${taskData.taskId}','${safeTitle}');}else{navigator.clipboard.writeText(window.location.origin+'/task/?id=${taskData.taskId}'); if(window.showToast) window.showToast('Task link copied!');}" title="Copy task link" style="display:inline-flex; align-items:center; gap:4px; background:var(--mint-050,#ecfdf5); border:1px solid var(--mint-200,#a7f3d0); color:var(--green-900,#064e3b); padding:6px 10px; border-radius:18px; font-size:0.75rem; font-weight:600; cursor:pointer;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      Copy
+                    </button>
+                    <a href="${taskUrl}" style="display:inline-flex; align-items:center; gap:5px; background:var(--green-900,#064E3B); color:#fff; padding:7px 14px; border-radius:20px; font-size:0.78rem; font-weight:600; text-decoration:none; transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+                      View Task
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:0.68rem; color:var(--muted); margin-top:3px; padding:0 4px;">${timeStr}</div>
+        </div>
+      `;
+    }
+  }
+  // ── End Task Share ─────────────────────────────────────────────
+
   const safeText = window.escapeHtml ? window.escapeHtml(rawText) : rawText;
 
   let mediaHTML = '';

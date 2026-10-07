@@ -148,11 +148,15 @@ function renderMyTasksList() {
           : t.budgetMin && t.budgetMax
             ? `₦${t.budgetMin.toLocaleString()} – ₦${t.budgetMax.toLocaleString()}`
             : "Open Bid";
-      const createdDate = new Date(t.createdAt).toLocaleDateString("en-NG", {
+      const _d = new Date(t.createdAt);
+      const _timeAgo = window.timeAgo ? window.timeAgo(t.createdAt) : '';
+      const createdDate = _d.toLocaleDateString("en-NG", {
         day: "numeric",
         month: "short",
         year: "numeric",
-      });
+        hour: "numeric",
+        minute: "2-digit"
+      }) + (_timeAgo ? ` (${_timeAgo})` : '');
 
       const { cleanText, mediaUrls } = window.parseTaskMediaAndText
         ? window.parseTaskMediaAndText(t.description, t.proofUrls)
@@ -440,6 +444,16 @@ function renderMyTasksList() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit Task
                 </a>
+                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                  <button class="btn btn-ghost btn-sm btn-copy-task-link" data-task-id="${t.id}" data-task-title="${window.escapeHtml(t.title||'Task')}" style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; padding:4px 8px; color:var(--green-800);" title="Copy public link to task">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    Copy Link
+                  </button>
+                  <button class="btn btn-ghost btn-sm btn-share-task" data-task-id="${t.id}" data-task-title="${window.escapeHtml(t.title||'Task')}" data-task-budget="${t.budget||0}" data-task-category="${window.escapeHtml(t.category||'General')}" data-task-location="${window.escapeHtml(t.location||'Remote / Anywhere')}" data-task-desc="${window.escapeHtml((t.description||'').slice(0,200))}" style="display:inline-flex; align-items:center; gap:4px; font-size:0.78rem; padding:4px 8px;" title="Share task via link, social or DM">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Share Task
+                  </button>
+                </div>
                 <button class="btn btn-ghost btn-sm btn-cancel-task" data-task-id="${t.id}" style="color:var(--red); font-size:0.78rem; padding:4px 8px;">Cancel Task</button>
               </div>
             `
@@ -518,6 +532,42 @@ function bindTaskActionButtons() {
     btn.addEventListener("click", () => {
       const taskId = btn.dataset.taskId;
       handleCancelTask(taskId);
+    });
+  });
+
+  // 5. Copy Task Link Buttons
+  container.querySelectorAll(".btn-copy-task-link").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const taskId = btn.dataset.taskId;
+      const title = btn.dataset.taskTitle || "Task";
+      if (typeof window.copyTaskLink === "function") {
+        window.copyTaskLink(taskId, title);
+      } else {
+        const url = `${window.location.origin}/task/?id=${encodeURIComponent(taskId)}`;
+        navigator.clipboard.writeText(url);
+        if (window.showToast) window.showToast("Task link copied to clipboard!");
+      }
+    });
+  });
+
+  // 6. Share Task Buttons (Opens Universal Share Modal: Link, Social, & DM)
+  container.querySelectorAll(".btn-share-task").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const shareData = {
+        taskId: btn.dataset.taskId,
+        title: btn.dataset.taskTitle || 'Task',
+        budget: parseFloat(btn.dataset.taskBudget) || 0,
+        category: btn.dataset.taskCategory || 'General',
+        location: btn.dataset.taskLocation || 'Remote / Anywhere',
+        description: btn.dataset.taskDesc || ''
+      };
+      if (typeof window.openShareTaskModal === 'function') {
+        window.openShareTaskModal(shareData);
+      } else if (typeof window.openShareTaskPicker === 'function') {
+        window.openShareTaskPicker(shareData);
+      } else if (typeof window.copyTaskLink === 'function') {
+        window.copyTaskLink(shareData.taskId, shareData.title);
+      }
     });
   });
 }

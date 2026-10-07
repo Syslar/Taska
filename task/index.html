@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Details | Taska Nigeria</title>
+  
+  <!-- Favicon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="manifest" href="/assets/site.webmanifest">
+  <link rel="shortcut icon" href="/assets/favicon.ico">
+  
+  <!-- Open Graph / Meta -->
+  <meta name="description" content="View task details, budget, requirements, and apply safely on Taska — Nigeria's trusted task and freelance marketplace.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Task on Taska — Nigerian Task Marketplace">
+  <meta property="og:description" content="Discover open tasks in Nigeria, apply directly, and get paid with guaranteed escrow protection.">
+  <meta property="og:site_name" content="Taska">
+
+  <!-- Core Styles -->
+  <link rel="stylesheet" href="/css/styles.css?v=14">
+  <style>
+    :root {
+      --task-max-w: 1120px;
+    }
+    body {
+      background: #F8FAFC;
+      color: var(--ink, #0F172A);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .mono { font-family: 'IBM Plex Mono', 'Courier New', monospace; }
+    
+    /* Top Header Bar */
+    .task-nav {
+      background: var(--paper, #fff);
+      border-bottom: 1px solid var(--line, #e2e8f0);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .task-nav-inner {
+      max-width: var(--task-max-w);
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .task-nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--green-900, #064E3B);
+      font-weight: 800;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    .task-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Container & Layout */
+    .task-container {
+      max-width: var(--task-max-w);
+      margin: 24px auto 48px;
+      padding: 0 20px;
+      width: 100%;
+      box-sizing: border-box;
+      flex: 1;
+    }
+    .task-breadcrumb {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--green-800, #065F46);
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      margin-bottom: 20px;
+      padding: 6px 12px;
+      background: var(--mint-050, #ECFDF5);
+      border: 1px solid var(--mint-150, #A7F3D0);
+      border-radius: 20px;
+      transition: background 0.15s ease;
+    }
+    .task-breadcrumb:hover {
+      background: var(--mint-100, #D1FAE5);
+    }
+
+    .task-grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .task-grid-layout {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    /* Main Content Card */
+    .task-card-main {
+      background: var(--paper, #fff);
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    }
+    @media (max-width: 600px) {
+      .task-card-main {
+        padding: 20px;
+      }
+    }
+
+    /* Badges */
+    .task-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 14px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .task-pill-cat {
+      background: var(--mint-100, #D1FAE5);
+      color: var(--green-900, #064E3B);
+      border: 1px solid var(--mint-200, #A7F3D0);
+    }
+    .task-pill-open {
+      background: #ECFDF5;
+      color: #047857;
+      border: 1px solid #A7F3D0;
+    }
+    .task-pill-closed {
+      background: #F1F5F9;
+      color: #64748B;
+      border: 1px solid #CBD5E1;
+    }
+
+    .task-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--green-900, #064E3B);
+      line-height: 1.3;
+      margin: 14px 0 10px;
+      letter-spacing: -0.01em;
+    }
+    @media (max-width: 600px) {
+      .task-title { font-size: 1.45rem; }
+    }
+
+    .task-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.86rem;
+      color: var(--muted, #64748B);
+      padding-bottom: 18px;
+      border-bottom: 1px dashed var(--line, #e2e8f0);
+      margin-bottom: 22px;
+    }
+
+    .task-desc-body {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #334155;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 28px;
+    }
+
+    /* Criteria Box */
+    .task-criteria-box {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .task-criteria-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #166534;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .task-criteria-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .criteria-tag {
+      background: #fff;
+      border: 1px solid #86EFAC;
+      color: #14532D;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Escrow Guarantee Banner */
+    .task-escrow-banner {
+      background: linear-gradient(135deg, #ECFDF5 0%, #E0F2FE 100%);
+      border: 1px solid #99F6E4;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    /* Right Sidebar Cards */
+    .task-sidebar-card {
+      background: var(--paper, #fff);
+      border: 1px solid var(--line, #e2e8f0);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+      margin-bottom: 20px;
+    }
+
+    .budget-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--muted, #64748B);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+    }
+    .budget-amount {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--green-700, #047857);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    /* Action Buttons */
+    .btn-apply-main {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--green-900, #064E3B);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s ease, transform 0.15s ease;
+      margin-bottom: 10px;
+      text-decoration: none;
+      box-sizing: border-box;
+    }
+    .btn-apply-main:hover {
+      background: #043729;
+      transform: translateY(-1px);
+    }
+
+    .sidebar-actions-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-action-half {
+      flex: 1;
+      padding: 10px 12px;
+      background: var(--surface, #f8fafc);
+      border: 1px solid var(--line, #cbd5e1);
+      border-radius: 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--ink, #1e293b);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .btn-action-half:hover {
+      background: var(--mint-050, #ecfdf5);
+      border-color: var(--mint-150, #a7f3d0);
+      color: var(--green-900, #064e3b);
+    }
+
+    /* Poster Profile Card */
+    .poster-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--mint-150, #a7f3d0);
+      color: var(--green-900, #064e3b);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    /* Media Preview Grid */
+    .task-media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      margin-bottom: 24px;
+    }
+    .task-media-item {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      height: 140px;
+      background: #000;
+      cursor: pointer;
+    }
+    .task-media-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.2s;
+    }
+    .task-media-item:hover img {
+      transform: scale(1.04);
+    }
+
+    /* Footer */
+    .task-footer {
+      background: var(--paper, #fff);
+      border-top: 1px solid var(--line, #e2e8f0);
+      padding: 30px 20px;
+      text-align: center;
+      color: var(--muted, #64748B);
+      font-size: 0.85rem;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="task-nav">
+    <div class="task-nav-inner">
+      <a href="/" class="task-nav-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#064E3B"/><path d="M7 12l3.5 3.5L17 8.5" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Taska</span>
+      </a>
+      <div class="task-nav-actions" id="nav-user-actions">
+        <a href="/browse-tasks" class="btn btn-ghost" style="font-size:0.86rem;">Browse Tasks</a>
+        <a href="/login" class="btn btn-primary" id="nav-auth-btn" style="font-size:0.86rem; padding:7px 16px; border-radius:20px;">Log In</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="task-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <a href="/browse-tasks" class="task-breadcrumb">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Browse All Tasks
+      </a>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-top-copy" style="font-size:0.82rem; padding:6px 12px; border-radius:20px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Link
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-top-share" style="font-size:0.82rem; padding:6px 12px; border-radius:20px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          Share
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="task-loading-state" style="padding:80px 20px; text-align:center; color:var(--muted);">
+      <div style="font-size:1.1rem; font-weight:600; margin-bottom:8px;">Loading task details…</div>
+      <div style="font-size:0.88rem;">Fetching secure task data from Taska server</div>
+    </div>
+
+    <!-- Error / Not Found State -->
+    <div id="task-error-state" style="display:none; padding:70px 20px; text-align:center; background:#fff; border-radius:16px; border:1px solid var(--line);">
+      <div style="font-size:2.8rem; margin-bottom:12px;">🔍</div>
+      <h2 style="font-size:1.4rem; color:var(--green-900); margin-bottom:8px;">Task Not Found</h2>
+      <p style="color:var(--muted); max-width:440px; margin:0 auto 20px; font-size:0.92rem;" id="task-error-msg">The task you're looking for does not exist, has expired, or may have been removed.</p>
+      <a href="/browse-tasks" class="btn btn-primary" style="display:inline-block; padding:10px 24px; border-radius:24px;">Explore Open Tasks</a>
+    </div>
+
+    <!-- Loaded Content Layout -->
+    <div class="task-grid-layout" id="task-content-layout" style="display:none;">
+      
+      <!-- Left Column: Details -->
+      <section class="task-card-main">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="task-pill task-pill-cat" id="task-detail-category">General</span>
+          <span class="task-pill task-pill-open" id="task-detail-status">OPEN</span>
+          <span id="task-detail-proposal-badge" style="display:none; font-size:0.75rem; color:#92400E; background:#FEF3C7; border:1px solid #FCD34D; padding:3px 9px; border-radius:12px; font-weight:600;">Proposals Allowed</span>
+        </div>
+
+        <h1 class="task-title" id="task-detail-title">Task Title</h1>
+
+        <div class="task-meta-row">
+          <div style="display:inline-flex; align-items:center; gap:6px;">
+            <span>📍</span>
+            <span id="task-detail-location" style="font-weight:600; color:var(--ink-soft);">Remote / Anywhere</span>
+          </div>
+          <div style="display:inline-flex; align-items:center; gap:6px;">
+            <span>📅</span>
+            <span id="task-detail-created">Posted recently</span>
+          </div>
+          <div id="task-detail-deadline-wrap" style="display:none; align-items:center; gap:6px;">
+            <span>⏰</span>
+            <span id="task-detail-deadline">Deadline</span>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <div id="task-detail-tags" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:20px;"></div>
+
+        <!-- Full Description -->
+        <div style="font-size:0.85rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">Task Description</div>
+        <div class="task-desc-body" id="task-detail-desc"></div>
+
+        <!-- Attachments -->
+        <div id="task-detail-media-wrap" style="display:none; margin-bottom:24px;">
+          <div style="font-size:0.85rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">Attached Media / Samples</div>
+          <div class="task-media-grid" id="task-detail-media-grid"></div>
+        </div>
+
+        <!-- Tasker Eligibility Criteria -->
+        <div class="task-criteria-box" id="task-detail-criteria-box" style="display:none;">
+          <div class="task-criteria-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Tasker Criteria Set by Poster
+          </div>
+          <div class="task-criteria-list" id="task-detail-criteria-list"></div>
+        </div>
+
+        <!-- Escrow Protection Banner -->
+        <div class="task-escrow-banner">
+          <div style="font-size:1.6rem;">🔒</div>
+          <div>
+            <div style="font-weight:700; font-size:0.92rem; color:var(--green-900);">Taska Escrow Protection Guarantee</div>
+            <div style="font-size:0.82rem; color:#334155; margin-top:2px;">Funds for this task are secured with Taska escrow. Taskers are guaranteed payout upon approved completion.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Sidebar (Budget + Poster + Apply) -->
+      <aside>
+        <!-- Budget & Apply Card -->
+        <div class="task-sidebar-card">
+          <div class="budget-label" id="budget-heading-label">Agreed Task Budget</div>
+          <div class="budget-amount mono" id="task-detail-budget">₦0</div>
+          <div style="font-size:0.78rem; color:var(--muted); margin-bottom:18px;" id="budget-proposal-note">Fixed budget declared by poster</div>
+
+          <!-- Main CTA: Apply -->
+          <button type="button" class="btn-apply-main" id="btn-main-apply">
+            Apply for this Task 🚀
+          </button>
+
+          <!-- Secondary Actions -->
+          <div class="sidebar-actions-row">
+            <button type="button" class="btn-action-half" id="btn-side-copy" title="Copy public link to clipboard">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy Link
+            </button>
+            <button type="button" class="btn-action-half" id="btn-side-share" title="Share via WhatsApp, Twitter or DM">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+              Share Task
+            </button>
+          </div>
+
+          <button type="button" id="btn-side-message" class="btn-action-half" style="width:100%; margin-top:8px; display:none; justify-content:center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Message Poster in Chat
+          </button>
+        </div>
+
+        <!-- Poster Card -->
+        <div class="task-sidebar-card">
+          <div style="font-size:0.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:12px;">About the Poster</div>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+            <div class="poster-avatar" id="poster-detail-avatar">U</div>
+            <div style="min-width:0; flex:1;">
+              <div style="font-weight:700; font-size:1.02rem; color:var(--green-900); display:flex; align-items:center; gap:6px;">
+                <span id="poster-detail-name">Task Poster</span>
+                <span id="poster-detail-verified" style="display:none;" title="Verified Profile">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="#047857"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </span>
+              </div>
+              <div style="font-size:0.8rem; color:var(--muted);" id="poster-detail-username">@poster</div>
+            </div>
+          </div>
+          <div style="font-size:0.82rem; color:var(--muted); margin-bottom:14px;" id="poster-detail-joined">Member of Taska</div>
+          <a href="#" id="poster-detail-profile-link" class="btn btn-secondary btn-sm" style="width:100%; text-align:center; display:block; box-sizing:border-box;">View Poster Profile</a>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Related / More Tasks Section -->
+    <div id="related-tasks-section" style="margin-top:48px; display:none;">
+      <h3 style="font-size:1.2rem; font-weight:700; color:var(--green-900); margin-bottom:16px;">Other Open Tasks on Taska</h3>
+      <div id="related-tasks-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;"></div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="task-footer">
+    <div>Taska — Nigeria's Freelance & Local Services Marketplace</div>
+    <div style="margin-top:6px; font-size:0.78rem;">© 2026 Taska. All rights reserved. Secured with Escrow.</div>
+  </footer>
+
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-client.js?v=16"></script>
+  <script src="/js/task-share.js?v=1"></script>
+
+  <!-- Clerk JS Integration -->
+  <script
+    crossorigin="anonymous"
+    data-clerk-publishable-key="pk_test_bW9kZXN0LXN0dXJnZW9uLTQ1LmNsZXJrLmFjY291bnRzLmRldiQ"
+    src="https://modest-sturgeon-45.clerk.accounts.dev/npm/@clerk/clerk-js@6/dist/clerk.browser.js"
+    type="text/javascript">
+  </script>
+
+  <!-- Task Detail Logic -->
+  <script src="/js/task-detail.js?v=1"></script>
+</body>
+</html>

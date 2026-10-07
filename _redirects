@@ -83,6 +83,11 @@
 /tasker/profile/*              /tasker/profile/index.html       200!
 /poster/profile/*              /poster/profile/index.html       200!
 
+/task                              /task/index.html                 200!
+/task/*                            /task/index.html                 200!
+/tasks                             /task/index.html                 200!
+/tasks/*                           /task/index.html                 200!
+
 /wallet                        /wallet/index.html               200!
 /wallet/transactions           /wallet/transactions/index.html  200!
 /chats                         /chats/index.html                200!

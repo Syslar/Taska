@@ -200,9 +200,17 @@
       <textarea class="textarea-input" id="modal-bid-message" rows="2" placeholder="Briefly state your experience or when you can start..."></textarea>
     </div>
 
-    <div style="display:flex; gap:12px;">
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
       <button type="button" class="btn btn-primary" id="modal-apply-btn" style="flex:1;">Submit Application</button>
       <button type="button" class="btn btn-secondary" id="modal-message-poster-btn">Message Poster</button>
+      <button type="button" class="btn btn-ghost" id="modal-copy-link-btn" style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; padding:8px 14px;" title="Copy public link to this task">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Link
+      </button>
+      <button type="button" class="btn btn-ghost" id="modal-share-task-btn" style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem; padding:8px 14px;" title="Share task via link, social or DM">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Share
+      </button>
     </div>
   </div>
 </div>
@@ -223,7 +231,8 @@
 <script src="/js/sidebar-component.js?v=29"></script>
 <script src="/js/router.js"></script>
 <script src="/js/auth-guard.js?v=29"></script>
-<script src="/js/tasker/tasker-browse-tasks.js?v=17"></script>
+<script src="/js/task-share.js?v=1"></script>
+<script src="/js/tasker/tasker-browse-tasks.js?v=19"></script>
 
 </body>
 </html>

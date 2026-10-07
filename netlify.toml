@@ -271,6 +271,30 @@
   force = true
 
 [[redirects]]
+  from = "/task"
+  to = "/task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/task/*"
+  to = "/task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasks"
+  to = "/task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tasks/*"
+  to = "/task/index.html"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/wallet"
   to = "/wallet/index.html"
   status = 200

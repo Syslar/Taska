@@ -166,6 +166,15 @@ async function loadBrowseTasks() {
 
     allTasksData = list;
     renderTasksGrid();
+
+    // Deep-link: If URL has taskId/id/task, immediately open that task
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetTaskId = urlParams.get('taskId') || urlParams.get('id') || urlParams.get('task');
+      if (targetTaskId) {
+        window.openTaskModal(targetTaskId);
+      }
+    } catch (_) {}
   } catch (err) {
     console.error('Load browse tasks error:', err);
     container.innerHTML = '<div style="padding:40px; text-align:center; color:var(--red); grid-column:1/-1;">Could not load tasks. Please try again.</div>';
@@ -282,9 +291,15 @@ function renderTasksGrid() {
         <h3 style="font-size:1.05rem; margin:6px 0; color:var(--green-900);">${title}</h3>
         ${tagsHtml}
         <p class="gig-desc">${desc}</p>
-        <div class="gig-card-foot">
+        <div class="gig-card-foot" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
           <span class="gig-loc" style="display:inline-flex; align-items:center; gap:4px;">${locIcon} ${location}</span>
-          <span style="font-size:0.78rem; color:var(--muted);">By ${posterName}</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:0.78rem; color:var(--muted);">By ${posterName} • ${window.timeAgo ? window.timeAgo(task.createdAt) : ''}</span>
+            <button type="button" class="btn-card-copy-link" onclick="event.stopPropagation(); if(typeof window.copyTaskLink==='function') window.copyTaskLink('${task.id}', '${title}');" title="Copy public link to task" style="background:none; border:none; cursor:pointer; padding:3px 6px; color:var(--green-800); display:inline-flex; align-items:center; gap:3px; font-size:0.74rem; border-radius:6px; font-weight:600; transition:background 0.15s;" onmouseover="this.style.background='var(--mint-100)'" onmouseout="this.style.background='transparent'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              Copy Link
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -300,8 +315,34 @@ window.openTaskModal = async function (taskId) {
   const modal = document.getElementById('task-detail-modal');
   if (!modal) return;
 
-  const task = allTasksData.find(t => t.id === taskId);
-  if (!task) return;
+  let task = allTasksData.find(t => t.id === taskId);
+  if (!task && window.supabaseClient) {
+    try {
+      const { data: fetchedTask } = await window.supabaseClient
+        .from('Task')
+        .select('*, Profile!posterId(id, firstName, lastName, username, avatarUrl, averageRating, isVerified)')
+        .eq('id', taskId)
+        .maybeSingle();
+      if (fetchedTask) {
+        task = fetchedTask;
+        allTasksData.push(task);
+      }
+    } catch (e) {
+      console.warn('Direct task fetch error:', e);
+    }
+  }
+
+  if (!task) {
+    if (window.showToast) window.showToast('Task not found or has been removed.', 'error');
+    return;
+  }
+
+  // Deep-link: update URL query parameter so this task modal has a direct shareable URL
+  try {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('taskId', taskId);
+    window.history.replaceState(null, '', currentUrl.toString());
+  } catch (_) {}
 
   modal.style.display = 'flex';
 
@@ -420,6 +461,42 @@ window.openTaskModal = async function (taskId) {
     } else {
       msgBtn.style.display = 'none';
     }
+  }
+
+  // Copy task link button
+  const copyBtn = document.getElementById('modal-copy-link-btn');
+  if (copyBtn) {
+    copyBtn.onclick = () => {
+      if (typeof window.copyTaskLink === 'function') {
+        window.copyTaskLink(task.id, task.title);
+      } else {
+        const url = `${window.location.origin}/task/?id=${encodeURIComponent(task.id)}`;
+        navigator.clipboard.writeText(url);
+        if (window.showToast) window.showToast('Task link copied to clipboard!');
+      }
+    };
+  }
+
+  // Universal Share Task button (Link, Social, & DM)
+  const shareBtn = document.getElementById('modal-share-task-btn');
+  if (shareBtn) {
+    shareBtn.onclick = () => {
+      const shareData = {
+        taskId: task.id,
+        title: task.title || 'Untitled Task',
+        budget: task.budget || 0,
+        category: task.category || 'General',
+        location: task.location || 'Remote / Anywhere',
+        description: (task.description || '').slice(0, 200)
+      };
+      if (typeof window.openShareTaskModal === 'function') {
+        window.openShareTaskModal(shareData);
+      } else if (typeof window.openShareTaskPicker === 'function') {
+        window.openShareTaskPicker(shareData);
+      } else if (typeof window.copyTaskLink === 'function') {
+        window.copyTaskLink(shareData.taskId, shareData.title);
+      }
+    };
   }
 
   // Check active role & application status
@@ -697,14 +774,39 @@ function closeTaskModal() {
     applyBtn.textContent = 'Submit Application';
     applyBtn.onclick = null;
   }
+
+  // Clear taskId parameter from URL on modal close
+  try {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('taskId');
+    currentUrl.searchParams.delete('id');
+    currentUrl.searchParams.delete('task');
+    const cleanSearch = currentUrl.searchParams.toString();
+    const newRelative = currentUrl.pathname + (cleanSearch ? '?' + cleanSearch : '');
+    window.history.replaceState(null, '', newRelative);
+  } catch (_) {}
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     initBrowseTasksPage();
-    window.addEventListener('taska:ready', loadBrowseTasks);
+    if (window.__taskaReady) {
+      loadBrowseTasks();
+    } else {
+      window.addEventListener('taska:ready', loadBrowseTasks);
+    }
   });
 } else {
   initBrowseTasksPage();
-  window.addEventListener('taska:ready', loadBrowseTasks);
+  if (window.__taskaReady) {
+    loadBrowseTasks();
+  } else {
+    window.addEventListener('taska:ready', loadBrowseTasks);
+  }
+}
+
+// ── Task Share Delegation ─────────────────────────────────────────────────────
+// Provided globally by /js/task-share.js (window.openShareTaskModal & window.copyTaskLink)
+if (typeof window.openShareTaskModal === 'function') {
+  window.openShareTaskPicker = window.openShareTaskModal;
 }
