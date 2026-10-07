@@ -62,8 +62,11 @@ RewriteRule ^dashboard/?$ tasker/dashboard/index.html [L,NC]
 RewriteRule ^tasker/dashboard/?$ tasker/dashboard/index.html [L,NC]
 RewriteRule ^poster/dashboard/?$ poster/dashboard/index.html [L,NC]
 
-RewriteRule ^tasker/profile/?$ tasker/profile/index.html [L,NC]
-RewriteRule ^poster/profile/?$ poster/profile/index.html [L,NC]
+RewriteRule ^tasker/profile/settings/?$ tasker/profile/settings/index.html [L,NC]
+RewriteRule ^tasker/profile(/.*)?$ tasker/profile/index.html [L,NC]
+
+RewriteRule ^poster/profile/settings/?$ poster/profile/settings/index.html [L,NC]
+RewriteRule ^poster/profile(/.*)?$ poster/profile/index.html [L,NC]
 
 RewriteRule ^wallet/?$ wallet/index.html [L,NC]
 RewriteRule ^chats/?$ chats/index.html [L,NC]
